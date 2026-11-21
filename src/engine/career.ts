@@ -251,7 +251,7 @@ export function switchClub(g: GameState, clubId: string) {
   const nuevo = g.clubs[clubId];
   if (!nuevo.sponsor) {
     const rng = new Rng(g.rng);
-    g.sponsorOfertas = sponsorOffers(nuevo.reputacion, rng);
+    g.sponsorOfertas = sponsorOffers(nuevo.reputacion, rng, nuevo);
     g.rng = rng.s;
   } else g.sponsorOfertas = [];
   addNews(g, `Nuevo club: ${g.clubs[clubId].nombre}`, `${g.manager} es el nuevo entrenador de ${g.clubs[clubId].nombre}. Objetivo: ${c.objetivo.texto.toLowerCase()}.`);

@@ -3,7 +3,7 @@ import { Rng, clamp } from './rng';
 import { wageFor } from './players';
 import { logMoney } from './market';
 import { APELLIDOS, NOMBRES } from './names';
-import type { Club, Fixture, GameState, InstKey, Instalaciones, Player, SponsorDeal, Staff, StaffKey } from './types';
+import type { Club, Fixture, GameState, InstKey, Instalaciones, Player, SponsorDeal, SponsorExtra, Staff, StaffKey } from './types';
 
 // ---------- Instalaciones ----------
 
@@ -237,7 +237,8 @@ export function asistencia(g: GameState, home: Club, away: Club, playoff: boolea
 /** Gastos fijos del club por fecha. */
 export function gastosFecha(g: GameState, c: Club) {
   const sueldos = c.plantel.reduce((s, id) => s + (g.players[id]?.sueldo ?? 0), 0);
-  const empleados = STAFF_ORDER.reduce((s, k) => s + staffSueldo(staffEstrellas(c, k)), 0);
+  // Si el sponsor paga los sueldos de los empleados, al club no le cuestan nada.
+  const empleados = c.sponsor?.extra?.tipo === 'sueldos' ? 0 : STAFF_ORDER.reduce((s, k) => s + staffSueldo(staffEstrellas(c, k)), 0);
   const mant = INST_ORDER.reduce((s, k) => s + INST[k].mant * c.inst[k], 0);
   return { sueldos, empleados, mant, total: sueldos + empleados + mant };
 }
@@ -298,14 +299,28 @@ const SPONSOR_NOMBRES = [
   'Cooperativa Eléctrica del Sur', 'Pinturerías Arcoíris',
 ];
 
-export function sponsorOffers(rep: number, rng: Rng): SponsorDeal[] {
+export function sponsorOffers(rep: number, rng: Rng, club?: Club): SponsorDeal[] {
   const base = Math.max(15_000_000, (rep - 45) * 2_000_000);
-  const names = rng.shuffle([...SPONSOR_NOMBRES]).slice(0, 3);
+  const names = rng.shuffle([...SPONSOR_NOMBRES]).slice(0, 4);
   const r = (x: number) => Math.round(x / 100_000) * 100_000;
+  // Además de plata, algunos ofrecen otra cosa: pagan menos al firmar pero suman algo al club.
+  const extras: SponsorExtra[] = [];
+  const mejorables = club ? INST_ORDER.filter((k) => club.inst[k] < INST[k].max && !club.obras?.some((o) => o.tipo === k)) : [];
+  if (mejorables.length) {
+    const k = rng.pick(mejorables);
+    extras.push({ tipo: 'obra', inst: k, texto: `Te paga la obra de ${INST[k].nombre.toLowerCase()} (nivel ${club!.inst[k] + 1}, vale ${Math.round(INST[k].costo(club!.inst[k] + 1) / 1_000_000)} millones).` });
+  }
+  extras.push({ tipo: 'sueldos', texto: 'Paga los sueldos de todos tus empleados durante la temporada.' });
+  const premio = r(base * 1.2);
+  extras.push({ tipo: 'titulo', monto: premio, texto: `Si salís campeón o ascendés, te da un premio extra de ${Math.round(premio / 1_000_000)} millones.` });
+  const socios = club ? Math.round((club.socios * 0.08) / 10) * 10 : 0;
+  if (socios > 0) extras.push({ tipo: 'socios', monto: socios, texto: `Camiseta nueva con su marca: se hacen socios ${socios.toLocaleString('es-AR')} hinchas más.` });
+  const [e1, e2] = rng.shuffle(extras);
   return [
     { nombre: names[0], tipo: 'fijo', fijo: r(base * (1 + rng.next() * 0.1)), porVictoria: 0 },
     { nombre: names[1], tipo: 'victoria', fijo: r(base * 0.55), porVictoria: r(base * 0.075) },
-    { nombre: names[2], tipo: 'victoria', fijo: r(base * 0.8), porVictoria: r(base * 0.03) },
+    { nombre: names[2], tipo: 'fijo', fijo: r(base * 0.6), porVictoria: 0, extra: e1 },
+    { nombre: names[3], tipo: 'victoria', fijo: r(base * 0.5), porVictoria: r(base * 0.03), extra: e2 },
   ];
 }
 
@@ -317,6 +332,15 @@ export function signSponsor(g: GameState, i: number): string {
   c.presupuesto += d.fijo;
   g.sponsorOfertas = [];
   logMoney(g, `Sponsor: ${d.nombre}`, d.fijo);
+  const x = d.extra;
+  if (x?.tipo === 'obra' && x.inst && c.inst[x.inst] < INST[x.inst].max && !c.obras.some((o) => o.tipo === x.inst)) {
+    c.obras.push({ tipo: x.inst, fechas: INST[x.inst].fechas, total: INST[x.inst].fechas });
+    return `Firmaste con ${d.nombre}. Arrancó la obra de ${INST[x.inst].nombre.toLowerCase()}, y la paga el sponsor.`;
+  }
+  if (x?.tipo === 'socios' && x.monto) {
+    c.socios += x.monto;
+    return `Firmaste con ${d.nombre}. Con la camiseta nueva se sumaron ${x.monto.toLocaleString('es-AR')} socios.`;
+  }
   return `Firmaste con ${d.nombre}.`;
 }
 

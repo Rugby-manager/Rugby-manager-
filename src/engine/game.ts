@@ -83,7 +83,7 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   refreshFreeAgents(g, rng);
   refreshTransferibles(g, rng);
   g.career = newCareer(g);
-  g.sponsorOfertas = sponsorOffers(g.clubs[g.userClubId].reputacion, rng);
+  g.sponsorOfertas = sponsorOffers(g.clubs[g.userClubId].reputacion, rng, g.clubs[g.userClubId]);
   drawCup(g, rng);
   scoutYouth(g, rng);
   g.amistosos = !!opts.amistosos;
@@ -514,6 +514,62 @@ export function promoSeries(g: GameState, cual: 'A' | 'C' = 'A') {
   return series.map((s) => promoAggregate(g, cual, s)!);
 }
 
+/** Premios en plata por el campeonato y los ascensos (para todos los clubes). */
+export const PREMIOS_LIGA = {
+  campeonA: 80_000_000,
+  subcampeonA: 30_000_000,
+  campeonB: 40_000_000,
+  campeonC: 25_000_000,
+  ascensoDirecto: 20_000_000,
+  ascensoRepechaje: 12_000_000,
+};
+/** Ayuda de la federación a cada club al empezar la temporada, según la categoría. */
+export const AYUDA_TEMPORADA: Record<'A' | 'B' | 'C', number> = { A: 20_000_000, B: 12_000_000, C: 7_000_000 };
+
+const millones = (n: number) => `$${(n / 1_000_000).toLocaleString('es-AR')} millones`;
+
+function pagarPremiosTemporada(g: GameState, rec: SeasonRecord) {
+  // Cada club cobra el premio más grande que le toque.
+  const pagos = new Map<string, { monto: number; motivo: string }>();
+  const dar = (id: string | undefined, monto: number, motivo: string) => {
+    if (!id || !g.clubs[id] || (pagos.get(id)?.monto ?? 0) >= monto) return;
+    pagos.set(id, { monto, motivo });
+  };
+  const directos = new Set([...rec.asciende.slice(0, 2), ...(rec.ascC ?? []).slice(0, 2)]);
+  for (const id of [...rec.asciende, ...(rec.ascC ?? [])]) {
+    const porRepechaje = !!rec.repechajes && !directos.has(id);
+    dar(id, porRepechaje ? PREMIOS_LIGA.ascensoRepechaje : PREMIOS_LIGA.ascensoDirecto, porRepechaje ? 'premio por ascender en el repechaje' : 'premio por el ascenso');
+  }
+  dar(rec.subcampeonA, PREMIOS_LIGA.subcampeonA, 'premio por el subcampeonato de Primera A');
+  dar(rec.campeonC, PREMIOS_LIGA.campeonC, 'premio por salir campeón de Primera C');
+  dar(rec.campeonB, PREMIOS_LIGA.campeonB, 'premio por salir campeón de Primera B');
+  dar(rec.campeonA, PREMIOS_LIGA.campeonA, 'premio por salir campeón de Primera A');
+  const user = g.clubs[g.userClubId];
+  const sx = user.sponsor?.extra;
+  const titulo = [rec.campeonA, rec.campeonB, rec.campeonC].includes(user.id) || rec.asciende.includes(user.id) || !!rec.ascC?.includes(user.id);
+  if (sx?.tipo === 'titulo' && sx.monto && titulo) {
+    user.presupuesto += sx.monto;
+    logMoney(g, `Premio de ${user.sponsor!.nombre} por el título`, sx.monto);
+    addNews(g, 'Premio del sponsor', `${user.sponsor!.nombre} cumplió: pagó ${millones(sx.monto)} extra por la gran temporada.`);
+  }
+  for (const [id, p] of pagos) {
+    g.clubs[id].presupuesto += p.monto;
+    if (id === g.userClubId) {
+      logMoney(g, `Federación: ${p.motivo}`, p.monto);
+      addNews(g, '\u{1F4B0} ¡Premio cobrado!', `La federación pagó ${millones(p.monto)} de ${p.motivo}. La plata ya está en la caja.`);
+    }
+  }
+}
+
+function pagarAyudaTemporada(g: GameState) {
+  for (const c of Object.values(g.clubs)) {
+    if (c.division === 'X') continue;
+    const monto = AYUDA_TEMPORADA[c.division];
+    c.presupuesto += monto;
+    if (c.id === g.userClubId) logMoney(g, `Ayuda de la federación (${DIV_NAME[c.division]})`, monto);
+  }
+}
+
 /** Serie de repechaje: 'A' entre Primera A y B, 'C' entre Primera B y C. */
 export function promoAggregate(g: GameState, cual: 'A' | 'C' = 'A', serie = 0) {
   const p1 = g.fixtures.find((f) => f.comp === (cual === 'A' ? 'PROMO1' : 'PROMOC1') && (f.serie ?? 0) === serie);
@@ -621,6 +677,7 @@ function closeSeason(g: GameState, rng: Rng) {
     posicionUsuario: { division: user.division, puesto: table.findIndex((r) => r.clubId === user.id) + 1 },
   };
   g.history.push(rec);
+  pagarPremiosTemporada(g, rec);
   seasonRecords(g);
   const premios = premiosTemporada(g);
   if (premios.length) addNews(g, '🏆 Premios de la temporada', premios.map((x) => `${x.premio}: ${x.nombre} (${g.clubs[x.clubId]?.corto ?? ''})`).join('. ') + '.');
@@ -753,10 +810,11 @@ export function startNextSeason(g: GameState): string[] {
   const sociosF = rec.campeonA === user.id || subio ? 1.12 : bajo ? 0.88 : 1.02;
   user.socios = Math.round(user.socios * sociosF);
   user.sponsor = null;
-  g.sponsorOfertas = sponsorOffers(user.reputacion, rng);
+  g.sponsorOfertas = sponsorOffers(user.reputacion, rng, user);
   refreshFreeAgents(g, rng);
   refreshTransferibles(g, rng);
   g.temporada++;
+  pagarAyudaTemporada(g);
   g.round = 1;
   g.phase = 'regular';
   g.ultimasMejoras = [];

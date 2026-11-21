@@ -342,12 +342,13 @@ function Sponsor() {
           <p style={{ margin: 0 }}>
             Pagó {formatMoney(c.sponsor.fijo)} al firmar{c.sponsor.porVictoria ? ` y paga ${formatMoney(c.sponsor.porVictoria)} por cada partido ganado` : ''}. El contrato dura toda la temporada.
           </p>
+          {c.sponsor.extra && <p className="small" style={{ margin: 0 }}>🎁 {c.sponsor.extra.texto}</p>}
         </section>
       )}
       {g.sponsorOfertas.length > 0 && (
         <section className="card stack">
           <h3>Ofertas de sponsors</h3>
-          <p className="small muted" style={{ margin: 0 }}>Elegí uno para esta temporada. Uno paga todo junto; los otros pagan menos al firmar pero dan premios por ganar.</p>
+          <p className="small muted" style={{ margin: 0 }}>Elegí uno para esta temporada. Uno paga todo junto; otros pagan menos al firmar pero dan premios por ganar, o te regalan algo para el club (🎁).</p>
           {g.sponsorOfertas.map((s, i) => (
             <div key={s.nombre} className="offer">
               <div className="grow">
@@ -355,7 +356,8 @@ function Sponsor() {
                 <div className="small">
                   {formatMoney(s.fijo)} al firmar{s.porVictoria ? ` + ${formatMoney(s.porVictoria)} por victoria` : ''}
                 </div>
-                <div className="small muted">{s.porVictoria ? `Si ganás 10 partidos: ${formatMoney(s.fijo + s.porVictoria * 10)} en total.` : 'Plata segura, ganes o pierdas.'}</div>
+                {s.extra && <div className="small" style={{ fontWeight: 700 }}>🎁 {s.extra.texto}</div>}
+                <div className="small muted">{s.porVictoria ? `Si ganás 10 partidos: ${formatMoney(s.fijo + s.porVictoria * 10)} en plata.` : s.extra ? 'Menos plata, pero con el regalo.' : 'Plata segura, ganes o pierdas.'}</div>
               </div>
               <button
                 className="btn primary small"

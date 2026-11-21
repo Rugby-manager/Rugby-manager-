@@ -71,6 +71,17 @@ export interface SponsorDeal {
   fijo: number;
   /** Premio por cada partido ganado. */
   porVictoria: number;
+  /** Algo más que plata: una obra, los sueldos de los empleados, un premio por título o camiseta nueva. */
+  extra?: SponsorExtra;
+}
+
+export interface SponsorExtra {
+  tipo: 'obra' | 'sueldos' | 'titulo' | 'socios';
+  /** Qué obra paga (tipo 'obra'). */
+  inst?: InstKey;
+  /** Premio si salís campeón o ascendés (tipo 'titulo'), o socios nuevos (tipo 'socios'). */
+  monto?: number;
+  texto: string;
 }
 
 export type Ataque = 'forwards' | 'equilibrado' | 'abrir';
