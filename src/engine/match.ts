@@ -70,6 +70,9 @@ export type Pause =
   | { kind: 'entretiempo' }
   | { kind: 'penal'; side: SideKey; dist: number; min: number; falta: string };
 
+// Jugadas preparadas: cuánto cambian ganar la formación y lo que viene después.
+export const LINE_MOD: Record<string, { win: number; t: number }> = { medio: { win: 0, t: 1 }, corto: { win: 0.05, t: 0.95 }, fondo: { win: -0.07, t: 1.14 }, maul: { win: -0.02, t: 1.06 } };
+export const SCRUM_MOD: Record<string, { t: number; p: number }> = { normal: { t: 1, p: 1 }, empujar: { t: 0.96, p: 1.3 }, rapida: { t: 1.08, p: 0.92 }, octavo: { t: 1.05, p: 1 } };
 const ATAQUE_MOD = { forwards: { t: 0.97, p: 1.12 }, equilibrado: { t: 1, p: 1 }, abrir: { t: 1.08, p: 0.9 } };
 const PIE_MOD = { poco: { t: 1.06, p: 0.85, d: 0.4 }, medio: { t: 1, p: 1, d: 1 }, mucho: { t: 0.88, p: 1.25, d: 3 } };
 const DEF_MOD = { conservadora: { t: 1.06, p: 0.82, y: 0.6 }, equilibrada: { t: 1, p: 1, y: 1 }, agresiva: { t: 0.9, p: 1.28, y: 1.7 } };
@@ -104,6 +107,8 @@ export class LiveMatch {
   t = 0;
   finished = false;
   pause: Pause | null = null;
+  /** Jugada preparada que salió en la pelota actual (para el relato y el tipo de try). */
+  jugada: string | null = null;
   private halftimeDone = false;
   private readonly detailed: boolean;
   private readonly rng: Rng;
@@ -434,20 +439,38 @@ export class LiveMatch {
     const setH = (H.ratings.scrum + H.ratings.line) / 2;
     const setA = (A.ratings.scrum + A.ratings.line) / 2;
     const homeBonus = this.input.neutral ? 0 : 0.01;
-    const shareH = clamp(0.5 + (setH - setA) * 0.006 + (H.ratings.F - A.ratings.F) * 0.004 + homeBonus, 0.35, 0.65);
+    // La salida (después de cada tanto) también pelea la pelota.
+    const salida = (s: LiveSide, o: LiveSide) => (s.tactics.salida === 'corta' ? 0.02 : s.tactics.salida === 'alta' ? (s.ratings.line > o.ratings.line ? 0.015 : -0.01) : 0);
+    const shareH = clamp(0.5 + (setH - setA) * 0.006 + (H.ratings.F - A.ratings.F) * 0.004 + homeBonus + salida(H, A) - salida(A, H), 0.35, 0.65);
     const att = rng.chance(shareH) ? H : A;
     const def = this.other(att);
     att.posesiones++;
 
     // De dónde sale la pelota: formación fija o juego abierto (estadísticas).
     const origen = rng.weighted(['scrum', 'line', 'ruck'] as const, [0.24, 0.3, 0.46]);
+    // Lo que suma (o resta) la jugada preparada en esta pelota.
+    let jt = 1;
+    let jp = 1;
+    this.jugada = null;
     if (origen === 'scrum') {
-      if (rng.chance(clamp(0.88 + (att.ratings.scrum - def.ratings.scrum) * 0.012, 0.6, 0.98))) att.stats.scrumsG++;
-      else def.stats.scrumsG++, att.stats.scrumsP++;
+      const js = att.tactics.scrum ?? 'normal';
+      // Empujar rinde si tu scrum es mejor; si no, te pueden dar vuelta.
+      const empuje = js === 'empujar' ? (att.ratings.scrum - def.ratings.scrum >= 0 ? 0.02 : -0.04) : js === 'rapida' ? -0.02 : 0;
+      if (rng.chance(clamp(0.88 + (att.ratings.scrum - def.ratings.scrum) * 0.012 + empuje, 0.6, 0.98))) {
+        att.stats.scrumsG++;
+        jt = SCRUM_MOD[js].t;
+        jp = js === 'empujar' && att.ratings.scrum >= def.ratings.scrum ? SCRUM_MOD[js].p : SCRUM_MOD[js].p > 1 ? 1 : SCRUM_MOD[js].p;
+        this.jugada = js === 'normal' ? null : `scrum-${js}`;
+      } else def.stats.scrumsG++, att.stats.scrumsP++;
     } else if (origen === 'line') {
-      if (rng.chance(clamp(0.85 + (att.ratings.line - def.ratings.line) * 0.012, 0.55, 0.97))) att.stats.linesG++;
-      else def.stats.linesG++, att.stats.linesP++;
+      const jl = att.tactics.line ?? 'medio';
+      if (rng.chance(clamp(0.85 + (att.ratings.line - def.ratings.line) * 0.012 + LINE_MOD[jl].win, 0.55, 0.98))) {
+        att.stats.linesG++;
+        jt = LINE_MOD[jl].t;
+        this.jugada = jl === 'medio' ? null : `line-${jl}`;
+      } else def.stats.linesG++, att.stats.linesP++;
     }
+    const opp = def.tactics.salida === 'corta' ? 1.03 : 1;
     def.stats.tackles += rng.int(4, 9);
     if (rng.chance(0.35)) def.stats.tacklesErrados++;
     // Penales chicos que no terminan en patada a los palos (se patean al touch o se juegan rápido).
@@ -462,8 +485,8 @@ export class LiveMatch {
     const dm = DEF_MOD[def.tactics.defensa];
     // Con lluvia, abrir la pelota es una lotería; con los forwards se sufre menos.
     const lluvia = this.input.clima === 'lluvia' ? (att.tactics.ataque === 'abrir' ? 0.84 : att.tactics.ataque === 'forwards' ? 1.02 : 0.93) : 1;
-    const pTry = TUNING.baseTry * Math.exp(diff * TUNING.kTry) * am.t * pm.t * dm.t * lluvia;
-    const pPen = TUNING.basePen * Math.exp(diff * TUNING.kPen) * am.p * pm.p * dm.p;
+    const pTry = TUNING.baseTry * Math.exp(diff * TUNING.kTry) * am.t * pm.t * dm.t * lluvia * jt * opp;
+    const pPen = TUNING.basePen * Math.exp(diff * TUNING.kPen) * am.p * pm.p * dm.p * jp;
     const pDrop = TUNING.baseDrop * pm.d * (this.input.clima === 'viento' ? 0.5 : 1);
     const r = rng.next();
 
@@ -543,7 +566,8 @@ export class LiveMatch {
       return;
     }
     // Al line: patada a la punta, line en las 5 y maul.
-    const lineWin = clamp(0.85 + (att.ratings.line - def.ratings.line) * 0.012, 0.55, 0.97);
+    const jl = att.tactics.line ?? 'medio';
+    const lineWin = clamp(0.85 + (att.ratings.line - def.ratings.line) * 0.012 + LINE_MOD[jl].win, 0.55, 0.98);
     if (!rng.chance(lineWin)) {
       att.stats.linesP++;
       def.stats.linesG++;
@@ -552,7 +576,7 @@ export class LiveMatch {
     }
     att.stats.linesG++;
     const push = (att.ratings.F - def.ratings.F) + (att.ratings.scrum - def.ratings.scrum) * 0.5;
-    const pTry = clamp(0.36 + push * 0.012 + (att.tactics.ataque === 'forwards' ? 0.05 : 0), 0.15, 0.65);
+    const pTry = clamp(0.36 + push * 0.012 + (att.tactics.ataque === 'forwards' ? 0.05 : 0) + (jl === 'maul' ? 0.08 : 0), 0.15, 0.7);
     this.push(min, 'line', att, `Penal para ${att.club.nombre} por ${falta}: ¡patean al line! Line en las 5 yardas, lo gana ${att.club.nombre} y arman el maul...`);
     if (rng.chance(pTry)) this.scoreTry(att, def, min, 'maul');
     else this.push(min, 'jugada', att, `¡Aguanta ${def.club.nombre}! Frenan el maul y la pelota queda retenida.`);
@@ -565,7 +589,9 @@ export class LiveMatch {
       rng.weighted(
         ['maul', 'pick', 'backs', 'contra', 'intercepcion'] as const,
         (att.tactics.ataque === 'forwards' ? [3, 2.4, 2, 0.8, 0.15] : att.tactics.ataque === 'abrir' ? [1, 1, 4, 1.5, 0.2] : [2, 2, 3, 1, 0.2]).map((w, i) =>
-          this.input.clima === 'lluvia' && (i === 2 || i === 3) ? w * 0.6 : w,
+          (this.input.clima === 'lluvia' && (i === 2 || i === 3) ? w * 0.6 : w) *
+          // La jugada preparada empuja hacia un tipo de try.
+          (this.jugada === 'line-maul' && i === 0 ? 3 : this.jugada === 'scrum-octavo' && i === 1 ? 3 : (this.jugada === 'line-fondo' || this.jugada === 'scrum-rapida') && i === 2 ? 2.5 : 1),
         ),
       );
     let scorer: Player | null;
@@ -617,7 +643,17 @@ export class LiveMatch {
     att.pts += 5;
     att.tries++;
     this.credit(att, scorer, 1, 5);
-    this.push(min, 'try', att, `🏉 ¡TRY de ${att.club.nombre}! ${text} ${this.marcador()}.`, scorer ? { pid: scorer.id } : undefined);
+    const JUGADA_TXT: Record<string, string> = {
+      'line-maul': 'Salió la jugada preparada: line para armar el maul.',
+      'line-fondo': 'Salió la jugada preparada: line al fondo para los backs.',
+      'line-corto': 'Line corto, seguro, y a jugar.',
+      'scrum-octavo': 'Salió la jugada del 8 desde el scrum.',
+      'scrum-rapida': 'Scrum rápido y pelota limpia para los backs, como estaba preparado.',
+      'scrum-empujar': 'El scrum empujó y dejó la pelota servida.',
+    };
+    const extra = this.jugada && JUGADA_TXT[this.jugada] ? ` ${JUGADA_TXT[this.jugada]}` : '';
+    this.jugada = null;
+    this.push(min, 'try', att, `🏉 ¡TRY de ${att.club.nombre}! ${text}${extra} ${this.marcador()}.`, scorer ? { pid: scorer.id } : undefined);
     const kicker = this.bySlot(att, att.ratings.kickerSlot) ?? this.bySlot(att, 9);
     const angle = metodo === 'backs' || metodo === 'maul' ? rng.next() * 0.25 - 0.17 : rng.next() * 0.2 - 0.08;
     if (rng.chance(clamp(att.ratings.kickPct - 0.04 + angle, 0.25, 0.97))) {

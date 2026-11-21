@@ -76,10 +76,18 @@ export type Ataque = 'forwards' | 'equilibrado' | 'abrir';
 export type JuegoPie = 'poco' | 'medio' | 'mucho';
 export type Defensa = 'conservadora' | 'equilibrada' | 'agresiva';
 
+export type JugadaLine = 'corto' | 'medio' | 'fondo' | 'maul';
+export type JugadaScrum = 'normal' | 'empujar' | 'rapida' | 'octavo';
+export type JugadaSalida = 'larga' | 'corta' | 'alta';
+
 export interface Tactics {
   ataque: Ataque;
   pie: JuegoPie;
   defensa: Defensa;
+  /** Jugadas preparadas (si no están, se juega lo de siempre). */
+  line?: JugadaLine;
+  scrum?: JugadaScrum;
+  salida?: JugadaSalida;
 }
 
 export type Patron = 'lisa' | 'rayas' | 'aros' | 'banda' | 'mitades' | 'cuartos' | 'cuadros';

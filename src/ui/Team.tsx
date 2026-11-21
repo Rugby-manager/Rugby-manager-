@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useGame } from './App';
 import { POS_LABEL, POS_ORDER, SHIRT_LABEL, SHIRT_POS, bestXV, fitKind, overall, posText, slotRating } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, ovrColor, toStars } from './common';
-import type { Ataque, Defensa, JuegoPie, Player } from '../engine/types';
+import type { Ataque, Defensa, JuegoPie, Player, JugadaLine, JugadaScrum, JugadaSalida } from '../engine/types';
 
 // Dónde se para cada camiseta en la cancha (centro de la tarjeta, en % del ancho y alto).
 const SPOTS: [number, number][] = [
@@ -279,6 +279,60 @@ export function TeamScreen() {
           />
           <p className="small muted" style={{ margin: 0 }}>
             {t.defensa === 'agresiva' ? 'Subir rápido a tacklear: concedés menos tries pero más penales y amarillas.' : t.defensa === 'conservadora' ? 'Línea ordenada y sin riesgos: pocas faltas, pero te pueden quebrar más.' : 'Ni mucho ni poco.'}
+          </p>
+        </div>
+      </section>
+      <section className="card stack" id="jugadas">
+        <h3>Jugadas preparadas</h3>
+        <p className="small muted" style={{ margin: 0 }}>Lo que ensayás en la semana para las formaciones. En el relato del partido vas a ver cuándo sale cada una.</p>
+        <div className="stack" style={{ gap: 6 }}>
+          <div className="label">Line</div>
+          <Seg<JugadaLine>
+            label="Line"
+            value={t.line ?? 'medio'}
+            onChange={(v) => setT({ line: v })}
+            options={[
+              { v: 'corto', l: 'Corto' },
+              { v: 'medio', l: 'Al medio' },
+              { v: 'fondo', l: 'Al fondo' },
+              { v: 'maul', l: 'Maul' },
+            ]}
+          />
+          <p className="small muted" style={{ margin: 0 }}>
+            {(t.line ?? 'medio') === 'corto' ? 'Tirarla al primer saltador: casi nunca la perdés, pero sale una pelota menos peligrosa.' : t.line === 'fondo' ? 'Tirarla al último para que ataquen los backs: más tries, pero la podés perder más seguido.' : t.line === 'maul' ? 'Agarrarla y armar el maul: muchos más tries de maul, sobre todo cerca del ingoal.' : 'Lo de siempre: ni muy seguro ni muy arriesgado.'}
+          </p>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <div className="label">Scrum</div>
+          <Seg<JugadaScrum>
+            label="Scrum"
+            value={t.scrum ?? 'normal'}
+            onChange={(v) => setT({ scrum: v })}
+            options={[
+              { v: 'normal', l: 'Normal' },
+              { v: 'empujar', l: 'Empujar' },
+              { v: 'rapida', l: 'Rápida' },
+              { v: 'octavo', l: 'Jugada del 8' },
+            ]}
+          />
+          <p className="small muted" style={{ margin: 0 }}>
+            {t.scrum === 'empujar' ? 'Empujar para sacar penales. Rinde si tu scrum es más fuerte; si no, te dan vuelta.' : t.scrum === 'rapida' ? 'Sacar la pelota rápido para los backs: más tries abiertos, pero el scrum queda más flojo.' : t.scrum === 'octavo' ? 'El 8 levanta y arranca: más tries de los forwards cerca del ingoal.' : 'Ganar la pelota y jugar.'}
+          </p>
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <div className="label">Salida</div>
+          <Seg<JugadaSalida>
+            label="Salida"
+            value={t.salida ?? 'larga'}
+            onChange={(v) => setT({ salida: v })}
+            options={[
+              { v: 'larga', l: 'Larga' },
+              { v: 'alta', l: 'Alta' },
+              { v: 'corta', l: 'Corta' },
+            ]}
+          />
+          <p className="small muted" style={{ margin: 0 }}>
+            {t.salida === 'corta' ? 'Patada corta para recuperarla: tenés más la pelota, pero si sale mal te agarran mal parado.' : t.salida === 'alta' ? 'Patada alta para pelearla en el aire: conviene si tus saltadores son mejores.' : 'Patear lejos y defender: lo más seguro.'}
           </p>
         </div>
       </section>
