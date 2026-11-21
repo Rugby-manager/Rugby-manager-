@@ -140,7 +140,7 @@ describe('partidas viejas', () => {
     }
     for (const p of Object.values(old.players) as any[]) delete p.ovrInicio;
     const m = migrate(old);
-    expect(m.version).toBe(16);
+    expect(m.version).toBe(17);
     expect(m.libres.length).toBeGreaterThan(0);
     expect(m.clubs[m.userClubId].presupuesto).toBeGreaterThan(0);
     while (m.phase !== 'fin') playRound(m);
@@ -161,7 +161,7 @@ describe('partidas viejas', () => {
     }
     old.fixtures = old.fixtures.filter((f: any) => f.comp !== 'C');
     const m = migrate(old);
-    expect(m.version).toBe(16);
+    expect(m.version).toBe(17);
     expect(Object.values(m.clubs).filter((c) => c.division === 'C').length).toBe(10);
     expect(m.fixtures.some((f) => f.comp === 'C')).toBe(false);
     while (m.phase !== 'fin') playRound(m);
@@ -179,7 +179,7 @@ describe('partidas viejas', () => {
     delete old.clubs.c0.codigo;
     delete old.clubs.c4.codigo;
     const m = migrate(old);
-    expect(m.version).toBe(16);
+    expect(m.version).toBe(17);
     expect(m.clubs.c0.nombre).toBe('Club Lobos de Mar');
     expect(m.clubs.c0.corto).toBe('LOB');
     expect(m.clubs.c4.nombre).toBe('Lagartos RC');
