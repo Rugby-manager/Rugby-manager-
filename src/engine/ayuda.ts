@@ -50,6 +50,10 @@ export function aplicarAyuda(g: GameState, ayuda: AyudaInicial, rng: Rng): strin
       let p = generatePlayer(rng, id, pos, target, rng.int(22, 26));
       for (let i = 0; i < 40 && overall(p) < 86; i++) p = generatePlayer(rng, id, pos, Math.min(90, target + i), rng.int(22, 26));
       p.potencial = Math.max(p.potencial, overall(p) + 2);
+      // Que no tenga el mismo apellido que otro del plantel, así se lo encuentra fácil.
+      const apellidos = new Set(c.plantel.map((x) => g.players[x].apellido));
+      for (let i = 0; i < 20 && apellidos.has(p.apellido); i++) Object.assign(p, randomName(rng));
+      p.estrella = true;
       p.moral = 80;
       p.contrato = 4;
       p.clubId = c.id;
@@ -59,6 +63,7 @@ export function aplicarAyuda(g: GameState, ayuda: AyudaInicial, rng: Rng): strin
       c.plantel.push(id);
       assignDorsal(c, g.players, p);
       c.xv = bestXV(c, g.players);
+      ponerEnXV(g, p.id);
       g.ayudaAviso = { texto: `Llegó ${p.nombre} ${p.apellido} (${POS_LABEL[p.pos]}, ${overall(p)} de media), la nueva figura del equipo. Ya está en tu XV de titular. Firmó por 4 años.`, playerId: p.id };
       return g.ayudaAviso.texto;
     }
@@ -102,4 +107,29 @@ export function aplicarAyuda(g: GameState, ayuda: AyudaInicial, rng: Rng): strin
     default:
       return null;
   }
+}
+
+/** Mete al jugador de titular en el puesto de su posición donde está el más flojo (si no estaba ya). */
+export function ponerEnXV(g: GameState, id: string) {
+  const c = g.clubs[g.userClubId];
+  const p = g.players[id];
+  if (!c || !p || p.clubId !== c.id || p.lesion > 0) return;
+  const ya = c.xv.indexOf(id);
+  if (ya >= 0 && SHIRT_POS[ya] === p.pos) return;
+  let slot = -1;
+  let peor = Infinity;
+  c.xv.forEach((x, i) => {
+    if (SHIRT_POS[i] !== p.pos) return;
+    const r = x && g.players[x] ? ratingAs(g.players[x].attrs, SHIRT_POS[i]) : -1;
+    if (r < peor) {
+      peor = r;
+      slot = i;
+    }
+  });
+  if (slot < 0) return;
+  const xv = [...c.xv];
+  // Si estaba jugando fuera de su puesto, el que sale de su lugar pasa a ese hueco.
+  if (ya >= 0) xv[ya] = xv[slot];
+  xv[slot] = id;
+  c.xv = xv;
 }

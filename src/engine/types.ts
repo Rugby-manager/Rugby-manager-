@@ -48,6 +48,8 @@ export interface Player {
   dorsal: number;
   /** Entrenamiento individual. null = el mismo que el equipo. */
   entreno: PlanEntreno | null;
+  /** La súper estrella de la ayuda inicial (se marca con ⭐). */
+  estrella?: boolean;
   /** Sueldo por fecha. */
   sueldo: number;
   /** Partidos con la Selección. */

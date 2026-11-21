@@ -96,7 +96,7 @@ function PlanBoard({ club, onChange }: { club: Club; onChange: () => void }) {
             <button key={x.id} className={`plancard ${x.entreno ? 'propio' : ''}`} onClick={() => setEdit(x.id)} style={{ opacity: x.lesion > 0 ? 0.55 : 1 }}>
               <span className="pc-dor num">{x.dorsal || '–'}</span>
               <span className="pc-main">
-                <b>{x.apellido}{x.lesion > 0 ? ' ✚' : ''}</b>
+                <b>{x.estrella ? '⭐ ' : ''}{x.apellido}{x.lesion > 0 ? ' ✚' : ''}</b>
                 <small>
                   {POS_LABEL[x.pos]} · {x.edad} años
                 </small>

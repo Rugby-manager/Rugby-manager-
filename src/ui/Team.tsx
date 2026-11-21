@@ -148,7 +148,7 @@ export function TeamScreen() {
               <span className="pc-top">
                 <span className="pc-n num">{i + 1}</span>
                 <span className="pc-name">
-                  <span className="sn">{p ? p.apellido : 'Vacío'}</span>
+                  <span className="sn">{p ? `${p.estrella ? '⭐' : ''}${p.apellido}` : 'Vacío'}</span>
                   {p && <span className="sr num" style={{ color: r >= 80 ? '#5dff8f' : r >= 72 ? '#b6f25a' : r >= 65 ? '#ffe14d' : '#ff8a6b' }}>{Math.round(r)}</span>}
                 </span>
               </span>
@@ -190,6 +190,7 @@ export function TeamScreen() {
                   </td>
                   <td className="nm">
                     <b>
+                      {p.estrella ? '⭐ ' : ''}
                       {p.apellido}
                       {p.lesion > 0 && <span style={{ color: 'var(--loss)' }}> ✚{p.lesion}</span>}
                     </b>

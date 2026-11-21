@@ -1,4 +1,4 @@
-import { aplicarAyuda, type AyudaInicial } from './ayuda';
+import { aplicarAyuda, ponerEnXV, type AyudaInicial } from './ayuda';
 import { eventosVestuario } from './vestuario';
 import { HINCHADA_INICIAL, hinchadaTrasPartido } from './hinchada';
 import { cerrarPrensa, editarDiario, premiosTemporada } from './diario';
@@ -1024,6 +1024,12 @@ export function migrate(g: GameState): GameState {
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;
+  // La estrella de la ayuda inicial tiene que estar en el XV mientras el cartel siga sin cerrar.
+  const est = g.ayudaAviso?.playerId ? g.players[g.ayudaAviso.playerId] : undefined;
+  if (est) {
+    est.estrella = true;
+    ponerEnXV(g, est.id);
+  }
   return g;
 }
 

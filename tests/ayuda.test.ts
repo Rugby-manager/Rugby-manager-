@@ -22,6 +22,20 @@ describe('ayuda inicial', () => {
     expect(overall(nuevo)).toBeGreaterThan(mejor);
     expect(g.ayudaAviso?.playerId).toBe(nuevo.id);
     expect(club(g).xv).toContain(nuevo.id);
+    expect(nuevo.estrella).toBe(true);
+  });
+
+  it('la estrella siempre juega en su puesto', async () => {
+    const { SHIRT_POS } = await import('../src/engine/players');
+    for (const i of [0, 3, 12, 20, 25, 28]) for (let seed = 1; seed < 8; seed++) {
+      const g = createGame({ seed, userClubIndex: i, ayuda: 'estrella' });
+      const c = club(g);
+      const id = c.plantel[c.plantel.length - 1];
+      const idx = c.xv.indexOf(id);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(SHIRT_POS[idx]).toBe(g.players[id].pos);
+      expect(new Set(c.xv.filter(Boolean)).size).toBe(c.xv.filter(Boolean).length);
+    }
   });
 
   it('estadio, staff, cantera y paciencia', () => {
