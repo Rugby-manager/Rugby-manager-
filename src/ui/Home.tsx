@@ -89,10 +89,40 @@ export function HomeScreen() {
   const rival = fx ? g.clubs[fx.home === club.id ? fx.away : fx.home] : null;
   const pre = preseasonPending(g) ? g.pretemporada! : null;
   const phase = pre ? `Pretemporada · Amistoso ${pre.partidos.filter((f) => f.result).length + 1} de 3` : roundName(g.round);
-  if (pre && pre.elegida === null) return <PreseasonPicker />;
+  const aviso = g.ayudaAviso && (
+    <section className="ayuda-aviso">
+      <div className="aa-hd">🎁 Tu ayuda para arrancar</div>
+      <p>{g.ayudaAviso.texto}</p>
+      <div className="row">
+        {g.ayudaAviso.playerId && (
+          <button className="btn small" onClick={() => go('equipo')}>
+            Ver el XV
+          </button>
+        )}
+        <button
+          className="btn small"
+          onClick={() => {
+            g.ayudaAviso = undefined;
+            refresh();
+            void saveNow();
+          }}
+        >
+          Entendido
+        </button>
+      </div>
+    </section>
+  );
+  if (pre && pre.elegida === null)
+    return (
+      <>
+        {aviso}
+        <PreseasonPicker />
+      </>
+    );
 
   return (
     <>
+      {aviso}
       {g.sponsorOfertas.length > 0 && (
         <button className="notice block-notice" onClick={() => go('club', 'sponsor')}>
           📝 Tenés {g.sponsorOfertas.length} ofertas de sponsors para esta temporada. Tocá acá para elegir una.

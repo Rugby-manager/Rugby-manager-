@@ -91,7 +91,10 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   g.amistosos = !!opts.amistosos;
   if (g.amistosos) makePreseason(g, rng);
   g.rng = rng.s;
-  if (textoAyuda) addNews(g, 'Ayuda para arrancar', textoAyuda);
+  if (textoAyuda) {
+    addNews(g, 'Ayuda para arrancar', textoAyuda);
+    g.ayudaAviso ??= { texto: textoAyuda };
+  }
   addNews(g, 'Bienvenido al club', `${g.manager} asume como entrenador de ${g.clubs[g.userClubId].nombre}.${g.modo === 'carrera' ? ' Nadie te conoce todavía: es tu oportunidad de hacerte un nombre.' : ''} La comisión directiva pide: ${g.career.objetivo.texto.toLowerCase()}.`);
   return g;
 }

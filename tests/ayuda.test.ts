@@ -17,7 +17,10 @@ describe('ayuda inicial', () => {
     expect(club(g).plantel.length).toBe(club(base).plantel.length + 1);
     const nuevo = g.players[club(g).plantel[club(g).plantel.length - 1]];
     const mejor = Math.max(...club(base).plantel.map((id) => overall(base.players[id])));
-    expect(overall(nuevo)).toBeGreaterThanOrEqual(mejor - 3);
+    expect(overall(nuevo)).toBeGreaterThan(85);
+    expect(nuevo.edad).toBeLessThanOrEqual(26);
+    expect(overall(nuevo)).toBeGreaterThan(mejor);
+    expect(g.ayudaAviso?.playerId).toBe(nuevo.id);
     expect(club(g).xv).toContain(nuevo.id);
   });
 

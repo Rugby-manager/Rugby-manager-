@@ -377,6 +377,8 @@ export interface GameState {
   sponsorOfertas: SponsorDeal[];
   /** Pibes que encontró el ojeador y todavía no subiste al plantel. */
   juveniles: string[];
+  /** Cartel de la ayuda inicial elegida, hasta que lo cerrás. */
+  ayudaAviso?: { texto: string; playerId?: string };
   /** Récords de la liga desde que dirigís. */
   records?: Partial<Record<string, RecordEntry>>;
   /** Última lista de la Selección. */

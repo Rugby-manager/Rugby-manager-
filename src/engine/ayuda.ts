@@ -1,7 +1,7 @@
 import { Rng, clamp } from './rng';
 import { INST, efectoEstrellas, STAFF } from './club';
 import { logMoney } from './market';
-import { SHIRT_POS, assignDorsal, bestXV, generatePlayer, overall, randomName, ratingAs, teamAverage, wageFor } from './players';
+import { POS_LABEL, SHIRT_POS, assignDorsal, bestXV, generatePlayer, overall, randomName, ratingAs, wageFor } from './players';
 import type { GameState, InstKey, Pos, StaffKey } from './types';
 
 /** La ayuda que elegís al empezar una partida nueva. */
@@ -10,7 +10,7 @@ export type AyudaInicial = 'nada' | 'plata' | 'estrella' | 'estadio' | 'staff' |
 export const AYUDAS: { id: AyudaInicial; icono: string; titulo: string; texto: string; soloCarrera?: boolean }[] = [
   { id: 'nada', icono: '🏉', titulo: 'Nada, partida normal', texto: 'Arrancás con lo que tiene el club. Para los que quieren el desafío de verdad.' },
   { id: 'plata', icono: '💰', titulo: 'Ayuda financiera', texto: 'Un mecenas pone plata en la caja: de 40 a 90 millones según la categoría del club.' },
-  { id: 'estrella', icono: '⭐', titulo: 'Un jugador estrella', texto: 'Llega un crack en el puesto donde más flojo está tu XV, con contrato por 4 años.' },
+  { id: 'estrella', icono: '⭐', titulo: 'Un jugador estrella', texto: 'Llega una súper estrella (más de 85 de media, 26 años o menos) al puesto donde más flojo está tu XV, con contrato por 4 años.' },
   { id: 'estadio', icono: '🏟️', titulo: 'Súper estadio', texto: 'Tribunas más grandes, gimnasio y cancha de entrenamiento mejorados y quincho nuevo.' },
   { id: 'staff', icono: '🧑‍🏫', titulo: 'Cuerpo técnico de lujo', texto: 'Todos los empleados de 4 estrellas: ayudante, kinesiólogo, médico, nutricionista y ojeador.' },
   { id: 'cantera', icono: '🌱', titulo: 'Camada de juveniles', texto: 'Suben 3 pibes de 17 años con muchísimo futuro. Hoy juegan poco, en dos o tres temporadas son figuras.' },
@@ -42,19 +42,25 @@ export function aplicarAyuda(g: GameState, ayuda: AyudaInicial, rng: Rng): strin
         }
       });
       const pos = SHIRT_POS[peor];
-      const target = clamp(Math.round(teamAverage(c, g.players) + 15), 70, 88);
+      // Una estrella de verdad: bastante mejor que el mejor del plantel.
+      const mejor = Math.max(...c.plantel.map((x) => overall(g.players[x])));
+      // Luca: una súper estrella llega con más de 85 de media y como mucho 26 años.
+      const target = clamp(Math.max(87, mejor + 5), 87, 90);
       const id = `p${(g.nextId++).toString(36)}`;
-      const p = generatePlayer(rng, id, pos, target, rng.int(24, 27));
+      let p = generatePlayer(rng, id, pos, target, rng.int(22, 26));
+      for (let i = 0; i < 40 && overall(p) < 86; i++) p = generatePlayer(rng, id, pos, Math.min(90, target + i), rng.int(22, 26));
       p.potencial = Math.max(p.potencial, overall(p) + 2);
       p.moral = 80;
       p.contrato = 4;
       p.clubId = c.id;
-      p.sueldo = wageFor(p);
+      // Viene por el proyecto: cobra la mitad de lo que valdría en el mercado.
+      p.sueldo = Math.round(wageFor(p) / 2 / 1000) * 1000;
       g.players[id] = p;
       c.plantel.push(id);
       assignDorsal(c, g.players, p);
       c.xv = bestXV(c, g.players);
-      return `Llegó ${p.nombre} ${p.apellido}, la nueva figura del equipo. Firmó por 4 años.`;
+      g.ayudaAviso = { texto: `Llegó ${p.nombre} ${p.apellido} (${POS_LABEL[p.pos]}, ${overall(p)} de media), la nueva figura del equipo. Ya está en tu XV de titular. Firmó por 4 años.`, playerId: p.id };
+      return g.ayudaAviso.texto;
     }
     case 'estadio': {
       const sube: Record<InstKey, number> = { tribunas: 3, gimnasio: 2, campo: 2, quincho: 1 };
