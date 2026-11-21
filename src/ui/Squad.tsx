@@ -3,7 +3,7 @@ import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
 import { ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, toStars } from './common';
-import { FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_LABEL } from '../engine/training';
+import { FOCO_ATTRS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL } from '../engine/training';
 import type { ReactNode } from 'react';
 import type { FocoEntreno, Intensidad } from '../engine/types';
 import type { GameState, Player, Pos } from '../engine/types';
@@ -143,22 +143,30 @@ function TrainingCard({ onChange }: { onChange: () => void }) {
   };
   const mejoras = g.ultimasMejoras ?? [];
   const byPlayer = new Map<string, string[]>();
+  const porAttr = new Map<string, number>();
   for (const m of mejoras) {
     if (!g.players[m.playerId] || g.players[m.playerId].clubId !== club.id) continue;
     byPlayer.set(m.playerId, [...(byPlayer.get(m.playerId) ?? []), ATTR_LABEL[m.attr]]);
+    porAttr.set(ATTR_LABEL[m.attr], (porAttr.get(ATTR_LABEL[m.attr]) ?? 0) + 1);
   }
+  const ef = INTENSIDAD_EFECTO[t.intensidad];
   return (
     <section className="card stack" id="entreno" style={{ scrollMarginTop: 80 }}>
       <h3>Entrenamiento del equipo</h3>
       <div className="label">En qué se enfocan</div>
-      <div className="chips" role="group" aria-label="Foco del entrenamiento">
+      <div className="focos" role="group" aria-label="Foco del entrenamiento">
         {(Object.keys(FOCO_LABEL) as FocoEntreno[]).map((f) => (
-          <button key={f} className="chip" aria-pressed={t.foco === f} onClick={() => set({ foco: f })}>
-            {FOCO_LABEL[f]}
+          <button key={f} className="foco" aria-pressed={t.foco === f} onClick={() => set({ foco: f })}>
+            <b>{FOCO_LABEL[f]}</b>
+            <span className="small">{FOCO_DESC[f]}</span>
+            <span className="attrs">
+              {FOCO_ATTRS[f].map((a) => (
+                <span key={a} className="attr">▲ {ATTR_LABEL[a]}</span>
+              ))}
+            </span>
           </button>
         ))}
       </div>
-      <p className="small muted">{FOCO_DESC[t.foco]}</p>
       <div className="label">Intensidad</div>
       <Seg<Intensidad>
         label="Intensidad"
@@ -166,10 +174,17 @@ function TrainingCard({ onChange }: { onChange: () => void }) {
         onChange={(v) => set({ intensidad: v })}
         options={(Object.keys(INTENSIDAD_LABEL) as Intensidad[]).map((v) => ({ v, l: INTENSIDAD_LABEL[v] }))}
       />
-      <p className="small muted">{INTENSIDAD_DESC[t.intensidad]} Los jóvenes mejoran más rápido, y nadie pasa de su potencial.</p>
+      <div className="grid3 int-ef">
+        <div><span className="label">Mejora</span><b>{ef.mejora}</b></div>
+        <div><span className="label">Energía</span><b>{ef.energia}</b></div>
+        <div><span className="label">Riesgo de lesión</span><b>{ef.lesion}</b></div>
+      </div>
+      <p className="small muted">{INTENSIDAD_DESC[t.intensidad]} Los jóvenes mejoran más rápido, los que tienen mucha actitud también, y nadie pasa de su potencial. El gimnasio y la cancha de entrenamiento suman.</p>
       {byPlayer.size > 0 && (
         <div className="small">
-          <b>La última semana mejoraron:</b>{' '}
+          <b>La última semana subió:</b> {[...porAttr.entries()].sort((a, b) => b[1] - a[1]).map(([a, n]) => `${a} +${n}`).join(' · ')}
+          <br />
+          <b>Quiénes mejoraron:</b>{' '}
           {[...byPlayer.entries()]
             .slice(0, 12)
             .map(([id, attrs]) => `${g.players[id].apellido} (${attrs.join(', ')})`)

@@ -26,6 +26,14 @@ export const INTENSIDAD_LABEL: Record<Intensidad, string> = {
   intenso: 'Intenso',
 };
 
+/** Qué pasa con cada intensidad, para mostrar en pantalla. */
+export const INTENSIDAD_EFECTO: Record<Intensidad, { mejora: string; energia: string; lesion: string }> = {
+  descanso: { mejora: 'Nada', energia: 'Recuperan mucho', lesion: 'Ninguno' },
+  suave: { mejora: 'Poca', energia: 'Recuperan algo', lesion: 'Ninguno' },
+  normal: { mejora: 'Normal', energia: 'Se mantiene', lesion: 'Muy bajo' },
+  intenso: { mejora: 'Mucha', energia: 'Se cansan', lesion: 'Alto' },
+};
+
 export const INTENSIDAD_DESC: Record<Intensidad, string> = {
   descanso: 'No mejoran, pero recuperan mucha energía.',
   suave: 'Mejoran poco y casi no se cansan.',
@@ -33,7 +41,7 @@ export const INTENSIDAD_DESC: Record<Intensidad, string> = {
   intenso: 'Mejoran más rápido, pero se cansan y hay más riesgo de lesión.',
 };
 
-const FOCO_ATTRS: Record<FocoEntreno, AttrKey[]> = {
+export const FOCO_ATTRS: Record<FocoEntreno, AttrKey[]> = {
   general: ['scrum', 'line', 'tackle', 'velocidad', 'manejo', 'pie', 'fisico'],
   fisico: ['fisico', 'velocidad', 'tackle'],
   forwards: ['scrum', 'line', 'tackle', 'fisico'],
