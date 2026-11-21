@@ -19,7 +19,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -778,19 +778,19 @@ export function migrate(g: GameState): GameState {
     g.version = 8;
   }
   if (g.version < 10) g.ofertas ??= [];
-  if (g.version < 14) {
+  if (g.version < 15) {
     // Nombres nuevos que eligió Luca (los clásicos siguen por el código interno).
     for (const c of Object.values(g.clubs)) {
       c.codigo ??= c.corto;
       const s = [...CLUB_SEEDS, ...CLUB_SEEDS_C].find((x) => x.codigo && x.codigo === c.codigo);
       if (s) Object.assign(c, { nombre: s.nombre, corto: s.corto, ciudad: s.ciudad });
     }
-    if (g.version >= 13) g.version = 14;
+    if (g.version >= 13) g.version = 15;
   }
   if (g.version < 13) {
     // Pretemporada con amistosos: arranca en la próxima temporada.
     g.amistosos ??= true;
-    if (g.version >= 12) g.version = 14;
+    if (g.version >= 12) g.version = 15;
   }
   if (g.version < 12) {
     // Luca les puso nombre nuevo a los clubes de Primera A (de la temporada 2027).
@@ -799,7 +799,7 @@ export function migrate(g: GameState): GameState {
       const s = CLUB_SEEDS.find((x) => x.codigo && x.codigo === c.codigo);
       if (s) Object.assign(c, { nombre: s.nombre, corto: s.corto, ciudad: s.ciudad, apodo: s.apodo });
     }
-    if (g.version >= 11) g.version = 14;
+    if (g.version >= 11) g.version = 15;
   }
   if (g.version < 11) {
     // Llega la Primera C: diez clubes nuevos. Si la temporada ya arrancó, juegan desde la próxima.
@@ -819,12 +819,12 @@ export function migrate(g: GameState): GameState {
       addNews(g, 'Nace la Primera C', `Se suman diez clubes en una tercera categoría.${empezo ? ' Empiezan a jugar la temporada que viene.' : ''} El campeón de la C sube a la B, y el 2.º juega la promoción con el 9.º de la B.`);
     }
     g.rng = rng.s;
-    if (g.version >= 9) g.version = 14;
+    if (g.version >= 9) g.version = 15;
   }
   if (g.version < 9) {
     g.records ??= {};
     for (const c of Object.values(g.clubs)) c.capitan ??= null;
-    g.version = 14;
+    g.version = 15;
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
   return g;
