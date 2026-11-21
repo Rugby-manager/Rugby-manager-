@@ -1,4 +1,5 @@
 import { ofertasVigentes } from '../engine/offers';
+import { describirEvento, resolverEvento } from '../engine/vestuario';
 import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { preseasonPending, skipPreseason } from '../engine/preseason';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
@@ -113,6 +114,12 @@ export function HomeScreen() {
       )}
       {pre && <PreseasonCard />}
       {!pre && conferenciaPendiente(g) && <PressConference />}
+      {g.vestuario && <VestuarioCard />}
+      {(g.promesas ?? []).map((pr) => (
+        <button key={pr.playerId} className="notice block-notice" onClick={() => go('equipo')}>
+          🤝 Le prometiste minutos a {g.players[pr.playerId]?.apellido}: tiene que jugar antes de la {roundName(pr.hasta)}.
+        </button>
+      ))}
       <div className="hub-date">
         <span>{pre ? `Pretemporada ${g.temporada}` : seasonDate(g.temporada, g.round)}</span>
         <span className="pill">{phase}</span>
@@ -794,6 +801,34 @@ function Diario() {
           </div>
         </Sheet>
       )}
+    </section>
+  );
+}
+
+/** Algo pasó en el vestuario: elegís qué hacer. */
+function VestuarioCard() {
+  const { g, refresh, toast } = useGame();
+  const e = g.vestuario!;
+  const d = describirEvento(g, e);
+  return (
+    <section className="card stack press">
+      <h3>🗣 {d.titulo}</h3>
+      <p className="small" style={{ margin: 0 }}>{d.texto}</p>
+      {d.opciones.map((o, i) => (
+        <button
+          key={o.texto}
+          className="btn block"
+          style={{ textAlign: 'left', height: 'auto', padding: '8px 10px' }}
+          onClick={() => {
+            toast(resolverEvento(g, i));
+            refresh();
+          }}
+        >
+          <span style={{ display: 'block' }}>{o.texto}</span>
+          <span className="small" style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontWeight: 400, opacity: 0.8 }}>{o.efecto}</span>
+        </button>
+      ))}
+      <p className="small muted" style={{ margin: 0 }}>Si no contestás en dos fechas, se resuelve solo (y no de la mejor manera).</p>
     </section>
   );
 }

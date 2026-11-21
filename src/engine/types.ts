@@ -272,6 +272,13 @@ export interface SeasonRecord {
   posicionUsuario: { division: DivId; puesto: number };
 }
 
+export interface VestuarioEvento {
+  id: string;
+  tipo: 'minutos' | 'irse' | 'pelea';
+  players: string[];
+  round: number;
+}
+
 export interface Edicion {
   temporada: number;
   round: number;
@@ -303,6 +310,10 @@ export interface GameState {
   news: NewsItem[];
   /** Ediciones del diario (la más nueva primero). */
   diario?: Edicion[];
+  /** Algo que pasó en el vestuario y espera tu respuesta. */
+  vestuario?: VestuarioEvento | null;
+  /** Minutos que le prometiste a alguien (tiene que jugar antes de la fecha "hasta"). */
+  promesas?: { playerId: string; hasta: number; partidos: number }[];
   /** Conferencia de prensa antes de un partido grande. */
   prensa?: { fixtureId: string; eleccion: number; resuelta?: boolean };
   /** Premios de cada temporada (la más nueva primero). */

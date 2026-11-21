@@ -1,3 +1,4 @@
+import { eventosVestuario } from './vestuario';
 import { cerrarPrensa, editarDiario, premiosTemporada } from './diario';
 import { refreshTransferibles, returnLoans } from './loans';
 import { makePreseason, nextFriendly, preseasonPending, choosePreseason as choosePre } from './preseason';
@@ -322,6 +323,7 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
   }
   editarDiario(g, fixtures);
   if (uf?.result) cerrarPrensa(g, uf);
+  if (uf) for (const t of eventosVestuario(g, rng)) addNews(g, '🗣 Vestuario', t);
   const report: RoundReport = { round: g.round, fixtures, userFixture: fixtures.find((f) => f.home === user.id || f.away === user.id), autoCambios };
   weeklyRecovery(g, fixtures, rng);
   advanceCalendar(g, rng);
