@@ -10,7 +10,7 @@ import { useGame } from './App';
 import { choosePreseason, COMP_NAME, DIV_NAME, matchWinner, playRound, promoSeries, standings, startNextSeason, startUserMatch, userFixture, type RoundReport } from '../engine/game';
 import { bestXV, overall, posText, readyXV, slotRating } from '../engine/players';
 import { ClubJersey, Ovr, Sheet, formatMoney } from './common';
-import { FOCO_LABEL, INTENSIDAD_LABEL } from '../engine/training';
+import { INTENSIDAD_LABEL } from '../engine/training';
 import { LiveMatchScreen, MatchLive } from './MatchLive';
 import { makeObjective, prestigioTexto, switchClub } from '../engine/career';
 import type { Club, Fixture, GameState, Player } from '../engine/types';
@@ -209,7 +209,7 @@ export function HomeScreen() {
         <Block
           tone="ent"
           title="Entrenador"
-          info={`Entrenamiento: ${FOCO_LABEL[club.entrenamiento.foco].toLowerCase()}, ${INTENSIDAD_LABEL[club.entrenamiento.intensidad].toLowerCase()}`}
+          info={`Entrenamiento individual · intensidad ${INTENSIDAD_LABEL[club.entrenamiento.intensidad].toLowerCase()}`}
           items={[
             { l: 'Formación', ico: <IcoFormacion size={36} />, on: () => go('equipo') },
             { l: 'Tácticas', ico: <IcoTactica size={36} />, on: () => go('equipo', 'tactica') },
@@ -298,7 +298,7 @@ function RivalSheet({ g, id, onClose }: { g: GameState; id: string; onClose: () 
   const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
   const fwd = avg(xv.slice(0, 8).map((p, i) => (p ? slotRating(p, i) : 0)));
   const bks = avg(xv.slice(8).map((p, i) => (p ? slotRating(p, i + 8) : 0)));
-  const kicker = xv.reduce<Player | null>((b, p) => (p && (!b || p.attrs.pie > b.attrs.pie) ? p : b), null);
+  const kicker = xv.reduce<Player | null>((b, p) => (p && (!b || p.attrs.precision > b.attrs.precision) ? p : b), null);
   const table = standings(g, c.division);
   const row = table.find((r) => r.clubId === id)!;
   const last5 = g.fixtures.filter((f) => f.result && (f.home === id || f.away === id)).slice(-5);
@@ -347,7 +347,7 @@ function RivalSheet({ g, id, onClose }: { g: GameState; id: string; onClose: () 
           </div>
           <div>
             <div className="label">Pateador</div>
-            <Ovr v={kicker?.attrs.pie ?? 0} />
+            <Ovr v={kicker?.attrs.precision ?? 0} />
           </div>
         </div>
       </div>

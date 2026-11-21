@@ -32,6 +32,8 @@ interface Ratings {
   lid: number;
   /** Actitud promedio de los que están en cancha. */
   act: number;
+  /** Coordinación del pack: menos penales en contra. */
+  coord: number;
 }
 
 export type SideKey = 'H' | 'A';
@@ -249,14 +251,20 @@ export class LiveMatch {
     const F = sum(eff.slice(0, 8)) / 8;
     const B = sum(eff.slice(8)) / 7;
     const sw = [2, 2, 2, 1.5, 1.5, 1, 1, 1];
-    const scrum = sum(sw.map((w, i) => w * attr(i, 'scrum'))) / sum(sw);
-    const line = (attr(1, 'line') * 2 + attr(3, 'line') * 1.5 + attr(4, 'line') * 1.5 + attr(5, 'line') * 0.5 + attr(7, 'line') * 0.5) / 6;
-    const def = sum(s.xv.map((_, i) => attr(i, 'tackle'))) / 15;
+    // Scrum: el empuje, la coordinación para no hacer penales y la dureza para aguantar.
+    const scrum = sum(sw.map((w, i) => w * (attr(i, 'scrum') * 0.65 + attr(i, 'coordinacion') * 0.2 + attr(i, 'dureza') * 0.15))) / sum(sw);
+    // Line: el lanzamiento del hooker, los saltadores y los que levantan.
+    const line =
+      (attr(1, 'pase') * 1.5 + attr(3, 'salto') * 1.5 + attr(4, 'salto') * 1.5 + attr(5, 'salto') * 0.5 + attr(7, 'salto') * 0.5 + attr(0, 'fuerzaLine') * 0.5 + attr(2, 'fuerzaLine') * 0.5) / 6.5;
+    // Defensa: tackle y trabajo en el ruck.
+    const def = sum(s.xv.map((_, i) => attr(i, 'tackle') * 0.7 + attr(i, 'ruck') * 0.3)) / 15;
+    // Coordinación del pack (menos penales en scrums y rucks).
+    const coord = sum([0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => attr(i, 'coordinacion'))) / 9;
     let kickerSlot = 9;
     let bestPie = -1;
     s.xv.forEach((p, i) => {
       if (!p || this.isOff(s, i)) return;
-      const v = p.attrs.pie * this.cond(p);
+      const v = (p.attrs.precision * 0.8 + p.attrs.potencia * 0.2) * this.cond(p);
       if (v > bestPie) {
         bestPie = v;
         kickerSlot = i;
@@ -269,7 +277,7 @@ export class LiveMatch {
     if (ci >= 0 && !this.isOff(s, ci)) lid = Math.max(lid, s.xv[ci]!.attrs.liderazgo + 6);
     const acts = s.xv.filter((p, i) => p && !this.isOff(s, i)).map((p) => p!.attrs.actitud ?? 66);
     const act = acts.length ? sum(acts) / acts.length : 66;
-    return { F, B, scrum, line, def, kickPct, kickerSlot, lid, act };
+    return { F, B, scrum, line, def, kickPct, kickerSlot, lid, act, coord };
   }
   private refresh() {
     this.H.ratings = this.computeRatings(this.H);
@@ -402,7 +410,7 @@ export class LiveMatch {
         if (!p || s.rojas.includes(i)) return;
         this.mins.set(p.id, (this.mins.get(p.id) ?? 0) + dt);
         const nutri = 1 - 0.05 * (s.club.staff?.nutricionista ?? 0);
-        const drain = (TUNING.desgaste - p.attrs.fisico / 1000) * (1.1 - (p.attrs.actitud ?? 66) / 660) * nutri * CLIMA_DRAIN[this.input.clima ?? 'nublado'];
+        const drain = (TUNING.desgaste - p.attrs.resistencia / 1000) * (1.1 - (p.attrs.actitud ?? 66) / 660) * nutri * CLIMA_DRAIN[this.input.clima ?? 'nublado'];
         this.energia.set(p.id, Math.max(5, (this.energia.get(p.id) ?? 100) - dt * drain));
       });
     }
@@ -486,7 +494,9 @@ export class LiveMatch {
     // Con lluvia, abrir la pelota es una lotería; con los forwards se sufre menos.
     const lluvia = this.input.clima === 'lluvia' ? (att.tactics.ataque === 'abrir' ? 0.84 : att.tactics.ataque === 'forwards' ? 1.02 : 0.93) : 1;
     const pTry = TUNING.baseTry * Math.exp(diff * TUNING.kTry) * am.t * pm.t * dm.t * lluvia * jt * opp;
-    const pPen = TUNING.basePen * Math.exp(diff * TUNING.kPen) * am.p * pm.p * dm.p * jp;
+    // Un pack descoordinado regala penales.
+    const disciplina = clamp(1 + (att.ratings.coord - def.ratings.coord) * 0.01, 0.8, 1.25);
+    const pPen = TUNING.basePen * Math.exp(diff * TUNING.kPen) * am.p * pm.p * dm.p * jp * disciplina;
     const pDrop = TUNING.baseDrop * pm.d * (this.input.clima === 'viento' ? 0.5 : 1);
     const r = rng.next();
 

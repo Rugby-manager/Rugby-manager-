@@ -87,7 +87,7 @@ describe('entrenamiento', () => {
   it('intenso mejora más que suave, y descanso no mejora', () => {
     const run = (int: 'suave' | 'intenso' | 'descanso') => {
       const g = createGame({ seed: 22 });
-      g.clubs[g.userClubId].entrenamiento = { foco: 'general', intensidad: int };
+      g.clubs[g.userClubId].entrenamiento = { foco: 'auto', intensidad: int };
       const c = g.clubs[g.userClubId];
       let mejoras = 0;
       const rng = new Rng(5);
@@ -108,7 +108,23 @@ describe('entrenamiento', () => {
     const rng = new Rng(9);
     const attrs = new Set<string>();
     for (let i = 0; i < 10; i++) trainClub(c, g.players, rng).mejoras.forEach((m) => attrs.add(m.attr));
-    expect([...attrs].every((a) => a === 'pie' || a === 'manejo')).toBe(true);
+    expect([...attrs].every((a) => a === 'precision' || a === 'potencia' || a === 'coordinacion')).toBe(true);
+  });
+
+  it('el plan individual de un jugador manda sobre el del equipo', () => {
+    const g = createGame({ seed: 25 });
+    const c = g.clubs[g.userClubId];
+    c.entrenamiento = { foco: 'auto', intensidad: 'intenso' };
+    c.inst.gimnasio = 0;
+    const p = g.players[c.plantel.find((id) => g.players[id].edad <= 23 && g.players[id].potencial > 70) ?? c.plantel[0]];
+    p.entreno = 'penetracion';
+    p.potencial = 99;
+    const antes = p.attrs.penetracion;
+    const rng = new Rng(4);
+    const mias = new Set<string>();
+    for (let i = 0; i < 15; i++) trainClub(c, g.players, rng).mejoras.filter((m) => m.playerId === p.id).forEach((m) => mias.add(m.attr));
+    expect([...mias]).toEqual(['penetracion']);
+    expect(p.attrs.penetracion).toBeGreaterThan(antes);
   });
 
   it('los jóvenes mejoran más que los veteranos', () => {
@@ -140,7 +156,7 @@ describe('partidas viejas', () => {
     }
     for (const p of Object.values(old.players) as any[]) delete p.ovrInicio;
     const m = migrate(old);
-    expect(m.version).toBe(18);
+    expect(m.version).toBe(19);
     expect(m.libres.length).toBeGreaterThan(0);
     expect(m.clubs[m.userClubId].presupuesto).toBeGreaterThan(0);
     while (m.phase !== 'fin') playRound(m);
@@ -161,7 +177,7 @@ describe('partidas viejas', () => {
     }
     old.fixtures = old.fixtures.filter((f: any) => f.comp !== 'C');
     const m = migrate(old);
-    expect(m.version).toBe(18);
+    expect(m.version).toBe(19);
     expect(Object.values(m.clubs).filter((c) => c.division === 'C').length).toBe(10);
     expect(m.fixtures.some((f) => f.comp === 'C')).toBe(false);
     while (m.phase !== 'fin') playRound(m);
@@ -179,7 +195,7 @@ describe('partidas viejas', () => {
     delete old.clubs.c0.codigo;
     delete old.clubs.c4.codigo;
     const m = migrate(old);
-    expect(m.version).toBe(18);
+    expect(m.version).toBe(19);
     expect(m.clubs.c0.nombre).toBe('Club Lobos de Mar');
     expect(m.clubs.c0.corto).toBe('LOB');
     expect(m.clubs.c4.nombre).toBe('Lagartos RC');

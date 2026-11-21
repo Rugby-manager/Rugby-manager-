@@ -236,7 +236,7 @@ export function closeCareerSeason(g: GameState, rec: SeasonRecord, rng: Rng) {
 export function switchClub(g: GameState, clubId: string) {
   const c = g.career!;
   const old = g.clubs[g.userClubId];
-  old.entrenamiento = { foco: 'general', intensidad: 'normal' };
+  old.entrenamiento = { foco: 'auto', intensidad: 'normal' };
   for (const id of old.plantel) g.players[id].entreno = null;
   delete old.hinchada;
   g.userClubId = clubId;

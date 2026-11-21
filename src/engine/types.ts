@@ -1,7 +1,19 @@
 import type { Career } from './career';
 
 export type Pos = 'PIL' | 'HOO' | 'SEG' | 'TER' | 'MSC' | 'APE' | 'CEN' | 'WIN' | 'FUL';
-export type AttrKey = 'scrum' | 'line' | 'tackle' | 'velocidad' | 'manejo' | 'pie' | 'liderazgo' | 'fisico' | 'actitud';
+export type AttrKey =
+  // Ataque y manejo de pelota
+  | 'velocidad' | 'penetracion' | 'pase' | 'recepcion'
+  // Defensa y contacto
+  | 'tackle' | 'ruck' | 'dureza'
+  // Formaciones fijas
+  | 'scrum' | 'salto' | 'fuerzaLine'
+  // Patada y coordinación
+  | 'precision' | 'potencia' | 'coordinacion'
+  // Estado físico
+  | 'resistencia'
+  // Cabeza
+  | 'liderazgo' | 'actitud';
 export type Attrs = Record<AttrKey, number>;
 /** 'X' = club extranjero (solo juega la Copa Cruz del Sur). */
 export type DivId = 'A' | 'B' | 'C' | 'X';
@@ -35,7 +47,7 @@ export interface Player {
   /** Número de camiseta en el plantel. */
   dorsal: number;
   /** Entrenamiento individual. null = el mismo que el equipo. */
-  entreno: FocoEntreno | null;
+  entreno: PlanEntreno | null;
   /** Sueldo por fecha. */
   sueldo: number;
   /** Partidos con la Selección. */
@@ -153,7 +165,10 @@ export interface Convocatoria {
   resultado: string;
 }
 
-export type FocoEntreno = 'fisico' | 'forwards' | 'backs' | 'pateo' | 'general';
+/** Grupo de atributos que se entrena ('auto' = lo que más necesita su puesto). */
+export type FocoEntreno = 'auto' | 'ataque' | 'defensa' | 'fijas' | 'pateo' | 'fisico';
+/** Lo que entrena un jugador: un grupo o un atributo puntual. */
+export type PlanEntreno = FocoEntreno | AttrKey;
 export type Intensidad = 'descanso' | 'suave' | 'normal' | 'intenso';
 
 export interface Training {

@@ -144,7 +144,7 @@ export function returnLoans(g: GameState): string[] {
     if (home.id === g.userClubId) {
       // Jugar seguido en otro club lo hace crecer.
       if (p.temporada.partidos >= 6) {
-        for (const k of ['velocidad', 'tackle', 'manejo', 'fisico'] as const) p.attrs[k] = Math.min(99, p.attrs[k] + 1);
+        for (const k of ['velocidad', 'tackle', 'pase', 'resistencia', 'ruck'] as const) p.attrs[k] = Math.min(99, p.attrs[k] + 1);
       }
       out.push(`${p.apellido} vuelve de su préstamo${p.temporada.partidos >= 6 ? ' con más rodaje' : ''}`);
     } else if (now?.id === g.userClubId) {

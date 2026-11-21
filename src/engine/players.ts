@@ -2,19 +2,63 @@ import { Rng, clamp } from './rng';
 import { APELLIDOS, NOMBRES } from './names';
 import type { AttrKey, Attrs, Club, Player, Pos } from './types';
 
-export const ATTR_KEYS: AttrKey[] = ['scrum', 'line', 'tackle', 'velocidad', 'manejo', 'pie', 'liderazgo', 'fisico', 'actitud'];
+export const ATTR_KEYS: AttrKey[] = [
+  'velocidad', 'penetracion', 'pase', 'recepcion',
+  'tackle', 'ruck', 'dureza',
+  'scrum', 'salto', 'fuerzaLine',
+  'precision', 'potencia', 'coordinacion',
+  'resistencia',
+  'liderazgo', 'actitud',
+];
 
 export const ATTR_LABEL: Record<AttrKey, string> = {
-  scrum: 'Scrum',
-  line: 'Line',
-  tackle: 'Tackle',
   velocidad: 'Velocidad',
-  manejo: 'Manejo',
-  pie: 'Pie',
+  penetracion: 'Penetración',
+  pase: 'Pase',
+  recepcion: 'Recepción',
+  tackle: 'Tackle',
+  ruck: 'Ruck',
+  dureza: 'Dureza',
+  scrum: 'Scrum',
+  salto: 'Salto en el line',
+  fuerzaLine: 'Fuerza en el line',
+  precision: 'Precisión de patada',
+  potencia: 'Potencia de patada',
+  coordinacion: 'Coordinación',
+  resistencia: 'Resistencia',
   liderazgo: 'Liderazgo',
-  fisico: 'Físico',
   actitud: 'Actitud',
 };
+
+/** Qué hace cada atributo, en palabras. */
+export const ATTR_DESC: Record<AttrKey, string> = {
+  velocidad: 'Llegar primero y dejar atrás al rival.',
+  penetracion: 'Romper la línea de defensa y ganar metros en el contacto.',
+  pase: 'Precisión y distancia de los pases (y el lanzamiento del hooker en el line).',
+  recepcion: 'Agarrar la pelota sin knock-ons, también las patadas altas.',
+  tackle: 'Frenar al que viene con la pelota.',
+  ruck: 'Limpiar y robar pelotas en el piso.',
+  dureza: 'Aguantar los choques y los golpes.',
+  scrum: 'Empujar y aguantar en el scrum.',
+  salto: 'Saltar y agarrar la pelota en el line.',
+  fuerzaLine: 'Levantar a los saltadores y empujar en el maul.',
+  precision: 'Meter las patadas a los palos y las de posición.',
+  potencia: 'Patear lejos: salidas, despejes y penales de lejos.',
+  coordinacion: 'Menos errores y menos penales en scrums y rucks.',
+  resistencia: 'Llegar entero al final: se cansa menos en el partido.',
+  liderazgo: 'Ordenar al equipo. Lo que más importa en el capitán.',
+  actitud: 'Ganas de entrenar y de dejar todo. Pesa al final del partido.',
+};
+
+/** Atributos agrupados como en la ficha del jugador. */
+export const ATTR_GROUPS: { k: string; l: string; attrs: AttrKey[] }[] = [
+  { k: 'ataque', l: 'Ataque y manejo', attrs: ['velocidad', 'penetracion', 'pase', 'recepcion'] },
+  { k: 'defensa', l: 'Defensa y contacto', attrs: ['tackle', 'ruck', 'dureza'] },
+  { k: 'fijas', l: 'Formaciones fijas', attrs: ['scrum', 'salto', 'fuerzaLine'] },
+  { k: 'pateo', l: 'Patada y coordinación', attrs: ['precision', 'potencia', 'coordinacion'] },
+  { k: 'fisico', l: 'Estado físico', attrs: ['resistencia'] },
+  { k: 'cabeza', l: 'Cabeza', attrs: ['liderazgo', 'actitud'] },
+];
 
 export const POS_LABEL: Record<Pos, string> = {
   PIL: 'Pilar',
@@ -40,16 +84,17 @@ export const SHIRT_LABEL = [
 
 export const isForward = (p: Pos) => p === 'PIL' || p === 'HOO' || p === 'SEG' || p === 'TER';
 
+/** Cuánto pesa cada atributo en cada puesto (suman 1). */
 export const W: Record<Pos, Partial<Attrs>> = {
-  PIL: { scrum: 0.38, fisico: 0.26, tackle: 0.16, manejo: 0.06, line: 0.04, velocidad: 0.04, liderazgo: 0.06 },
-  HOO: { line: 0.3, scrum: 0.26, tackle: 0.14, fisico: 0.14, manejo: 0.08, velocidad: 0.04, liderazgo: 0.04 },
-  SEG: { line: 0.32, fisico: 0.24, tackle: 0.18, scrum: 0.12, manejo: 0.06, velocidad: 0.04, liderazgo: 0.04 },
-  TER: { tackle: 0.3, fisico: 0.2, velocidad: 0.16, manejo: 0.14, line: 0.1, scrum: 0.04, liderazgo: 0.06 },
-  MSC: { manejo: 0.34, velocidad: 0.18, pie: 0.18, tackle: 0.1, liderazgo: 0.12, fisico: 0.08 },
-  APE: { pie: 0.34, manejo: 0.28, liderazgo: 0.14, velocidad: 0.1, tackle: 0.08, fisico: 0.06 },
-  CEN: { manejo: 0.24, tackle: 0.22, velocidad: 0.2, fisico: 0.18, pie: 0.08, liderazgo: 0.08 },
-  WIN: { velocidad: 0.4, manejo: 0.24, tackle: 0.12, fisico: 0.12, pie: 0.06, liderazgo: 0.06 },
-  FUL: { velocidad: 0.26, pie: 0.22, manejo: 0.22, tackle: 0.16, fisico: 0.08, liderazgo: 0.06 },
+  PIL: { scrum: 0.32, dureza: 0.14, fuerzaLine: 0.1, ruck: 0.1, tackle: 0.1, coordinacion: 0.06, resistencia: 0.06, penetracion: 0.04, pase: 0.02, liderazgo: 0.06 },
+  HOO: { scrum: 0.22, pase: 0.14, tackle: 0.12, ruck: 0.12, dureza: 0.1, fuerzaLine: 0.08, coordinacion: 0.06, resistencia: 0.06, velocidad: 0.04, liderazgo: 0.06 },
+  SEG: { salto: 0.26, fuerzaLine: 0.14, tackle: 0.14, ruck: 0.12, dureza: 0.1, scrum: 0.1, resistencia: 0.06, coordinacion: 0.04, liderazgo: 0.04 },
+  TER: { tackle: 0.22, ruck: 0.18, velocidad: 0.1, penetracion: 0.1, resistencia: 0.1, dureza: 0.08, salto: 0.06, recepcion: 0.06, scrum: 0.04, liderazgo: 0.06 },
+  MSC: { pase: 0.3, velocidad: 0.14, precision: 0.14, recepcion: 0.08, coordinacion: 0.08, tackle: 0.06, resistencia: 0.06, ruck: 0.02, liderazgo: 0.12 },
+  APE: { precision: 0.22, pase: 0.2, potencia: 0.12, recepcion: 0.08, penetracion: 0.08, velocidad: 0.06, tackle: 0.06, coordinacion: 0.04, liderazgo: 0.14 },
+  CEN: { penetracion: 0.2, tackle: 0.18, pase: 0.14, velocidad: 0.14, recepcion: 0.12, dureza: 0.1, ruck: 0.04, resistencia: 0.02, liderazgo: 0.06 },
+  WIN: { velocidad: 0.36, recepcion: 0.16, penetracion: 0.16, tackle: 0.1, pase: 0.06, resistencia: 0.06, potencia: 0.04, liderazgo: 0.06 },
+  FUL: { velocidad: 0.2, recepcion: 0.18, potencia: 0.14, tackle: 0.12, precision: 0.1, pase: 0.1, penetracion: 0.06, resistencia: 0.04, liderazgo: 0.06 },
 };
 
 /** Puestos parecidos: jugar ahí cuesta poco. */
@@ -109,8 +154,9 @@ export function posText(p: Pick<Player, 'pos' | 'pos2'>): string {
   return p.pos2?.length ? `${POS_LABEL[p.pos]} (también ${p.pos2.map((x) => POS_LABEL[x].toLowerCase()).join(' y ')})` : POS_LABEL[p.pos];
 }
 
+/** Cuánto de su nivel rinde hoy (1 = todo): baja con el cansancio y la moral baja, nunca sube de su nivel. */
 export function condition(p: Player): number {
-  return (0.8 + 0.2 * (p.energia / 100)) * (0.96 + 0.08 * (p.moral / 100));
+  return (0.8 + 0.2 * (p.energia / 100)) * (0.94 + 0.06 * (p.moral / 100));
 }
 
 /** Rendimiento real del jugador en una camiseta (ya con energía, moral y puesto). */
@@ -152,15 +198,43 @@ export function makeAttrs(rng: Rng, pos: Pos, target: number): Attrs {
   const a = {} as Attrs;
   for (const k of ATTR_KEYS) {
     const weight = w[k] ?? 0;
-    const base = weight >= 0.14 ? target + rng.normal(0, 5) : target - 14 + rng.normal(0, 9);
+    const base = weight >= 0.08 ? target + rng.normal(0, 5) : target - 14 + rng.normal(0, 9);
     a[k] = base;
   }
   // Los pateadores naturales son mejores con el pie.
-  if (pos === 'APE' || pos === 'FUL') a.pie += 3;
+  if (pos === 'APE' || pos === 'FUL') a.precision += 3;
   const diff = target - ratingAs(a, pos);
   for (const k of ATTR_KEYS) a[k] = Math.round(clamp(a[k] + diff, 25, 97));
   a.actitud = rollActitud(rng);
   return a;
+}
+
+/** Pasa los atributos de las partidas viejas (8 atributos) a los nuevos. */
+export function convertirAttrs(old: Record<string, number>, seed: string): Attrs {
+  if (old.penetracion !== undefined) return old as Attrs;
+  let h = 0;
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  const rng = new Rng(h || 7);
+  const v = (x: number) => Math.round(clamp(x + rng.normal(0, 2.5), 20, 97));
+  const o = (k: string) => old[k] ?? 50;
+  return {
+    velocidad: v(o('velocidad')),
+    penetracion: v((o('fisico') + o('velocidad') + o('manejo')) / 3),
+    pase: v(o('manejo')),
+    recepcion: v(o('manejo')),
+    tackle: v(o('tackle')),
+    ruck: v((o('tackle') + o('fisico')) / 2),
+    dureza: v(o('fisico')),
+    scrum: v(o('scrum')),
+    salto: v(o('line')),
+    fuerzaLine: v((o('line') + o('fisico') + o('scrum')) / 3),
+    precision: v(o('pie')),
+    potencia: v(o('pie')),
+    coordinacion: v((o('scrum') + o('manejo') + o('tackle')) / 3),
+    resistencia: v(o('fisico')),
+    liderazgo: Math.round(o('liderazgo')),
+    actitud: Math.round(o('actitud') || 66),
+  };
 }
 
 export function generatePlayer(rng: Rng, id: string, pos: Pos, target: number, edad?: number): Player {

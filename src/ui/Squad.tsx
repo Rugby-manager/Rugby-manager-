@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
-import { ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
+import { ATTR_DESC, ATTR_GROUPS, ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, toStars } from './common';
-import { FOCO_ATTRS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL } from '../engine/training';
+import { FOCOS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL } from '../engine/training';
 import type { ReactNode } from 'react';
-import type { FocoEntreno, Intensidad } from '../engine/types';
+import type { AttrKey, FocoEntreno, Intensidad, PlanEntreno } from '../engine/types';
 import type { GameState, Player, Pos } from '../engine/types';
 
 const UNITS: { name: string; pos: Pos[] }[] = [
@@ -17,7 +17,37 @@ const UNITS: { name: string; pos: Pos[] }[] = [
   { name: 'Wings y fullback', pos: ['WIN', 'FUL'] },
 ];
 
-export const FOCO_TAG: Record<FocoEntreno, string> = { general: 'GEN', fisico: 'FIS', forwards: 'FWD', backs: 'BCK', pateo: 'PIE' };
+const FOCO_TAG: Record<FocoEntreno, string> = { auto: 'AUT', ataque: 'ATQ', defensa: 'DEF', fijas: 'FIJ', pateo: 'PAT', fisico: 'FIS' };
+const ATTR_TAG: Record<AttrKey, string> = {
+  velocidad: 'VEL', penetracion: 'PEN', pase: 'PAS', recepcion: 'REC', tackle: 'TAC', ruck: 'RCK', dureza: 'DUR', scrum: 'SCR',
+  salto: 'SAL', fuerzaLine: 'FLN', precision: 'PRE', potencia: 'POT', coordinacion: 'COO', resistencia: 'RES', liderazgo: 'LID', actitud: 'ACT',
+};
+export const planTag = (plan: PlanEntreno) => (plan in FOCO_TAG ? FOCO_TAG[plan as FocoEntreno] : ATTR_TAG[plan as AttrKey]);
+/** Los atributos que se pueden entrenar (la cabeza no se entrena). */
+const ENTRENABLES = ATTR_KEYS.filter((k) => k !== 'liderazgo' && k !== 'actitud');
+
+/** Elegir qué entrena un jugador: un grupo o un atributo puntual. */
+function PlanSelect({ value, onChange, label }: { value: PlanEntreno; onChange: (v: PlanEntreno) => void; label: string }) {
+  return (
+    <select className="plansel" aria-label={label} value={value} onChange={(e) => onChange(e.target.value as PlanEntreno)}>
+      <optgroup label="Un grupo">
+        {FOCOS.map((f) => (
+          <option key={f} value={f}>{FOCO_LABEL[f]}</option>
+        ))}
+      </optgroup>
+      <optgroup label="Un atributo puntual (sube más rápido)">
+        {ENTRENABLES.map((k) => (
+          <option key={k} value={k}>{ATTR_LABEL[k]}</option>
+        ))}
+      </optgroup>
+    </select>
+  );
+}
+
+function planDesc(plan: PlanEntreno) {
+  if (plan in FOCO_LABEL) return FOCO_DESC[plan as FocoEntreno];
+  return `Solo ${ATTR_LABEL[plan as AttrKey].toLowerCase()}: ${ATTR_DESC[plan as AttrKey].charAt(0).toLowerCase()}${ATTR_DESC[plan as AttrKey].slice(1)} Sube más rápido que entrenando un grupo.`;
+}
 
 export function SquadScreen() {
   const { g, refresh, sub } = useGame();
@@ -114,7 +144,7 @@ export function SquadScreen() {
                         </span>
                       </td>
                       <td>
-                        <span className={`tag ${p.entreno ? 'on' : ''}`}>{FOCO_TAG[p.entreno ?? club.entrenamiento.foco]}</span>
+                        <span className={`tag ${p.entreno ? 'on' : ''}`}>{planTag(p.entreno ?? club.entrenamiento.foco)}</span>
                       </td>
                     </tr>
                   );
@@ -153,19 +183,39 @@ function TrainingCard({ onChange }: { onChange: () => void }) {
   return (
     <section className="card stack" id="entreno" style={{ scrollMarginTop: 80 }}>
       <h3>Entrenamiento del equipo</h3>
-      <div className="label">En qué se enfocan</div>
-      <div className="focos" role="group" aria-label="Foco del entrenamiento">
-        {(Object.keys(FOCO_LABEL) as FocoEntreno[]).map((f) => (
-          <button key={f} className="foco" aria-pressed={t.foco === f} onClick={() => set({ foco: f })}>
-            <b>{FOCO_LABEL[f]}</b>
-            <span className="small">{FOCO_DESC[f]}</span>
-            <span className="attrs">
-              {FOCO_ATTRS[f].map((a) => (
-                <span key={a} className="attr">▲ {ATTR_LABEL[a]}</span>
-              ))}
-            </span>
-          </button>
-        ))}
+      <p className="small" style={{ margin: 0 }}>
+        Cada jugador entrena lo que vos elijas: un grupo de atributos o uno puntual. Las instalaciones y el ayudante hacen rendir más el entrenamiento de todos.
+      </p>
+      <div className="grid3 int-ef">
+        <div><span className="label">Cancha de entrenamiento</span><b>Nivel {club.inst?.campo ?? 0}</b><span className="small">+{8 * (club.inst?.campo ?? 0)}% a todo</span></div>
+        <div><span className="label">Gimnasio</span><b>Nivel {club.inst?.gimnasio ?? 0}</b><span className="small">{club.inst?.gimnasio ? 'Resistencia, dureza y velocidad extra' : 'Sin gimnasio'}</span></div>
+        <div><span className="label">Ayudante</span><b>{club.staff?.ayudante ? `+${Math.round(5 * club.staff.ayudante)}%` : 'No tenés'}</b><span className="small">a todos</span></div>
+      </div>
+      <div className="label">Qué entrena cada uno</div>
+      <div className="planes">
+        <div className="planrow todos">
+          <span className="grow"><b>Los que no tienen plan propio</b></span>
+          <PlanSelect label="Plan para todos" value={t.foco} onChange={(v) => set({ foco: (v in FOCO_LABEL ? v : 'auto') as FocoEntreno })} />
+        </div>
+        {club.plantel
+          .map((id) => g.players[id])
+          .filter(Boolean)
+          .sort((x, y) => POS_ORDER.indexOf(x.pos) - POS_ORDER.indexOf(y.pos) || overall(y) - overall(x))
+          .map((p) => (
+            <div key={p.id} className={`planrow ${p.entreno ? 'propio' : ''}`}>
+              <span className="grow">
+                <b>{p.apellido}</b> <span className="small muted">{POS_LABEL[p.pos]}{p.lesion > 0 ? ' · 🩹' : ''}</span>
+              </span>
+              <PlanSelect
+                label={`Entrenamiento de ${p.apellido}`}
+                value={p.entreno ?? t.foco}
+                onChange={(v) => {
+                  p.entreno = v === t.foco ? null : v;
+                  onChange();
+                }}
+              />
+            </div>
+          ))}
       </div>
       <div className="label">Intensidad</div>
       <Seg<Intensidad>
@@ -179,7 +229,7 @@ function TrainingCard({ onChange }: { onChange: () => void }) {
         <div><span className="label">Energía</span><b>{ef.energia}</b></div>
         <div><span className="label">Riesgo de lesión</span><b>{ef.lesion}</b></div>
       </div>
-      <p className="small muted">{INTENSIDAD_DESC[t.intensidad]} Los jóvenes mejoran más rápido, los que tienen mucha actitud también, y nadie pasa de su potencial. El gimnasio y la cancha de entrenamiento suman.</p>
+      <p className="small muted">{INTENSIDAD_DESC[t.intensidad]} Los jóvenes mejoran más rápido, los que tienen mucha actitud también, y nadie pasa de su potencial.</p>
       {byPlayer.size > 0 && (
         <div className="small">
           <b>La última semana subió:</b> {[...porAttr.entries()].sort((a, b) => b[1] - a[1]).map(([a, n]) => `${a} +${n}`).join(' · ')}
@@ -210,7 +260,7 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
   const d = o - (p.ovrInicio ?? o);
   const club = p.clubId ? g.clubs[p.clubId] : null;
   const mine = p.clubId === g.userClubId;
-  const keyAttrs = new Set(ATTR_KEYS.filter((k) => (W[p.pos][k] ?? 0) >= 0.14));
+  const keyAttrs = new Set(ATTR_KEYS.filter((k) => (W[p.pos][k] ?? 0) >= 0.1));
   return (
     <Sheet
       title={
@@ -279,20 +329,25 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
           <span className="prev num" />
           <span className="now small">{moralText(p.moral)}</span>
         </div>
-        {ATTR_KEYS.map((k) => {
-          const prev = p.attrsInicio?.[k] ?? p.attrs[k];
-          const up = p.attrs[k] - prev;
-          return (
-            <div key={k} className={`attr2 ${keyAttrs.has(k) ? 'key' : ''}`}>
-              <span>{ATTR_LABEL[k]}</span>
-              <Stars n={toStars(p.attrs[k])} />
-              <span className="prev num">{up !== 0 ? prev : ''}</span>
-              <span className="now num" style={{ color: up > 0 ? 'var(--win)' : up < 0 ? 'var(--loss)' : undefined }}>
-                {p.attrs[k]}
-              </span>
-            </div>
-          );
-        })}
+        {ATTR_GROUPS.map((gr) => (
+          <div key={gr.k}>
+            <div className="attrgroup">{gr.l}</div>
+            {gr.attrs.map((k) => {
+              const prev = p.attrsInicio?.[k] ?? p.attrs[k];
+              const up = p.attrs[k] - prev;
+              return (
+                <div key={k} className={`attr2 ${keyAttrs.has(k) ? 'key' : ''}`} title={ATTR_DESC[k]}>
+                  <span>{ATTR_LABEL[k]}</span>
+                  <Stars n={toStars(p.attrs[k])} />
+                  <span className="prev num">{up !== 0 ? prev : ''}</span>
+                  <span className="now num" style={{ color: up > 0 ? 'var(--win)' : up < 0 ? 'var(--loss)' : undefined }}>
+                    {p.attrs[k]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
         <p className="small muted" style={{ marginTop: 6 }}>
           En negrita, los atributos que más pesan en su puesto. "Previo" es cómo empezó la temporada. La actitud es las ganas que le pone: con buena actitud rinde más en el último cuarto, se hace echar menos y aprovecha más el entrenamiento.
           {p.lesion > 0 ? ` Lesionado: ${p.lesion} semana${p.lesion > 1 ? 's' : ''}.` : ''}
@@ -301,17 +356,15 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
       {mine && onTrain && (
         <div className="card stack">
           <h3>Entrenamiento individual</h3>
-          <div className="chips" role="group" aria-label="Entrenamiento individual">
-            <button className="chip" aria-pressed={p.entreno === null} onClick={() => { p.entreno = null; onTrain(); }}>
-              Como el equipo
-            </button>
-            {(Object.keys(FOCO_LABEL) as FocoEntreno[]).map((f) => (
-              <button key={f} className="chip" aria-pressed={p.entreno === f} onClick={() => { p.entreno = f; onTrain(); }}>
-                {FOCO_LABEL[f]}
-              </button>
-            ))}
-          </div>
-          <p className="small muted">{FOCO_DESC[p.entreno ?? g.clubs[g.userClubId].entrenamiento.foco]}</p>
+          <PlanSelect
+            label="Entrenamiento individual"
+            value={p.entreno ?? g.clubs[g.userClubId].entrenamiento.foco}
+            onChange={(v) => {
+              p.entreno = v === g.clubs[g.userClubId].entrenamiento.foco ? null : v;
+              onTrain();
+            }}
+          />
+          <p className="small muted">{planDesc(p.entreno ?? g.clubs[g.userClubId].entrenamiento.foco)}</p>
         </div>
       )}
       <div className="card">

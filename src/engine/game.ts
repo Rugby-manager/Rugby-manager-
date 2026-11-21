@@ -10,11 +10,11 @@ import { Rng, clamp } from './rng';
 import { CLUB_SEEDS, CLUB_SEEDS_C, type ClubSeed } from './names';
 import { LiveMatch, simulateMatch } from './match';
 import {
-  ATTR_KEYS, MIN_BY_POS, POS_ORDER, SQUAD_TEMPLATE, assignDorsal, bestXV, generatePlayer, overall, ratingAs, readyXV, rollSecondary, wageFor,
+  ATTR_KEYS, convertirAttrs, MIN_BY_POS, POS_ORDER, SQUAD_TEMPLATE, assignDorsal, bestXV, generatePlayer, overall, ratingAs, readyXV, rollSecondary, wageFor,
   rollActitud, teamAverage, lesionNombre,
 } from './players';
 import { presupuestoInicial, refreshFreeAgents, sponsor, taquilla, logMoney } from './market';
-import { ENERGIA_ENTRENO, trainAll } from './training';
+import { ENERGIA_ENTRENO, planNuevo, trainAll } from './training';
 import { COPA_NOMBRE, CUP_ETAPA, advanceCup, drawCup, scoutYouth } from './cup';
 import { INTL_NOMBRE, INTL_PREMIO, avanzarIntl, elegirRivales, fixturesGrupo } from './internacional';
 import { asistencia, initClubBusiness, signSponsor, sponsorOffers, weeklyFinances } from './club';
@@ -23,7 +23,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -103,7 +103,7 @@ function addClub(g: GameState, rng: Rng, id: string, seedClub: ClubSeed, rep: nu
     xv: Array(15).fill(null),
     tactica: { ...rng.pick(AI_TACTICS) },
     presupuesto: presupuestoInicial(rep),
-    entrenamiento: { foco: 'general', intensidad: 'normal' },
+    entrenamiento: { foco: 'auto', intensidad: 'normal' },
   } as unknown as Club;
   initClubBusiness(club);
   g.clubs[id] = club;
@@ -344,7 +344,7 @@ function applyMatchEffects(g: GameState, f: Fixture, rng: Rng) {
     p.carrera.partidos++;
     // El desgaste depende de los minutos que jugó.
     const share = r.minutos ? clamp((r.minutos[id] ?? 0) / 80, 0.15, 1) : 1;
-    p.energia = Math.round(clamp(p.energia - ((30 - p.attrs.fisico / 10) + rng.int(0, 6)) * share, 5, 100));
+    p.energia = Math.round(clamp(p.energia - ((30 - p.attrs.resistencia / 10) + rng.int(0, 6)) * share, 5, 100));
   }
   if (!r.events) delete r.minutos;
   for (const s of r.scorers) {
@@ -849,7 +849,7 @@ export function developPlayer(p: Player, rng: Rng) {
   for (const k of ATTR_KEYS) {
     let d = delta + rng.normal(0, 1);
     // Los veteranos pierden velocidad y físico primero, pero ganan liderazgo.
-    if (delta < 0 && (k === 'velocidad' || k === 'fisico')) d *= 1.4;
+    if (delta < 0 && (k === 'velocidad' || k === 'resistencia')) d *= 1.4;
     if (k === 'liderazgo' && p.edad >= 27) d = Math.abs(d) * 0.4 + 0.3;
     // La actitud casi no cambia con la edad.
     if (k === 'actitud') d = rng.normal(0, 1.5);
@@ -862,11 +862,21 @@ export function developPlayer(p: Player, rng: Rng) {
 /** Actualiza partidas guardadas con versiones anteriores del juego. */
 export function migrate(g: GameState): GameState {
   const orig = g.version ?? 1;
+  if (orig < 19) {
+    // Atributos nuevos (velocidad, penetración, pase... resistencia) y entrenamiento individual.
+    // Va primero porque las migraciones de abajo ya calculan medias con los atributos nuevos.
+    for (const p of Object.values(g.players)) {
+      if (p.attrs) p.attrs = convertirAttrs(p.attrs as unknown as Record<string, number>, p.id);
+      if (p.attrsInicio) p.attrsInicio = convertirAttrs(p.attrsInicio as unknown as Record<string, number>, p.id);
+      p.entreno = planNuevo(p.entreno);
+    }
+    for (const c of Object.values(g.clubs)) if (c.entrenamiento) c.entrenamiento.foco = (planNuevo(c.entrenamiento.foco) ?? 'auto') as Club['entrenamiento']['foco'];
+  }
   if ((g.version ?? 1) < 2) {
     const rng = new Rng(g.rng || 12345);
     for (const c of Object.values(g.clubs)) {
       c.presupuesto ??= presupuestoInicial(c.reputacion);
-      c.entrenamiento ??= { foco: 'general', intensidad: 'normal' };
+      c.entrenamiento ??= { foco: 'auto', intensidad: 'normal' };
     }
     for (const p of Object.values(g.players)) p.ovrInicio ??= overall(p);
     g.libres ??= [];
@@ -998,6 +1008,14 @@ export function migrate(g: GameState): GameState {
     for (const c of Object.values(g.clubs)) c.capitan ??= null;
     g.version = 18;
   }
+  if (g.version < 19) {
+    for (const p of Object.values(g.players)) {
+      const o = overall(p);
+      if (p.potencial < o) p.potencial = o;
+    }
+    g.ultimasMejoras = [];
+    g.version = 19;
+  }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;
   return g;
@@ -1030,7 +1048,7 @@ function playFriendly(g: GameState, userResult?: MatchResult): RoundReport {
     const pl = g.players[id];
     if (!pl) continue;
     const share = res.minutos ? clamp((res.minutos[id] ?? 0) / 80, 0.15, 1) : 1;
-    pl.energia = Math.round(clamp(pl.energia - (22 - pl.attrs.fisico / 10) * share, 5, 100));
+    pl.energia = Math.round(clamp(pl.energia - (22 - pl.attrs.resistencia / 10) * share, 5, 100));
   }
   // En los amistosos se cuida a los jugadores: las lesiones duran la mitad.
   for (const l of res.lesionados) {

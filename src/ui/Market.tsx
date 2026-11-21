@@ -29,6 +29,8 @@ export function MarketScreen() {
   const [maxPrice, setMaxPrice] = useState<'all' | 'mine'>('mine');
   const [open, setOpen] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
+  const [edad, setEdad] = useState<'all' | 'sub21' | 'medio' | 'vet'>('all');
+  const edadOk = (p: Player) => edad === 'all' || (edad === 'sub21' ? p.edad <= 21 : edad === 'medio' ? p.edad >= 22 && p.edad <= 28 : p.edad >= 29);
 
   let list: Player[] = [];
   if (mode === 'comprar') {
@@ -53,6 +55,8 @@ export function MarketScreen() {
       .filter((p) => pos === 'ALL' || p.pos === pos)
       .sort((a, b) => POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos) || overall(b) - overall(a));
   }
+
+  list = list.filter(edadOk);
 
   const act = (id: string) => {
     try {
@@ -97,6 +101,13 @@ export function MarketScreen() {
       </p>
       {(
         <>
+          <div className="chips" role="group" aria-label="Filtrar por edad">
+            {([['all', 'Todas las edades'], ['sub21', 'Hasta 21'], ['medio', '22 a 28'], ['vet', '29 o más']] as const).map(([v, l]) => (
+              <button key={v} className="chip" aria-pressed={edad === v} onClick={() => { setEdad(v); setLimit(40); }}>
+                {l}
+              </button>
+            ))}
+          </div>
           <div className="chips" role="group" aria-label="Filtrar por puesto">
             <button className="chip" aria-pressed={pos === 'ALL'} onClick={() => setPos('ALL')}>
               Todos

@@ -81,7 +81,7 @@ export function TeamScreen() {
 
   const fwd = avg(players.slice(0, 8).map((p, i) => (p ? slotRating(p, i) : 0)));
   const bks = avg(players.slice(8).map((p, i) => (p ? slotRating(p, i + 8) : 0)));
-  const kicker = players.reduce<Player | null>((b, p) => (p && (!b || p.attrs.pie > b.attrs.pie) ? p : b), null);
+  const kicker = players.reduce<Player | null>((b, p) => (p && (!b || p.attrs.precision > b.attrs.precision) ? p : b), null);
   const problems = players.filter((p, i) => !p || p.lesion > 0 || fitKind(p, SHIRT_POS[i]) === 'fuera').length;
 
   const t = club.tactica;
@@ -226,7 +226,7 @@ export function TeamScreen() {
           </div>
           <div>
             <div className="label">Pateador</div>
-            <Ovr v={kicker?.attrs.pie ?? 0} />
+            <Ovr v={kicker?.attrs.precision ?? 0} />
             <div className="small muted">{kicker?.apellido}</div>
           </div>
         </div>
