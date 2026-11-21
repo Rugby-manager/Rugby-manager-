@@ -138,8 +138,8 @@ export const isLeague = (c: Comp) => c === 'A' || c === 'B' || c === 'C';
 /** La Primera C se juega esta temporada (en partidas viejas arranca la temporada siguiente). */
 export const hasC = (g: GameState) => g.fixtures.some((f) => f.comp === 'C');
 export const COMP_NAME: Record<Comp, string> = {
-  A: 'Primera A', B: 'Primera B', C: 'Primera C', SEMI: 'Semifinal', FINAL: 'Final', PROMO1: 'Promoción A-B (ida)', PROMO2: 'Promoción A-B (vuelta)',
-  AMISTOSO: 'Amistoso', PROMOC1: 'Promoción B-C (ida)', PROMOC2: 'Promoción B-C (vuelta)', COPA: 'Copa del Ñandubay', INTL: 'Copa Cruz del Sur',
+  A: 'Primera A', B: 'Primera B', C: 'Primera C', SEMI: 'Semifinal', FINAL: 'Final', PROMO1: 'Repechaje A-B (ida)', PROMO2: 'Repechaje A-B (vuelta)',
+  AMISTOSO: 'Amistoso', PROMOC1: 'Repechaje B-C (ida)', PROMOC2: 'Repechaje B-C (vuelta)', COPA: 'Copa del Ñandubay', INTL: 'Copa Cruz del Sur',
 };
 
 export function divisionClubs(g: GameState, d: DivId): Club[] {
@@ -420,30 +420,31 @@ function advanceCalendar(g: GameState, rng: Rng) {
     g.fixtures.push(
       { id: newId(g, 'f'), round: 19, comp: 'SEMI', home: a1, away: a4 },
       { id: newId(g, 'f'), round: 19, comp: 'SEMI', home: a2, away: a3 },
-      // Ida en la cancha del de Primera B, vuelta en la del de Primera A.
-      { id: newId(g, 'f'), round: 19, comp: 'PROMO1', home: tB[1].clubId, away: tA[8].clubId },
+      // Repechajes: ida en la cancha del de Primera B, vuelta en la del de Primera A.
+      { id: newId(g, 'f'), round: 19, comp: 'PROMO1', serie: 0, home: tB[2].clubId, away: tA[7].clubId },
+      { id: newId(g, 'f'), round: 19, comp: 'PROMO1', serie: 1, home: tB[3].clubId, away: tA[6].clubId },
     );
     let extraC = '';
     if (hasC(g)) {
       const tC = standings(g, 'C');
-      g.fixtures.push({ id: newId(g, 'f'), round: 19, comp: 'PROMOC1', home: tC[1].clubId, away: tB[8].clubId });
-      extraC = ` En Primera C salió campeón ${g.clubs[tC[0].clubId].nombre} y sube a la B.`;
+      g.fixtures.push(
+        { id: newId(g, 'f'), round: 19, comp: 'PROMOC1', serie: 0, home: tC[2].clubId, away: tB[7].clubId },
+        { id: newId(g, 'f'), round: 19, comp: 'PROMOC1', serie: 1, home: tC[3].clubId, away: tB[6].clubId },
+      );
+      extraC = ` En Primera C suben directo ${g.clubs[tC[0].clubId].nombre} y ${g.clubs[tC[1].clubId].nombre}.`;
     }
     const pos = standings(g, user.division).findIndex((r) => r.clubId === user.id) + 1;
-    addNews(g, 'Terminó la fase regular', `${g.clubs[a1].nombre} terminó primero en Primera A y ${g.clubs[tB[0].clubId].nombre} es campeón de Primera B y asciende.${extraC} Tu equipo terminó ${pos}.º en ${DIV_NAME[user.division]}.`);
+    addNews(g, 'Terminó la fase regular', `${g.clubs[a1].nombre} terminó primero en Primera A. De la B suben directo ${g.clubs[tB[0].clubId].nombre} (campeón) y ${g.clubs[tB[1].clubId].nombre}; los dos últimos de cada categoría bajan y del 7.º al 4.º juegan repechaje.${extraC} Tu equipo terminó ${pos}.º en ${DIV_NAME[user.division]}.`);
   } else if (finished === 19) {
     const semis = g.fixtures.filter((f) => f.comp === 'SEMI');
     const tA = standings(g, 'A');
     const seed = (id: string) => tA.findIndex((r) => r.clubId === id);
     const [w1, w2] = semis.map(matchWinner) as string[];
     const [home, away] = seed(w1) < seed(w2) ? [w1, w2] : [w2, w1];
-    const promo1 = g.fixtures.find((f) => f.comp === 'PROMO1')!;
-    g.fixtures.push(
-      { id: newId(g, 'f'), round: 20, comp: 'FINAL', home, away },
-      { id: newId(g, 'f'), round: 20, comp: 'PROMO2', home: promo1.away, away: promo1.home },
-    );
-    const pc1 = g.fixtures.find((f) => f.comp === 'PROMOC1');
-    if (pc1) g.fixtures.push({ id: newId(g, 'f'), round: 20, comp: 'PROMOC2', home: pc1.away, away: pc1.home });
+    g.fixtures.push({ id: newId(g, 'f'), round: 20, comp: 'FINAL', home, away });
+    for (const p1 of g.fixtures.filter((f) => f.comp === 'PROMO1' || f.comp === 'PROMOC1')) {
+      g.fixtures.push({ id: newId(g, 'f'), round: 20, comp: p1.comp === 'PROMO1' ? 'PROMO2' : 'PROMOC2', serie: p1.serie, home: p1.away, away: p1.home });
+    }
   } else if (finished === LAST_ROUND) {
     g.phase = 'fin';
     closeSeason(g, rng);
@@ -507,10 +508,16 @@ function quitarExtranjeros(g: GameState) {
   }
 }
 
-/** Serie de promoción: 'A' entre Primera A y B, 'C' entre Primera B y C. */
-export function promoAggregate(g: GameState, cual: 'A' | 'C' = 'A') {
-  const p1 = g.fixtures.find((f) => f.comp === (cual === 'A' ? 'PROMO1' : 'PROMOC1'));
-  const p2 = g.fixtures.find((f) => f.comp === (cual === 'A' ? 'PROMO2' : 'PROMOC2'));
+/** Todos los repechajes de una categoría ('A' entre A y B, 'C' entre B y C). */
+export function promoSeries(g: GameState, cual: 'A' | 'C' = 'A') {
+  const series = [...new Set(g.fixtures.filter((f) => f.comp === (cual === 'A' ? 'PROMO1' : 'PROMOC1')).map((f) => f.serie ?? 0))].sort();
+  return series.map((s) => promoAggregate(g, cual, s)!);
+}
+
+/** Serie de repechaje: 'A' entre Primera A y B, 'C' entre Primera B y C. */
+export function promoAggregate(g: GameState, cual: 'A' | 'C' = 'A', serie = 0) {
+  const p1 = g.fixtures.find((f) => f.comp === (cual === 'A' ? 'PROMO1' : 'PROMOC1') && (f.serie ?? 0) === serie);
+  const p2 = g.fixtures.find((f) => f.comp === (cual === 'A' ? 'PROMO2' : 'PROMOC2') && (f.serie ?? 0) === serie);
   if (!p1) return null;
   const bTeam = p1.home;
   const aTeam = p1.away;
@@ -545,28 +552,41 @@ function closeSeason(g: GameState, rng: Rng) {
   const final = g.fixtures.find((f) => f.comp === 'FINAL')!;
   const campeon = matchWinner(final)!;
   const sub = campeon === final.home ? final.away : final.home;
-  const promo = promoAggregate(g)!;
-  const asciende = [tB[0].clubId];
-  const desciende = [tA[9].clubId];
-  if (promo.winner === promo.bTeam) {
-    asciende.push(promo.bTeam);
-    desciende.push(promo.aTeam);
+  // Desde que hay dos repechajes, suben y bajan dos directo (partidas viejas en playoffs: uno).
+  const dos = g.fixtures.some((f) => f.comp === 'PROMO1' && f.serie != null);
+  const promos = promoSeries(g, 'A');
+  const promo = promos[0];
+  const asciende = dos ? [tB[0].clubId, tB[1].clubId] : [tB[0].clubId];
+  const desciende = dos ? [tA[9].clubId, tA[8].clubId] : [tA[9].clubId];
+  const glob = (p: NonNullable<ReturnType<typeof promoAggregate>>) => `${g.clubs[p.aTeam].corto} ${p.ptsA} - ${p.ptsB} ${g.clubs[p.bTeam].corto}`;
+  const repechajes: NonNullable<SeasonRecord['repechajes']> = [];
+  for (const p of promos) {
+    if (p.winner === p.bTeam) {
+      asciende.push(p.bTeam);
+      desciende.push(p.aTeam);
+    }
+    repechajes.push({ cual: 'A', primera: p.aTeam, ascenso: p.bTeam, ganador: p.winner!, global: glob(p) });
   }
   let ascC: string[] | undefined;
   let descB: string[] | undefined;
   let campeonC: string | undefined;
   let promocionC: SeasonRecord['promocionC'];
-  const pc = hasC(g) ? promoAggregate(g, 'C') : null;
-  if (pc) {
+  const pcs = hasC(g) ? promoSeries(g, 'C') : [];
+  if (pcs.length) {
     const tC = standings(g, 'C');
+    const dosC = g.fixtures.some((f) => f.comp === 'PROMOC1' && f.serie != null);
     campeonC = tC[0].clubId;
-    ascC = [tC[0].clubId];
-    descB = [tB[9].clubId];
-    if (pc.winner === pc.bTeam) {
-      ascC.push(pc.bTeam);
-      descB.push(pc.aTeam);
+    ascC = dosC ? [tC[0].clubId, tC[1].clubId] : [tC[0].clubId];
+    descB = dosC ? [tB[9].clubId, tB[8].clubId] : [tB[9].clubId];
+    for (const pc of pcs) {
+      if (pc.winner === pc.bTeam) {
+        ascC.push(pc.bTeam);
+        descB.push(pc.aTeam);
+      }
+      repechajes.push({ cual: 'C', primera: pc.aTeam, ascenso: pc.bTeam, ganador: pc.winner!, global: glob(pc) });
     }
-    promocionC = { primera: pc.aTeam, ascenso: pc.bTeam, ganador: pc.winner!, global: `${g.clubs[pc.aTeam].corto} ${pc.ptsA} - ${pc.ptsB} ${g.clubs[pc.bTeam].corto}` };
+    const pc = pcs[0];
+    promocionC = { primera: pc.aTeam, ascenso: pc.bTeam, ganador: pc.winner!, global: glob(pc) };
   }
   const user = g.clubs[g.userClubId];
   const table = standings(g, user.division);
@@ -590,6 +610,7 @@ function closeSeason(g: GameState, rng: Rng) {
     ascC,
     descB,
     promocionC,
+    repechajes,
     promocion: {
       primera: promo.aTeam,
       ascenso: promo.bTeam,
@@ -909,7 +930,7 @@ export function migrate(g: GameState): GameState {
         const nuevos = makeLeagueFixtures(g, rng).filter((f) => f.comp === 'C');
         g.fixtures.push(...nuevos);
       }
-      addNews(g, 'Nace la Primera C', `Se suman diez clubes en una tercera categoría.${empezo ? ' Empiezan a jugar la temporada que viene.' : ''} El campeón de la C sube a la B, y el 2.º juega la promoción con el 9.º de la B.`);
+      addNews(g, 'Nace la Primera C', `Se suman diez clubes en una tercera categoría.${empezo ? ' Empiezan a jugar la temporada que viene.' : ''} Los dos primeros de la C suben a la B, y el 3.º y el 4.º juegan repechaje con el 8.º y el 7.º de la B.`);
     }
     g.rng = rng.s;
     if (g.version >= 9) g.version = 18;

@@ -64,14 +64,14 @@ export function makeObjective(g: GameState, club: Club): Objetivo {
   if (club.division === 'A') {
     if (r <= 2) return { tipo: 'campeon', puesto: 1, texto: 'Salir campeón de Primera A' };
     if (r <= 5) return { tipo: 'playoffs', puesto: 4, texto: 'Meterse en los playoffs (los 4 primeros)' };
-    if (r <= 7) return { tipo: 'mitad', puesto: 6, texto: 'Terminar en la mitad de arriba (6.º o mejor)' };
-    return { tipo: 'salvarse', puesto: 8, texto: 'Salvarse: evitar el descenso y la promoción (8.º o mejor)' };
+    if (r <= 7) return { tipo: 'mitad', puesto: 5, texto: 'Terminar en la mitad de arriba (5.º o mejor)' };
+    return { tipo: 'salvarse', puesto: 6, texto: 'Salvarse: evitar el descenso y el repechaje (6.º o mejor)' };
   }
   const arriba = club.division === 'B' ? 'Primera A' : 'Primera B';
   if (r <= 2) return { tipo: 'ascenso', puesto: 2, texto: `Ascender a ${arriba}` };
-  if (r <= 5) return { tipo: 'promocion', puesto: 2, texto: 'Pelear el ascenso: terminar 1.º o 2.º' };
+  if (r <= 5) return { tipo: 'promocion', puesto: 4, texto: 'Pelear el ascenso: terminar 4.º o mejor (repechaje)' };
   if (r <= 7) return { tipo: 'mitad', puesto: 5, texto: 'Terminar en la mitad de arriba (5.º o mejor)' };
-  return { tipo: 'tranquila', puesto: 8, texto: 'Una temporada tranquila (8.º o mejor)' };
+  return { tipo: 'tranquila', puesto: club.division === 'B' ? 6 : 8, texto: club.division === 'B' ? 'Una temporada tranquila: evitar el descenso y el repechaje (6.º o mejor)' : 'Una temporada tranquila (8.º o mejor)' };
 }
 
 export function newCareer(g: GameState): Career {
@@ -203,7 +203,7 @@ export function closeCareerSeason(g: GameState, rec: SeasonRecord, rng: Rng) {
     logro = `Campeón de Primera C ${g.temporada}`;
   } else if (asciende) {
     dp += 12;
-    logro = `Ascenso por promoción ${g.temporada}`;
+    logro = `Ascenso ${g.temporada}`;
   }
   if (desciende) dp -= 12;
   if (club.division === 'A' && puesto <= 4 && !campeon) dp += 4;

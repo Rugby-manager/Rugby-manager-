@@ -10,9 +10,9 @@ export function TableScreen() {
   const [div, setDiv] = useState<DivId>(club.division);
   const rows = standings(g, div);
   const zone = (i: number) => {
-    if (div === 'A') return i < 4 ? 'z-po' : i === 8 ? 'z-promo' : i === 9 ? 'z-down' : '';
-    if (div === 'B') return i === 0 ? 'z-up' : i === 1 ? 'z-promo' : hasC(g) && i === 8 ? 'z-promo' : hasC(g) && i === 9 ? 'z-down' : '';
-    return i === 0 ? 'z-up' : i === 1 ? 'z-promo' : '';
+    if (div === 'A') return i < 4 ? 'z-po' : i === 6 || i === 7 ? 'z-promo' : i >= 8 ? 'z-down' : '';
+    if (div === 'B') return i < 2 ? 'z-up' : i < 4 ? 'z-promo' : hasC(g) && (i === 6 || i === 7) ? 'z-promo' : hasC(g) && i >= 8 ? 'z-down' : '';
+    return i < 2 ? 'z-up' : i < 4 ? 'z-promo' : '';
   };
   const scorers = Object.values(g.players)
     .filter((p) => p.clubId && g.clubs[p.clubId].division === div && p.temporada.tries > 0)
@@ -78,13 +78,14 @@ export function TableScreen() {
           {div === 'A' ? (
             <>
               <span><i style={{ background: 'var(--zone-po)' }} />Playoffs por el título</span>
-              <span><i style={{ background: 'var(--zone-promo)' }} />Promoción</span>
-              <span><i style={{ background: 'var(--zone-down)' }} />Desciende</span>
+              <span><i style={{ background: 'var(--zone-promo)' }} />Repechaje (7.º y 8.º)</span>
+              <span><i style={{ background: 'var(--zone-down)' }} />Descienden (9.º y 10.º)</span>
             </>
           ) : (
             <>
-              <span><i style={{ background: 'var(--zone-up)' }} />Campeón y asciende</span>
-              <span><i style={{ background: 'var(--zone-promo)' }} />Promoción</span>
+              <span><i style={{ background: 'var(--zone-up)' }} />Ascienden (1.º y 2.º)</span>
+              <span><i style={{ background: 'var(--zone-promo)' }} />Repechaje</span>
+              {div === 'B' && hasC(g) && <span><i style={{ background: 'var(--zone-down)' }} />Descienden (9.º y 10.º)</span>}
             </>
           )}
         </div>

@@ -59,7 +59,7 @@ export function roundName(r: number) {
   if (INTL_ROUNDS.includes(r)) return `${INTL_NOMBRE} · ${INTL_ETAPA[INTL_ROUNDS.indexOf(r)]}`;
   if (isCupRound(r)) return `${COPA_NOMBRE} · ${CUP_ETAPA[CUP_ROUNDS.indexOf(r)] ?? ''}`;
   if (r <= 18) return `Fecha ${r} de 18`;
-  return r === 19 ? 'Semifinales y promoción (ida)' : 'Final y promoción (vuelta)';
+  return r === 19 ? 'Semifinales y repechajes (ida)' : 'Final y repechajes (vuelta)';
 }
 
 /** Nombre corto de una fecha para los botones del fixture. */

@@ -131,25 +131,34 @@ describe('temporada', () => {
     const t = standings(g, 'A').map((r) => r.clubId);
     const semis = g.fixtures.filter((f) => f.comp === 'SEMI');
     expect(semis.map((f) => [f.home, f.away])).toEqual([[t[0], t[3]], [t[1], t[2]]]);
-    const promo = g.fixtures.find((f) => f.comp === 'PROMO1')!;
-    expect(promo.away).toBe(t[8]);
-    expect(promo.home).toBe(standings(g, 'B')[1].clubId);
+    const tb = standings(g, 'B').map((r) => r.clubId);
+    const promos = g.fixtures.filter((f) => f.comp === 'PROMO1');
+    expect(promos.map((f) => [f.home, f.away])).toEqual([[tb[2], t[7]], [tb[3], t[6]]]);
     playRound(g);
     const fin = g.fixtures.find((f) => f.comp === 'FINAL')!;
     expect(t.indexOf(fin.home)).toBeLessThan(t.indexOf(fin.away));
-    const p2 = g.fixtures.find((f) => f.comp === 'PROMO2')!;
-    expect(p2.home).toBe(t[8]);
+    const p2 = g.fixtures.filter((f) => f.comp === 'PROMO2');
+    expect(p2.map((f) => f.home)).toEqual([t[7], t[6]]);
     playRound(g);
     expect(g.round).toBe(LAST_ROUND + 1);
     expect(g.phase).toBe('fin');
   });
 
-  it('ascensos y descensos: el último baja, el primero de la B sube, y la promoción define otro lugar', () => {
+  it('ascensos y descensos: suben 2 y bajan 2 directo, y dos repechajes definen el resto', () => {
     const g = createGame({ seed: 5 });
+    const tA = () => standings(g, 'A').map((r) => r.clubId);
+    while (g.round <= 18) playRound(g);
+    const a = tA();
+    const b = standings(g, 'B').map((r) => r.clubId);
     playSeason(g);
     const rec = g.history[0];
     expect(rec.asciende.length).toBe(rec.desciende.length);
-    expect(rec.asciende.length === 1 || rec.asciende.length === 2).toBe(true);
+    expect(rec.asciende.slice(0, 2)).toEqual([b[0], b[1]]);
+    expect(rec.desciende.slice(0, 2)).toEqual([a[9], a[8]]);
+    expect(rec.asciende.length).toBeGreaterThanOrEqual(2);
+    expect(rec.asciende.length).toBeLessThanOrEqual(4);
+    expect(rec.repechajes!.filter((r) => r.cual === 'A')).toHaveLength(2);
+    expect(rec.repechajes!.filter((r) => r.cual === 'C')).toHaveLength(2);
     startNextSeason(g);
     for (const id of rec.asciende) expect(g.clubs[id].division).toBe('A');
     for (const id of rec.desciende) expect(g.clubs[id].division).toBe('B');

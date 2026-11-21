@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { roundName } from '../engine/cup';
 import { IcoLibro, IcoPelota, IcoPesas, IcoCaja, IcoCamisetas, IcoContrato, IcoCopa, IcoDiario, IcoEntrada, IcoEstadio, IcoFormacion, IcoMarcador, IcoRival, IcoSilbato, IcoTabla, IcoTactica } from './icons';
 import { useGame } from './App';
-import { choosePreseason, COMP_NAME, DIV_NAME, matchWinner, playRound, promoAggregate, standings, startNextSeason, startUserMatch, userFixture, type RoundReport } from '../engine/game';
+import { choosePreseason, COMP_NAME, DIV_NAME, matchWinner, playRound, promoSeries, standings, startNextSeason, startUserMatch, userFixture, type RoundReport } from '../engine/game';
 import { bestXV, overall, posText, readyXV, slotRating } from '../engine/players';
 import { ClubJersey, Ovr, Sheet, formatMoney } from './common';
 import { FOCO_LABEL, INTENSIDAD_LABEL } from '../engine/training';
@@ -153,7 +153,7 @@ export function HomeScreen() {
             <TeamBlock g={g} id={fx.away} />
           </div>
         ) : (
-          <p style={{ textAlign: 'center', opacity: 0.85 }}>Tu equipo no juega esta fecha. Se juegan los playoffs y la promoción.</p>
+          <p style={{ textAlign: 'center', opacity: 0.85 }}>Tu equipo no juega esta fecha. Se juegan los playoffs y los repechajes.</p>
         )}
         {car && (
           <>
@@ -192,7 +192,7 @@ export function HomeScreen() {
           </button>
         </div>
       )}
-      {fx && (fx.comp === 'PROMO2' || fx.comp === 'PROMO1') && <PromoNote g={g} />}
+      {fx && ['PROMO1', 'PROMO2', 'PROMOC1', 'PROMOC2'].includes(fx.comp) && <PromoNote g={g} />}
 
       <div className="hub-grid">
         <Block
@@ -387,13 +387,14 @@ function TeamBlock({ g, id }: { g: GameState; id: string }) {
 }
 
 function PromoNote({ g }: { g: GameState }) {
-  const series = (['A', 'C'] as const).map((k) => ({ k, a: promoAggregate(g, k) })).filter((x) => x.a);
+  const me = g.userClubId;
+  const series = (['A', 'C'] as const).flatMap((k) => promoSeries(g, k).map((a) => ({ k, a }))).filter((x) => x.a.aTeam === me || x.a.bTeam === me);
   if (!series.length) return null;
   return (
     <div className="notice">
       {series.map(({ k, a }) => (
-        <div key={k}>
-          Promoción {k === 'A' ? 'A-B' : 'B-C'} a dos partidos: {g.clubs[a!.aTeam].nombre} ({k === 'A' ? 'Primera A' : 'Primera B'}) contra {g.clubs[a!.bTeam].nombre} ({k === 'A' ? 'Primera B' : 'Primera C'}). Global: {g.clubs[a!.aTeam].corto} {a!.ptsA} - {a!.ptsB} {g.clubs[a!.bTeam].corto}.
+        <div key={k + a.aTeam}>
+          Repechaje {k === 'A' ? 'A-B' : 'B-C'} a dos partidos: {g.clubs[a!.aTeam].nombre} ({k === 'A' ? 'Primera A' : 'Primera B'}) contra {g.clubs[a!.bTeam].nombre} ({k === 'A' ? 'Primera B' : 'Primera C'}). Global: {g.clubs[a!.aTeam].corto} {a!.ptsA} - {a!.ptsB} {g.clubs[a!.bTeam].corto}.
         </div>
       ))}
     </div>
@@ -463,7 +464,12 @@ function SeasonEnd() {
         <p className="small">
           <b>Campeón de Primera B:</b> {n(rec.campeonB)} (asciende directo).
         </p>
-        {rec.promocion && (
+        {rec.repechajes?.map((p) => (
+          <p key={p.primera} className="small">
+            <b>Repechaje {p.cual === 'A' ? 'A-B' : 'B-C'}:</b> {p.global} en el global. {p.ganador === p.primera ? `${n(p.primera)} se queda en ${p.cual === 'A' ? 'Primera A' : 'Primera B'}.` : `${n(p.ascenso)} asciende y ${n(p.primera)} desciende.`}
+          </p>
+        ))}
+        {!rec.repechajes && rec.promocion && (
           <p className="small">
             <b>Promoción:</b> {rec.promocion.global} en el global. {rec.promocion.ganador === rec.promocion.primera ? `${n(rec.promocion.primera)} se queda en Primera A.` : `${n(rec.promocion.ascenso)} asciende y ${n(rec.promocion.primera)} desciende.`}
           </p>
@@ -475,7 +481,7 @@ function SeasonEnd() {
           <>
             <p className="small">
               <b>Campeón de Primera C:</b> {n(rec.campeonC!)} (sube directo).
-              {rec.promocionC && ` Promoción B-C: ${rec.promocionC.global} en el global.`}
+              {!rec.repechajes && rec.promocionC && ` Promoción B-C: ${rec.promocionC.global} en el global.`}
             </p>
             <p className="small">
               <b>Suben a la B:</b> {rec.ascC.map(n).join(' y ')}. <b>Bajan a la C:</b> {rec.descB!.map(n).join(' y ')}.

@@ -250,6 +250,8 @@ export interface Fixture {
   result?: MatchResult;
   /** En la copa: 0 octavos, 1 cuartos, 2 semis, 3 final. */
   etapa?: number;
+  /** Repechaje: 0 = 3.º de abajo vs 8.º de arriba, 1 = 4.º vs 7.º. */
+  serie?: number;
 }
 
 export interface StandingRow {
@@ -282,6 +284,8 @@ export interface SeasonRecord {
   descB?: string[];
   promocionC?: { primera: string; ascenso: string; ganador: string; global: string };
   promocion?: { primera: string; ascenso: string; ganador: string; global: string };
+  /** Todos los repechajes de la temporada (desde que hay 2 por categoría). */
+  repechajes?: { cual: 'A' | 'C'; primera: string; ascenso: string; ganador: string; global: string }[];
   campeonCopa?: string;
   maxTrymanA?: { playerId: string; nombre: string; clubId: string; tries: number };
   posicionUsuario: { division: DivId; puesto: number };

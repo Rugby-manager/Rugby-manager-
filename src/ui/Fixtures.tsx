@@ -26,7 +26,7 @@ export function FixtureScreen() {
   if (copa.length) groups.push({ k: roundName(round), list: copa });
   if (intl.length) groups.push({ k: roundName(round), list: intl });
   if (myDiv.length) groups.push({ k: DIV_NAME[club.division], list: myDiv });
-  if (ko.length) groups.push({ k: round === LAST_ROUND ? 'Final y promoción (vuelta)' : 'Semifinales y promoción (ida)', list: ko });
+  if (ko.length) groups.push({ k: round === LAST_ROUND ? 'Final y repechajes (vuelta)' : 'Semifinales y repechajes (ida)', list: ko });
   for (const l of otherDivs) groups.push({ k: DIV_NAME[l[0].comp as DivId], list: l });
 
   const myMatches = g.fixtures.filter((f) => f.home === club.id || f.away === club.id);
@@ -41,7 +41,7 @@ export function FixtureScreen() {
           </button>
         ))}
       </div>
-      {maxRound < LAST_ROUND && <p className="small muted" style={{ margin: 0 }}>Después de la fecha 18 se juegan los playoffs (1.º vs 4.º y 2.º vs 3.º) y la promoción de ida y vuelta. La Copa del Ñandubay se juega los miércoles, después de las fechas 4, 8, 12 y 16.</p>}
+      {maxRound < LAST_ROUND && <p className="small muted" style={{ margin: 0 }}>Después de la fecha 18 se juegan los playoffs (1.º vs 4.º y 2.º vs 3.º) y los repechajes de ida y vuelta (3.º de abajo vs 8.º de arriba, y 4.º vs 7.º). La Copa del Ñandubay se juega los miércoles, después de las fechas 4, 8, 12 y 16.</p>}
       {groups.map((gr) => (
         <section key={gr.k} className="card">
           <h3>{gr.k}</h3>
