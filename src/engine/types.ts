@@ -82,7 +82,7 @@ export interface Tactics {
   defensa: Defensa;
 }
 
-export type Patron = 'lisa' | 'rayas' | 'aros' | 'banda' | 'mitades';
+export type Patron = 'lisa' | 'rayas' | 'aros' | 'banda' | 'mitades' | 'cuartos' | 'cuadros';
 
 export interface Club {
   id: string;

@@ -20,6 +20,14 @@ export function Jersey({ colors, patron, number, size = 40, title }: { colors: [
         {patron === 'rayas' && [16, 28, 40].map((x) => <rect key={x} x={x} y="0" width="6" height="64" fill={b} />)}
         {patron === 'banda' && <path d="M0 40 L64 8 L64 22 L0 54 Z" fill={b} />}
         {patron === 'mitades' && <rect x="32" y="0" width="32" height="64" fill={b} />}
+        {patron === 'cuartos' && (
+          <>
+            <rect x="32" y="0" width="32" height="31" fill={b} />
+            <rect x="0" y="31" width="32" height="33" fill={b} />
+          </>
+        )}
+        {patron === 'cuadros' &&
+          [0, 1, 2, 3, 4].flatMap((r) => [0, 1, 2, 3].filter((c) => (r + c) % 2 === 1).map((c) => <rect key={`${r}-${c}`} x={c * 16} y={r * 13} width="16" height="13" fill={b} />))}
       </g>
       <path d="M24 3 Q32 13 40 3" fill="none" stroke={b} strokeWidth="2.5" />
       <path d={body} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1.2" />
