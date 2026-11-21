@@ -86,7 +86,7 @@ export const SELECCION = 'la Selección';
 
 /** Arma la lista de 23 convocados con los mejores de la liga. */
 export function convocatoria(g: GameState): string[] {
-  const pool = Object.values(g.players).filter((p) => p.clubId && p.lesion === 0 && p.edad >= 19);
+  const pool = Object.values(g.players).filter((p) => p.clubId && g.clubs[p.clubId]?.division !== 'X' && p.lesion === 0 && p.edad >= 19);
   const out: string[] = [];
   for (const pos of Object.keys(CUPO) as Pos[]) {
     pool
@@ -174,7 +174,7 @@ export function checkRecords(g: GameState, f: Fixture): string[] {
 
 /** Al terminar la temporada: récords de tries y puntos de un jugador. */
 export function seasonRecords(g: GameState) {
-  const ps = Object.values(g.players).filter((p) => p.clubId);
+  const ps = Object.values(g.players).filter((p) => p.clubId && g.clubs[p.clubId]?.division !== 'X');
   const t = ps.sort((a, b) => b.temporada.tries - a.temporada.tries)[0];
   if (t) setRec(g, 'triesTemporada', t.temporada.tries, `${t.nombre} ${t.apellido} (${g.clubs[t.clubId!].corto}), ${t.temporada.tries} tries`);
   const pp = ps.sort((a, b) => b.temporada.puntos - a.temporada.puntos)[0];

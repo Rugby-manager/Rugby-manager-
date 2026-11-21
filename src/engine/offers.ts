@@ -34,7 +34,7 @@ export function generateOffers(g: GameState, rng: Rng): Oferta[] {
     const p = rng.weighted(cand, cand.map((x) => (Math.max(1, overall(x) - 58) ** 2 + x.temporada.tries * 6 + (x.edad <= 23 ? 20 : 0)) * (x.transferible ? 5 : 1)));
     const valor = marketValue(p);
     const monto = redondo(valor * (0.85 + rng.next() * 0.4));
-    const compradores = Object.values(g.clubs).filter((c) => c.id !== user.id && c.plantel.length < MAX_SQUAD && c.presupuesto >= monto);
+    const compradores = Object.values(g.clubs).filter((c) => c.id !== user.id && c.division !== 'X' && c.plantel.length < MAX_SQUAD && c.presupuesto >= monto);
     if (!compradores.length) continue;
     const c = rng.weighted(
       compradores,

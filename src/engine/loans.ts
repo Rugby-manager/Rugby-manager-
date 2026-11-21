@@ -11,7 +11,7 @@ const countPos = (g: GameState, c: Club, pos: Player['pos']) => c.plantel.filter
 /** Los clubes de la computadora ponen en venta a los que les sobran (más baratos que el resto). */
 export function refreshTransferibles(g: GameState, rng: Rng) {
   for (const c of Object.values(g.clubs)) {
-    if (c.id === g.userClubId) continue;
+    if (c.id === g.userClubId || c.division === 'X') continue;
     const ps = c.plantel.map((id) => g.players[id]).filter((p) => p && !p.prestamo);
     for (const p of ps) p.transferible = false;
     const xv = new Set(c.xv);
@@ -46,6 +46,7 @@ export function prestables(g: GameState): Player[] {
   return Object.values(g.players).filter((p) => {
     if (!p.clubId || p.clubId === g.userClubId || p.prestamo) return false;
     const c = g.clubs[p.clubId];
+    if (c.division === 'X') return false;
     return !c.xv.includes(p.id) && countPos(g, c, p.pos) > MIN_BY_POS[p.pos];
   });
 }
@@ -102,7 +103,7 @@ export function loanOut(g: GameState, id: string, rng: Rng): string {
   const p = g.players[id];
   const user = g.clubs[g.userClubId];
   const dest = Object.values(g.clubs)
-    .filter((c) => c.id !== user.id && c.plantel.length < MAX_SQUAD && c.reputacion <= user.reputacion + 2)
+    .filter((c) => c.id !== user.id && c.division !== 'X' && c.plantel.length < MAX_SQUAD && c.reputacion <= user.reputacion + 2)
     .map((c) => ({ c, need: countPos(g, c, p.pos) + rng.next() }))
     .sort((a, b) => a.need - b.need)[0]?.c;
   if (!dest) throw new Error('Ningún club lo quiere a préstamo ahora.');

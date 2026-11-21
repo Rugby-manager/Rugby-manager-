@@ -33,7 +33,7 @@ export function MarketScreen() {
   let list: Player[] = [];
   if (mode === 'comprar') {
     list = Object.values(g.players)
-      .filter((p) => p.clubId && p.clubId !== user.id && !p.prestamo)
+      .filter((p) => p.clubId && p.clubId !== user.id && !p.prestamo && g.clubs[p.clubId]?.division !== 'X')
       .filter((p) => pos === 'ALL' || p.pos === pos)
       .filter((p) => maxPrice === 'all' || askingPrice(p) <= user.presupuesto)
       .sort((a, b) => overall(b) - overall(a));

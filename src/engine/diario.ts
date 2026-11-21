@@ -95,7 +95,7 @@ export const RESPUESTAS_PRENSA = [
 export function conferenciaPendiente(g: GameState): Fixture | null {
   const f = userFixture(g);
   if (!f || f.result || f.comp === 'AMISTOSO') return null;
-  const grande = isDerby(g.clubs[f.home], g.clubs[f.away]) || f.comp === 'SEMI' || f.comp === 'FINAL';
+  const grande = isDerby(g.clubs[f.home], g.clubs[f.away]) || f.comp === 'SEMI' || f.comp === 'FINAL' || (f.comp === 'INTL' && f.etapa === 3);
   if (!grande) return null;
   if (g.prensa?.fixtureId === f.id) return null;
   return f;

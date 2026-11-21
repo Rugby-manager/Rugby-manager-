@@ -18,7 +18,7 @@ const r100k = (v: number) => Math.round(v / 100_000) * 100_000;
 /** Tres propuestas de torneo amistoso para conocer al plantel antes de la liga. */
 export function makePreseason(g: GameState, rng: Rng) {
   const user = g.clubs[g.userClubId];
-  const otros = Object.values(g.clubs).filter((c) => c.id !== user.id);
+  const otros = Object.values(g.clubs).filter((c) => c.id !== user.id && c.division !== 'X');
   const fuertes = [...otros].sort((a, b) => b.reputacion - a.reputacion).filter((c) => c.reputacion >= user.reputacion - 2);
   const pickN = (pool: typeof otros, n: number) => rng.shuffle([...pool]).slice(0, n).map((c) => c.id);
 

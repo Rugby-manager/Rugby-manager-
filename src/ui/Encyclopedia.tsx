@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGame } from './App';
 import { DIV_NAME } from '../engine/game';
 import { COPA_NOMBRE } from '../engine/cup';
+import { INTL_NOMBRE } from '../engine/internacional';
 import { capacidad } from '../engine/club';
 import { overall, posText } from '../engine/players';
 import { ClubJersey, Ovr, Seg, Sheet } from './common';
@@ -76,6 +77,15 @@ function Campeones() {
           <ChampRow label="Campeón de Primera B" club={c(r.campeonB)} />
           {r.campeonC && <ChampRow label="Campeón de Primera C" club={c(r.campeonC)} />}
           {r.campeonCopa && <ChampRow label={COPA_NOMBRE} club={c(r.campeonCopa)} />}
+          {r.campeonIntl && (
+            <div className="row">
+              <span style={{ fontSize: 24, width: 28, textAlign: 'center' }}>🌎</span>
+              <div className="grow">
+                <div className="label">{INTL_NOMBRE}</div>
+                <b>{r.campeonIntl}</b>
+              </div>
+            </div>
+          )}
           <div className="small">
             A Primera A: suben {r.asciende.map((id) => g.clubs[id].nombre).join(' y ')}; bajan {r.desciende.map((id) => g.clubs[id].nombre).join(' y ')}.
           </div>
@@ -111,7 +121,7 @@ function ChampRow({ label, club }: { label: string; club: Club | null }) {
 function Clubes() {
   const { g } = useGame();
   const [open, setOpen] = useState<string | null>(null);
-  const clubs = Object.values(g.clubs).sort((a, b) => (a.division === b.division ? b.reputacion - a.reputacion : a.division < b.division ? -1 : 1));
+  const clubs = Object.values(g.clubs).filter((c) => c.division !== 'X').sort((a, b) => (a.division === b.division ? b.reputacion - a.reputacion : a.division < b.division ? -1 : 1));
   return (
     <>
       {(['A', 'B', 'C'] as const).map((d) => (

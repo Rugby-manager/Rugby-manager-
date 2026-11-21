@@ -3,7 +3,8 @@ import type { Career } from './career';
 export type Pos = 'PIL' | 'HOO' | 'SEG' | 'TER' | 'MSC' | 'APE' | 'CEN' | 'WIN' | 'FUL';
 export type AttrKey = 'scrum' | 'line' | 'tackle' | 'velocidad' | 'manejo' | 'pie' | 'liderazgo' | 'fisico' | 'actitud';
 export type Attrs = Record<AttrKey, number>;
-export type DivId = 'A' | 'B' | 'C';
+/** 'X' = club extranjero (solo juega la Copa Cruz del Sur). */
+export type DivId = 'A' | 'B' | 'C' | 'X';
 
 export interface PlayerStats {
   partidos: number;
@@ -122,6 +123,8 @@ export interface Club {
   codigo?: string;
   /** Capitán elegido por el usuario (null = el de más liderazgo). */
   capitan?: string | null;
+  /** Solo los clubes extranjeros. */
+  pais?: string;
 }
 
 export interface RecordEntry {
@@ -152,7 +155,7 @@ export interface Movimiento {
   monto: number; // positivo entra, negativo sale
 }
 
-export type Comp = 'AMISTOSO' | 'A' | 'B' | 'C' | 'SEMI' | 'FINAL' | 'PROMO1' | 'PROMO2' | 'PROMOC1' | 'PROMOC2' | 'COPA';
+export type Comp = 'AMISTOSO' | 'A' | 'B' | 'C' | 'SEMI' | 'FINAL' | 'PROMO1' | 'PROMO2' | 'PROMOC1' | 'PROMOC2' | 'COPA' | 'INTL';
 
 export type EventKind =
   | 'inicio'
@@ -264,6 +267,8 @@ export interface StandingRow {
 export interface SeasonRecord {
   temporada: number;
   campeonA: string;
+  /** Campeón de la Copa Cruz del Sur (texto, porque los extranjeros no quedan guardados). */
+  campeonIntl?: string;
   subcampeonA: string;
   campeonB: string;
   /** Movimientos entre Primera A y B. */

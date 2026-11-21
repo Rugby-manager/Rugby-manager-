@@ -1,6 +1,7 @@
 import { Rng } from './rng';
 import { POS_ORDER, assignDorsal, generatePlayer } from './players';
 import type { Fixture, GameState, Player } from './types';
+import { INTL_CHIP, INTL_ETAPA, INTL_NOMBRE, INTL_ROUNDS } from './internacional';
 
 /** Copa por eliminación a mitad de semana, con los 10 de Primera A y los 6 más grandes de Primera B. */
 export const COPA_NOMBRE = 'Copa del Ñandubay';
@@ -55,9 +56,17 @@ export const isCupRound = (r: number) => !Number.isInteger(r);
 
 /** Nombre de una fecha para mostrar. */
 export function roundName(r: number) {
+  if (INTL_ROUNDS.includes(r)) return `${INTL_NOMBRE} · ${INTL_ETAPA[INTL_ROUNDS.indexOf(r)]}`;
   if (isCupRound(r)) return `${COPA_NOMBRE} · ${CUP_ETAPA[CUP_ROUNDS.indexOf(r)] ?? ''}`;
   if (r <= 18) return `Fecha ${r} de 18`;
   return r === 19 ? 'Semifinales y promoción (ida)' : 'Final y promoción (vuelta)';
+}
+
+/** Nombre corto de una fecha para los botones del fixture. */
+export function roundChip(r: number) {
+  if (INTL_ROUNDS.includes(r)) return INTL_CHIP[INTL_ROUNDS.indexOf(r)];
+  if (isCupRound(r)) return `Copa ${['8vos', '4tos', 'Semi', 'Final'][CUP_ROUNDS.indexOf(r)]}`;
+  return r <= 18 ? `F${r}` : r === 19 ? 'Semis' : 'Final';
 }
 
 // ---------- Juveniles con ojeador ----------

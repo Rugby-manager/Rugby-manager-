@@ -149,10 +149,10 @@ export function makeOffers(g: GameState, rng: Rng, opts: { fired: boolean; good?
   const c = g.career!;
   const current = g.clubs[g.userClubId];
   const max = repMax(c.prestigio);
-  let pool = Object.values(g.clubs).filter((x) => x.id !== current.id && x.reputacion <= max);
+  let pool = Object.values(g.clubs).filter((x) => x.id !== current.id && x.division !== 'X' && x.reputacion <= max);
   if (!opts.fired) pool = pool.filter((x) => x.reputacion >= current.reputacion - 1);
   else pool = pool.filter((x) => x.reputacion <= Math.max(current.reputacion + 1, 60));
-  if (!pool.length && opts.fired) pool = Object.values(g.clubs).filter((x) => x.id !== current.id).sort((a, b) => a.reputacion - b.reputacion).slice(0, 3);
+  if (!pool.length && opts.fired) pool = Object.values(g.clubs).filter((x) => x.id !== current.id && x.division !== 'X').sort((a, b) => a.reputacion - b.reputacion).slice(0, 3);
   rng.shuffle(pool);
   pool.sort((a, b) => b.reputacion - a.reputacion);
   let n = opts.fired ? 2 + (rng.chance(0.4) ? 1 : 0) : opts.good ? rng.int(1, 3) : rng.chance(0.35) ? 1 : 0;

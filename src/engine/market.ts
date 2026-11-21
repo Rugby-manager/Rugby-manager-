@@ -90,7 +90,7 @@ export function sellPlayer(g: GameState, id: string, rng: Rng): string {
   user.presupuesto += chk.price;
   // Lo compra el club al que más le falta ese puesto.
   const buyers = Object.values(g.clubs)
-    .filter((c) => c.id !== user.id && c.plantel.length < 34)
+    .filter((c) => c.id !== user.id && c.division !== 'X' && c.plantel.length < 34)
     .map((c) => ({ c, need: countPos(g, c.id, p.pos) + rng.next() }))
     .sort((a, b) => a.need - b.need);
   const buyer = buyers[0]?.c;

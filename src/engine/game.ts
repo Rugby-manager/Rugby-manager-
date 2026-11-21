@@ -15,6 +15,7 @@ import {
 import { presupuestoInicial, refreshFreeAgents, sponsor, taquilla, logMoney } from './market';
 import { ENERGIA_ENTRENO, trainAll } from './training';
 import { COPA_NOMBRE, CUP_ETAPA, advanceCup, drawCup, scoutYouth } from './cup';
+import { INTL_NOMBRE, INTL_PREMIO, avanzarIntl, elegirRivales, fixturesGrupo } from './internacional';
 import { asistencia, initClubBusiness, signSponsor, sponsorOffers, weeklyFinances } from './club';
 import { afterUserMatch, closeCareerSeason, newCareer, startCareerSeason } from './career';
 import type {
@@ -70,6 +71,7 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
     A: rng.shuffle([77, 75, 74, 73, 72, 71, 70, 69, 68, 66]),
     B: rng.shuffle([67, 66, 65, 64, 63, 62, 61, 60, 59, 57]),
     C: rng.shuffle([57, 56, 55, 54, 53, 52, 51, 50, 49, 47]),
+    X: [],
   };
   [...CLUB_SEEDS, ...CLUB_SEEDS_C].forEach((seedClub, i) => addClub(g, rng, `c${i}`, seedClub, reps[seedClub.division].pop()!));
   const userIdx = clamp(opts.userClubIndex ?? 0, 0, Object.keys(g.clubs).length - 1);
@@ -128,14 +130,14 @@ export function addNews(g: GameState, titulo: string, texto: string) {
   g.news = g.news.slice(0, 40);
 }
 
-export const DIV_NAME: Record<DivId, string> = { A: 'Primera A', B: 'Primera B', C: 'Primera C' };
+export const DIV_NAME: Record<DivId, string> = { A: 'Primera A', B: 'Primera B', C: 'Primera C', X: 'Internacional' };
 export const DIVS: DivId[] = ['A', 'B', 'C'];
 export const isLeague = (c: Comp) => c === 'A' || c === 'B' || c === 'C';
 /** La Primera C se juega esta temporada (en partidas viejas arranca la temporada siguiente). */
 export const hasC = (g: GameState) => g.fixtures.some((f) => f.comp === 'C');
 export const COMP_NAME: Record<Comp, string> = {
   A: 'Primera A', B: 'Primera B', C: 'Primera C', SEMI: 'Semifinal', FINAL: 'Final', PROMO1: 'Promoción A-B (ida)', PROMO2: 'Promoción A-B (vuelta)',
-  AMISTOSO: 'Amistoso', PROMOC1: 'Promoción B-C (ida)', PROMOC2: 'Promoción B-C (vuelta)', COPA: 'Copa del Ñandubay',
+  AMISTOSO: 'Amistoso', PROMOC1: 'Promoción B-C (ida)', PROMOC2: 'Promoción B-C (vuelta)', COPA: 'Copa del Ñandubay', INTL: 'Copa Cruz del Sur',
 };
 
 export function divisionClubs(g: GameState, d: DivId): Club[] {
@@ -166,7 +168,7 @@ function makeLeagueFixtures(g: GameState, rng: Rng): Fixture[] {
     const ids = divisionClubs(g, d).map((c) => c.id);
     if (ids.length < 2) continue;
     roundRobin(ids, rng).forEach((pairs, r) => {
-      for (const [home, away] of pairs) out.push({ id: newId(g, 'f'), round: r + 1, comp: d, home, away });
+      for (const [home, away] of pairs) out.push({ id: newId(g, 'f'), round: r + 1, comp: d as Comp, home, away });
     });
   }
   return out;
@@ -278,7 +280,7 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
       isUser && userResult
         ? userResult
         : simulateMatch({ home, away, homeXV: hx.xv, awayXV: ax.xv, players: g.players, neutral: false, detailed: isUser, clima: climaDe(f, g.temporada), clasico: isDerby(home, away) }, rng);
-    if ((f.comp === 'SEMI' || f.comp === 'FINAL') && res.ptsH === res.ptsA) {
+    if ((f.comp === 'SEMI' || f.comp === 'FINAL' || (f.comp === 'INTL' && f.etapa === 3)) && res.ptsH === res.ptsA) {
       res.definicion = res.triesH !== res.triesA
         ? `Empate: pasa ${res.triesH > res.triesA ? home.nombre : away.nombre} por más tries.`
         : `Empate en tries: pasa ${home.nombre} por mejor ubicación en la tabla.`;
@@ -371,7 +373,7 @@ export function matchWinner(f: Fixture): string | null {
   const r = f.result;
   if (!r) return null;
   if (r.ptsH !== r.ptsA) return r.ptsH > r.ptsA ? f.home : f.away;
-  if (isLeague(f.comp) || f.comp === 'PROMO1' || f.comp === 'PROMOC1') return null;
+  if (isLeague(f.comp) || f.comp === 'PROMO1' || f.comp === 'PROMOC1' || (f.comp === 'INTL' && (f.etapa ?? 0) < 3)) return null;
   if (r.triesH !== r.triesA) return r.triesH > r.triesA ? f.home : f.away;
   return f.home;
 }
@@ -402,6 +404,7 @@ function advanceCalendar(g: GameState, rng: Rng) {
       const etapa = uf.etapa ?? 0;
       addNews(g, COPA_NOMBRE, matchWinner(uf) === user.id ? `¡Pasaste ${CUP_ETAPA[etapa].toLowerCase()}! Próxima ronda: ${CUP_ETAPA[etapa + 1].toLowerCase()}.` : `Quedaste afuera en ${CUP_ETAPA[etapa].toLowerCase()}.`);
     }
+    cerrarFechaIntl(g, finished);
     g.round = Math.ceil(finished);
     return;
   }
@@ -441,6 +444,63 @@ function advanceCalendar(g: GameState, rng: Rng) {
   } else if (finished === LAST_ROUND) {
     g.phase = 'fin';
     closeSeason(g, rng);
+  }
+}
+
+/** Copa Cruz del Sur: premios, la final y el campeón. */
+function cerrarFechaIntl(g: GameState, finished: number) {
+  const ronda = g.fixtures.filter((f) => f.comp === 'INTL' && f.round === finished);
+  if (!ronda.length) return;
+  const user = g.clubs[g.userClubId];
+  const uf = ronda.find((f) => f.home === user.id || f.away === user.id);
+  if (uf && matchWinner(uf) === user.id) {
+    user.presupuesto += INTL_PREMIO.victoria;
+    logMoney(g, `${INTL_NOMBRE}: premio por ganarle a ${g.clubs[uf.home === user.id ? uf.away : uf.home].nombre}`, INTL_PREMIO.victoria);
+  }
+  const { campeon, final } = avanzarIntl(g, finished, matchWinner, () => newId(g, 'f'));
+  const nom = (id: string) => `${g.clubs[id].nombre}${g.clubs[id].pais ? ` (${g.clubs[id].pais})` : ''}`;
+  if (final) {
+    const mia = final.home === user.id || final.away === user.id;
+    addNews(g, `${INTL_NOMBRE}: la final`, mia ? `¡Tu equipo está en la final! Juega contra ${nom(final.home === user.id ? final.away : final.home)}${final.home === user.id ? ' en casa' : ' de visitante'}.` : `La final la juegan ${nom(final.home)} y ${nom(final.away)}.${uf ? ' Tu equipo quedó afuera en el grupo.' : ''}`);
+  }
+  if (campeon) {
+    const c = g.clubs[campeon];
+    if (campeon === user.id) {
+      user.presupuesto += INTL_PREMIO.campeon;
+      logMoney(g, `${INTL_NOMBRE}: premio por salir campeón`, INTL_PREMIO.campeon);
+      user.reputacion = clamp(user.reputacion + 2, 45, 82);
+      if (g.career) g.career.confianza = clamp(g.career.confianza + 6, 0, 100);
+      addNews(g, `¡Campeones de la ${INTL_NOMBRE}!`, `${user.nombre} es el mejor de Sudamérica. La directiva y la gente están de fiesta.`);
+    } else addNews(g, `${INTL_NOMBRE}: campeón ${c.nombre}`, c.pais ? `La copa se fue a ${c.pais}: ganó ${c.nombre}.` : `${c.nombre} dejó la copa en casa.`);
+  }
+}
+
+/** El campeón de la Primera A juega la Copa Cruz del Sur con 3 clubes de afuera. */
+function drawIntl(g: GameState, rng: Rng) {
+  const campeon = g.history[g.history.length - 1]?.campeonA;
+  if (!campeon || !g.clubs[campeon]) return;
+  const ids = [campeon];
+  for (const s of elegirRivales(rng)) {
+    const c = addClub(g, rng, newId(g, 'x'), s, rng.int(69, 76));
+    c.pais = s.pais;
+    ids.push(c.id);
+  }
+  g.fixtures.push(...fixturesGrupo(ids, () => newId(g, 'f')));
+  const user = g.clubs[g.userClubId];
+  const rivales = ids.slice(1).map((id) => `${g.clubs[id].nombre} (${g.clubs[id].pais})`).join(', ');
+  if (campeon === user.id) {
+    user.presupuesto += INTL_PREMIO.jugar;
+    logMoney(g, `${INTL_NOMBRE}: premio por jugarla`, INTL_PREMIO.jugar);
+    addNews(g, `🌎 ¡A jugar la ${INTL_NOMBRE}!`, `Por ser campeón, ${user.nombre} juega contra ${rivales}. Grupo de 4 a una rueda (miércoles después de las fechas 2, 6 y 10) y final entre los dos primeros.`);
+  } else addNews(g, `🌎 ${INTL_NOMBRE}`, `${g.clubs[campeon].nombre}, el campeón, representa al país contra ${rivales}.`);
+}
+
+/** Los clubes de afuera se van cuando termina la temporada. */
+function quitarExtranjeros(g: GameState) {
+  for (const c of Object.values(g.clubs)) {
+    if (c.division !== 'X') continue;
+    for (const id of c.plantel) if (g.players[id]?.clubId === c.id) delete g.players[id];
+    delete g.clubs[c.id];
   }
 }
 
@@ -512,8 +572,11 @@ function closeSeason(g: GameState, rng: Rng) {
     .sort((a, b) => b.temporada.tries - a.temporada.tries);
   const top = scorersA[0];
   const copaFinal = g.fixtures.find((f) => f.comp === 'COPA' && f.etapa === 3 && f.result);
+  const intlFinal = g.fixtures.find((f) => f.comp === 'INTL' && f.etapa === 3 && f.result);
+  const intlCampeon = intlFinal ? g.clubs[matchWinner(intlFinal) ?? intlFinal.home] : null;
   const rec: SeasonRecord = {
     campeonCopa: copaFinal ? matchWinner(copaFinal) ?? undefined : undefined,
+    campeonIntl: intlCampeon ? `${intlCampeon.nombre}${intlCampeon.pais ? ` (${intlCampeon.pais})` : ''}` : undefined,
     temporada: g.temporada,
     campeonA: campeon,
     subcampeonA: sub,
@@ -552,6 +615,7 @@ export function startNextSeason(g: GameState): string[] {
   if (g.phase !== 'fin') throw new Error('La temporada no terminó');
   if (g.career?.despedido) throw new Error('Primero elegí un club nuevo');
   const rng = new Rng(g.rng);
+  quitarExtranjeros(g);
   const rec = g.history[g.history.length - 1];
   for (const id of rec.desciende) g.clubs[id].division = 'B';
   for (const id of rec.descB ?? []) g.clubs[id].division = 'C';
@@ -674,6 +738,7 @@ export function startNextSeason(g: GameState): string[] {
   g.ultimasMejoras = [];
   g.fixtures = makeLeagueFixtures(g, rng);
   drawCup(g, rng);
+  drawIntl(g, rng);
   scoutYouth(g, rng);
   startCareerSeason(g);
   if (g.amistosos) makePreseason(g, rng);

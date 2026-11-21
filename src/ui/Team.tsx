@@ -141,7 +141,7 @@ export function TeamScreen() {
         <span className="mark" style={{ top: '35%', right: '1%' }}>22</span>
         {SPOTS.map(([x, y], i) => {
           const p = players[i];
-          const r = p ? slotRating(p, i) : 0;
+          const r = p ? Math.round(slotRating(p, i)) : 0;
           const warn = !p || p.lesion > 0 || fitKind(p, SHIRT_POS[i]) === 'fuera';
           return (
             <button key={i} className={`slot ${warn ? 'warn' : ''} ${sel?.slot === i ? 'picked' : ''} ${sel?.bench ? 'target' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={`Camiseta ${i + 1}, ${SHIRT_LABEL[i]}: ${p ? p.apellido : 'vacía'}`}>
@@ -149,6 +149,7 @@ export function TeamScreen() {
                 <span className="pc-n num">{i + 1}</span>
                 <span className="pc-name">
                   <span className="sn">{p ? p.apellido : 'Vacío'}</span>
+                  {p && <span className="sr num" style={{ color: r >= 80 ? '#5dff8f' : r >= 72 ? '#b6f25a' : r >= 65 ? '#ffe14d' : '#ff8a6b' }}>{Math.round(r)}</span>}
                 </span>
               </span>
               <span className="pc-bot">
