@@ -13,6 +13,8 @@ export interface SaveMeta {
   temporada: number;
   round: number;
   updatedAt: number;
+  division?: string;
+  modo?: string;
 }
 
 const DB_NAME = 'rugby-manager';
@@ -66,6 +68,8 @@ export function metaFor(id: string, g: GameState): SaveMeta {
     temporada: g.temporada,
     round: g.round,
     updatedAt: Date.now(),
+    division: club.division,
+    modo: g.modo,
   };
 }
 
