@@ -106,7 +106,7 @@ export function TeamScreen() {
         </button>
       </div>
       <p className="small muted" style={{ margin: 0 }}>
-        Tocá un jugador y después otro titular para que cambien de puesto, o un suplente de la lista de abajo para que entre. El número de abajo de cada camiseta es cuánto rinde en ese puesto.
+        Tocá un jugador y después otro titular para que cambien de puesto, o un suplente de la lista de abajo para que entre. Las estrellas (de 1 a 5) muestran cuánto rinde cada uno en ese puesto, y la barrita es su energía.
       </p>
       {sel && (
         <div className="swapbar" role="status">
@@ -149,19 +149,17 @@ export function TeamScreen() {
                 <span className="pc-n num">{i + 1}</span>
                 <span className="pc-name">
                   <span className="sn">{p ? p.apellido : 'Vacío'}</span>
-                  {p && (
-                    <span className="sr num" style={{ color: ovrColor(r) }}>
-                      {Math.round(r)}
-                    </span>
-                  )}
                 </span>
               </span>
+              <span className="pc-bot">
+              <span className="pc-stars">{p ? <Stars n={toStars(r)} /> : null}</span>
               <span className="pc-bars" title={p ? `Energía ${p.energia}%` : undefined}>
                 {[0, 1, 2, 3, 4].map((k) => {
                   const on = p ? p.energia > k * 20 + 5 : false;
                   const col = !p ? '' : p.energia >= 70 ? 'g' : p.energia >= 45 ? 'y' : 'r';
                   return <span key={k} className={`seg5 ${on ? col : ''}`} />;
                 })}
+              </span>
               </span>
             </button>
           );

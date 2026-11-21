@@ -392,3 +392,9 @@ button.lu-row:disabled { cursor: default; opacity: 1; }
 
 .cand { background: #eef0f7; color: #111; border: 2px solid #000; border-radius: 3px; padding: 10px; box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
 .cand .muted { color: #555; }
+
+.pitch-cards .pc-bot { display: flex; align-items: center; gap: 3px; }
+.pitch-cards .pc-stars { flex: 0 0 auto; display: flex; align-items: center; font-size: 0.62rem; line-height: 1; }
+.pitch-cards .pc-stars .stars { font-size: inherit; letter-spacing: -0.5px; }
+.pitch-cards .pc-bot .pc-bars { flex: 1; }
+.pitch-cards .stars-bg { color: #7d8090 !important; }
