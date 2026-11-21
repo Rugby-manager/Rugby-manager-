@@ -367,3 +367,25 @@ button.lu-row:disabled { cursor: default; opacity: 1; }
 .evo-col i { display: block; width: 20px; border: 1px solid #000; border-radius: 2px; }
 
 .stadium { width: 100%; height: auto; border: 2px solid #000; border-radius: 3px; display: block; }
+
+/* XV en la cancha: tarjetas con número, nombre, puntaje y energía */
+.pitch.pitch-cards { aspect-ratio: 3 / 4.6; background: repeating-linear-gradient(0deg, #3f8f2e 0 6%, #4a9c36 6% 12%); }
+.pitch.pitch-cards::before, .pitch.pitch-cards::after { display: none; }
+.pitch-cards .lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pitch-cards .mark { position: absolute; transform: translateY(-50%) rotate(90deg); color: #fff; font-family: var(--font-display); font-size: 1rem; opacity: 0.9; pointer-events: none; }
+.pitch-cards .slot { width: 32%; flex-direction: column; align-items: stretch; gap: 2px; padding: 2px; background: linear-gradient(180deg, #f4f4f8, #b9bccb); border: 1px solid #000; border-radius: 3px; box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+.pitch-cards .pc-top { display: flex; gap: 2px; align-items: stretch; }
+.pitch-cards .pc-n { flex: 0 0 auto; min-width: 1.35em; display: grid; place-items: center; background: #fff; color: #000; border: 1px solid #000; font-family: var(--font-display); font-size: 1rem; line-height: 1; padding-top: 2px; }
+.pitch-cards .pc-name { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 2px; background: #111; padding: 2px 3px; }
+.pitch-cards .slot .sn { background: none; color: #fff; font-size: 0.64rem; padding: 0; max-width: none; border-radius: 0; }
+.pitch-cards .slot .sr { background: none !important; border: 0; font-size: 0.9rem; padding: 0; line-height: 1; }
+.pitch-cards .pc-bars { display: flex; gap: 2px; padding: 0 1px; }
+.pitch-cards .seg5 { flex: 1; height: 4px; background: #555; border: 1px solid #222; border-radius: 1px; }
+.pitch-cards .seg5.g { background: #5fd35f; }
+.pitch-cards .seg5.y { background: #ffcc1a; }
+.pitch-cards .seg5.r { background: #ff5a4a; }
+.pitch-cards .slot.warn .pc-name { background: #8a1c12; }
+.pitch-cards .slot.warn .sn { background: none; }
+.pitch-cards .slot.picked { background: linear-gradient(180deg, #fff3a8, #ffcc1a); box-shadow: 0 0 0 2px #ffcc1a, 0 0 10px #ffcc1a; }
+.pitch-cards .slot.picked .sn { background: none; color: #ffcc1a; }
+.pitch-cards .slot.target { outline: 1px dashed #fff; }

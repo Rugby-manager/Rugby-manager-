@@ -2,16 +2,18 @@ import { captainOf } from '../engine/extras';
 import { useEffect, useState } from 'react';
 import { useGame } from './App';
 import { POS_LABEL, POS_ORDER, SHIRT_LABEL, SHIRT_POS, bestXV, fitKind, overall, posText, slotRating } from '../engine/players';
-import { Jersey, Ovr, Seg, Sheet, Stars, ovrColor, toStars } from './common';
+import { Ovr, Seg, Sheet, Stars, ovrColor, toStars } from './common';
 import type { Ataque, Defensa, JuegoPie, Player } from '../engine/types';
 
+// Dónde se para cada camiseta en la cancha (centro de la tarjeta, en % del ancho y alto).
 const SPOTS: [number, number][] = [
-  [28, 8], [50, 8], [72, 8],
-  [38, 21], [62, 21],
-  [16, 34], [84, 34], [50, 36],
-  [38, 49], [64, 57],
-  [12, 80], [40, 67], [62, 79], [88, 80],
-  [50, 93],
+  [17, 5], [50, 5], [83, 5],
+  [33, 15], [67, 15],
+  [17, 26], [83, 26], [50, 29],
+  [38, 41],
+  [56, 52],
+  [17, 68], [64, 63], [74, 75], [83, 88],
+  [38, 93],
 ];
 
 export function TeamScreen() {
@@ -110,20 +112,44 @@ export function TeamScreen() {
           </button>
         </div>
       )}
-      <div className="pitch">
+      <div className="pitch pitch-cards">
+        <svg className="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <g stroke="#fff" strokeWidth="0.5" vectorEffect="non-scaling-stroke" fill="none">
+            <line x1="0" y1="35" x2="100" y2="35" vectorEffect="non-scaling-stroke" />
+            <line x1="0" y1="72" x2="100" y2="72" vectorEffect="non-scaling-stroke" opacity="0.8" />
+            <line x1="8" y1="0" x2="8" y2="100" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" opacity="0.7" />
+            <line x1="92" y1="0" x2="92" y2="100" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" opacity="0.7" />
+            <line x1="25" y1="0" x2="25" y2="100" strokeDasharray="1.5 4" vectorEffect="non-scaling-stroke" opacity="0.5" />
+            <line x1="75" y1="0" x2="75" y2="100" strokeDasharray="1.5 4" vectorEffect="non-scaling-stroke" opacity="0.5" />
+            <line x1="0" y1="54" x2="100" y2="54" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" opacity="0.6" />
+          </g>
+        </svg>
+        <span className="mark" style={{ top: '35%', left: '1%' }}>22</span>
+        <span className="mark" style={{ top: '35%', right: '1%' }}>22</span>
         {SPOTS.map(([x, y], i) => {
           const p = players[i];
           const r = p ? slotRating(p, i) : 0;
           const warn = !p || p.lesion > 0 || fitKind(p, SHIRT_POS[i]) === 'fuera';
           return (
             <button key={i} className={`slot ${warn ? 'warn' : ''} ${sel?.slot === i ? 'picked' : ''} ${sel?.bench ? 'target' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={`Camiseta ${i + 1}, ${SHIRT_LABEL[i]}: ${p ? p.apellido : 'vacía'}`}>
-              <Jersey colors={club.colores} patron={club.patron} number={i + 1} size={40} />
-              <span className="sn">{p ? p.apellido : 'Vacío'}</span>
-              {p && (
-                <span className="sr num" style={{ background: ovrColor(r) }}>
-                  {Math.round(r)}
+              <span className="pc-top">
+                <span className="pc-n num">{i + 1}</span>
+                <span className="pc-name">
+                  <span className="sn">{p ? p.apellido : 'Vacío'}</span>
+                  {p && (
+                    <span className="sr num" style={{ color: ovrColor(r) }}>
+                      {Math.round(r)}
+                    </span>
+                  )}
                 </span>
-              )}
+              </span>
+              <span className="pc-bars" title={p ? `Energía ${p.energia}%` : undefined}>
+                {[0, 1, 2, 3, 4].map((k) => {
+                  const on = p ? p.energia > k * 20 + 5 : false;
+                  const col = !p ? '' : p.energia >= 70 ? 'g' : p.energia >= 45 ? 'y' : 'r';
+                  return <span key={k} className={`seg5 ${on ? col : ''}`} />;
+                })}
+              </span>
             </button>
           );
         })}
