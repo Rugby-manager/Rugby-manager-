@@ -472,3 +472,29 @@ table.std.noche .badge { min-width: 1.55em; font-size: 0.98rem; }
 .plansel { font: inherit; font-size: 0.8rem; max-width: 52%; padding: 4px; border: 2px solid #000; background: #fff; color: #000; }
 .attrgroup { font-family: var(--font-display); font-size: 0.95rem; letter-spacing: 0.04em; margin-top: 8px; color: var(--bar); border-bottom: 1px solid #0003; }
 .int-ef .small { font-size: 0.68rem; opacity: 0.8; }
+
+/* Entrenamiento individual: tarjetas por jugador */
+.plangrid { display: grid; gap: 4px; max-height: 480px; overflow-y: auto; padding: 2px; }
+.plancard { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; text-align: left; width: 100%;
+  padding: 6px 8px; background: linear-gradient(#ffffff, #e8ecf5); border: 2px solid #000; box-shadow: 2px 2px 0 #0004; color: #111; cursor: pointer; }
+.plancard.propio { border-left: 6px solid #1f4fa3; }
+.plancard.todos { background: linear-gradient(#fff3b0, #ffe066); margin-bottom: 6px; }
+.plancard .pc-dor { min-width: 2em; height: 2em; display: grid; place-items: center; background: #111; color: #fff; font-family: var(--font-display); font-size: 1.15rem; padding-top: 2px; }
+.plancard .pc-main { display: grid; gap: 1px; min-width: 0; }
+.plancard .pc-main b { font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plancard .pc-main small { font-size: 0.7rem; color: #555; }
+.plancard .pc-main .stars { font-size: 0.7rem; }
+.plancard .pc-side { display: grid; justify-items: end; gap: 3px; }
+.planchip { display: inline-block; padding: 3px 7px; border-radius: 3px; color: #fff; font-family: var(--font-display); font-size: 0.85rem; letter-spacing: 0.03em; white-space: nowrap; text-shadow: 0 1px 0 #0006; border: 1px solid #0006; }
+.pc-up { font-size: 0.68rem; font-weight: 800; color: #1a7f45; }
+.grupos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grupo { display: grid; gap: 4px; text-align: left; padding: 0 0 6px; background: #fff; border: 3px solid; color: #111; cursor: pointer; }
+.grupo .gr-hd { color: #fff; font-family: var(--font-display); font-size: 1rem; padding: 3px 6px; letter-spacing: 0.03em; }
+.grupo .small { padding: 0 6px; font-size: 0.72rem; }
+.grupo[aria-pressed='true'] { box-shadow: 0 0 0 3px #ffcc1a; }
+.attrpick { display: grid; gap: 3px; }
+.ap { display: grid; grid-template-columns: 9.5em 1fr 2.2em; align-items: center; gap: 6px; padding: 5px 6px; background: #fff; border: 1px solid #0003; color: #111; cursor: pointer; text-align: left; font-size: 0.82rem; }
+.ap[aria-pressed='true'] { background: #ffe680; border-color: #000; }
+.ap-bar { height: 8px; background: #0001; border: 1px solid #0003; }
+.ap-bar i { display: block; height: 100%; }
+.ap-v { text-align: right; font-family: var(--font-display); font-size: 1.05rem; }

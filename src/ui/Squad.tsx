@@ -3,10 +3,10 @@ import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
 import { ATTR_DESC, ATTR_GROUPS, ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, toStars } from './common';
-import { FOCOS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL } from '../engine/training';
+import { FOCOS, FOCO_ATTRS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL, planLabel } from '../engine/training';
 import type { ReactNode } from 'react';
 import type { AttrKey, FocoEntreno, Intensidad, PlanEntreno } from '../engine/types';
-import type { GameState, Player, Pos } from '../engine/types';
+import type { Club, GameState, Player, Pos } from '../engine/types';
 
 const UNITS: { name: string; pos: Pos[] }[] = [
   { name: 'Primera línea', pos: ['PIL', 'HOO'] },
@@ -41,6 +41,107 @@ function PlanSelect({ value, onChange, label }: { value: PlanEntreno; onChange: 
         ))}
       </optgroup>
     </select>
+  );
+}
+
+/** Color de cada grupo de entrenamiento. */
+const GRUPO_COLOR: Record<FocoEntreno, string> = { auto: '#5d6a80', ataque: '#1f6fd0', defensa: '#c0392b', fijas: '#2e8b57', pateo: '#d07a10', fisico: '#7b3fb5' };
+const grupoDe = (plan: PlanEntreno): FocoEntreno =>
+  plan in FOCO_LABEL ? (plan as FocoEntreno) : ((['ataque', 'defensa', 'fijas', 'pateo', 'fisico'] as FocoEntreno[]).find((f) => FOCO_ATTRS[f].includes(plan as AttrKey)) ?? 'auto');
+const GRUPO_ICON: Record<FocoEntreno, string> = { auto: '⚙', ataque: '⚡', defensa: '🛡', fijas: '⛓', pateo: '🎯', fisico: '💪' };
+
+function PlanChip({ plan }: { plan: PlanEntreno }) {
+  const gr = grupoDe(plan);
+  return (
+    <span className="planchip" style={{ background: GRUPO_COLOR[gr] }}>
+      {GRUPO_ICON[gr]} {planLabel(plan)}
+    </span>
+  );
+}
+
+/** Lista de jugadores con lo que entrena cada uno; al tocar uno se elige el plan. */
+function PlanBoard({ club, onChange }: { club: Club; onChange: () => void }) {
+  const { g } = useGame();
+  const [edit, setEdit] = useState<string | null>(null);
+  const t = club.entrenamiento;
+  const subas = new Map<string, number>();
+  for (const m of g.ultimasMejoras ?? []) subas.set(m.playerId, (subas.get(m.playerId) ?? 0) + 1);
+  const ps = club.plantel
+    .map((id) => g.players[id])
+    .filter(Boolean)
+    .sort((x, y) => POS_ORDER.indexOf(x.pos) - POS_ORDER.indexOf(y.pos) || overall(y) - overall(x));
+  const p = edit && edit !== '*' ? g.players[edit] : null;
+  const actual: PlanEntreno = edit === '*' ? t.foco : p ? (p.entreno ?? t.foco) : 'auto';
+  const elegir = (v: PlanEntreno) => {
+    if (edit === '*') club.entrenamiento = { ...t, foco: (v in FOCO_LABEL ? v : 'auto') as FocoEntreno };
+    else if (p) p.entreno = v === t.foco ? null : v;
+    setEdit(null);
+    onChange();
+  };
+  return (
+    <>
+      <button className="plancard todos" onClick={() => setEdit('*')}>
+        <span className="pc-dor">★</span>
+        <span className="pc-main">
+          <b>Plan general</b>
+          <small>Para los que no tienen plan propio</small>
+        </span>
+        <PlanChip plan={t.foco} />
+      </button>
+      <div className="plangrid">
+        {ps.map((x) => {
+          const plan = x.entreno ?? t.foco;
+          const up = subas.get(x.id) ?? 0;
+          return (
+            <button key={x.id} className={`plancard ${x.entreno ? 'propio' : ''}`} onClick={() => setEdit(x.id)} style={{ opacity: x.lesion > 0 ? 0.55 : 1 }}>
+              <span className="pc-dor num">{x.dorsal || '–'}</span>
+              <span className="pc-main">
+                <b>{x.apellido}{x.lesion > 0 ? ' ✚' : ''}</b>
+                <small>
+                  {POS_LABEL[x.pos]} · {x.edad} años
+                </small>
+                <Stars n={toStars(overall(x))} />
+              </span>
+              <span className="pc-side">
+                <PlanChip plan={plan} />
+                {up > 0 && <span className="pc-up">▲ {up} esta semana</span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {edit && (
+        <Sheet title={edit === '*' ? 'Plan general' : `Entrena: ${p?.nombre} ${p?.apellido}`} onClose={() => setEdit(null)}>
+          {p && <p className="small muted" style={{ margin: 0 }}>{posText(p)} · {p.edad} años · en negrita lo que más pesa en su puesto.</p>}
+          <div className="label">Un grupo de atributos</div>
+          <div className="grupos">
+            {FOCOS.map((f) => (
+              <button key={f} className="grupo" aria-pressed={actual === f} onClick={() => elegir(f)} style={{ borderColor: GRUPO_COLOR[f] }}>
+                <span className="gr-hd" style={{ background: GRUPO_COLOR[f] }}>{GRUPO_ICON[f]} {FOCO_LABEL[f]}</span>
+                <span className="small">{FOCO_DESC[f]}</span>
+              </button>
+            ))}
+          </div>
+          {edit !== '*' && p && (
+            <>
+              <div className="label">O un atributo puntual (sube más rápido)</div>
+              <div className="attrpick">
+                {ENTRENABLES.map((k) => {
+                  const key = (W[p.pos][k] ?? 0) >= 0.1;
+                  return (
+                    <button key={k} className="ap" aria-pressed={actual === k} onClick={() => elegir(k)}>
+                      <span className="ap-l" style={{ fontWeight: key ? 800 : 500 }}>{ATTR_LABEL[k]}</span>
+                      <span className="ap-bar"><i style={{ width: `${p.attrs[k]}%`, background: GRUPO_COLOR[grupoDe(k)] }} /></span>
+                      <span className="ap-v num">{p.attrs[k]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </Sheet>
+      )}
+    </>
   );
 }
 
@@ -192,31 +293,7 @@ function TrainingCard({ onChange }: { onChange: () => void }) {
         <div><span className="label">Ayudante</span><b>{club.staff?.ayudante ? `+${Math.round(5 * club.staff.ayudante)}%` : 'No tenés'}</b><span className="small">a todos</span></div>
       </div>
       <div className="label">Qué entrena cada uno</div>
-      <div className="planes">
-        <div className="planrow todos">
-          <span className="grow"><b>Los que no tienen plan propio</b></span>
-          <PlanSelect label="Plan para todos" value={t.foco} onChange={(v) => set({ foco: (v in FOCO_LABEL ? v : 'auto') as FocoEntreno })} />
-        </div>
-        {club.plantel
-          .map((id) => g.players[id])
-          .filter(Boolean)
-          .sort((x, y) => POS_ORDER.indexOf(x.pos) - POS_ORDER.indexOf(y.pos) || overall(y) - overall(x))
-          .map((p) => (
-            <div key={p.id} className={`planrow ${p.entreno ? 'propio' : ''}`}>
-              <span className="grow">
-                <b>{p.apellido}</b> <span className="small muted">{POS_LABEL[p.pos]}{p.lesion > 0 ? ' · 🩹' : ''}</span>
-              </span>
-              <PlanSelect
-                label={`Entrenamiento de ${p.apellido}`}
-                value={p.entreno ?? t.foco}
-                onChange={(v) => {
-                  p.entreno = v === t.foco ? null : v;
-                  onChange();
-                }}
-              />
-            </div>
-          ))}
-      </div>
+      <PlanBoard club={club} onChange={onChange} />
       <div className="label">Intensidad</div>
       <Seg<Intensidad>
         label="Intensidad"
