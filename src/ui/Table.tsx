@@ -31,9 +31,9 @@ export function TableScreen() {
           </button>
         ))}
       </div>
-      <section className="card">
-        <div className="tablewrap">
-          <table className="std">
+      <section className="card nightcard">
+        <div className="tablewrap night">
+          <table className="std noche">
             <thead>
               <tr>
                 <th>#</th>
@@ -43,8 +43,8 @@ export function TableScreen() {
                 <th title="Empatados">E</th>
                 <th title="Perdidos">P</th>
                 <th title="Diferencia de tantos">Dif</th>
-                <th title="Tries a favor">Tries</th>
-                <th title="Puntos bonus">Bonus</th>
+                <th title="Tries a favor">TR</th>
+                <th title="Puntos bonus">BO</th>
                 <th>Pts</th>
               </tr>
             </thead>
@@ -53,7 +53,9 @@ export function TableScreen() {
                 const c = g.clubs[r.clubId];
                 return (
                   <tr key={r.clubId} className={r.clubId === club.id ? 'me' : ''}>
-                    <td className={`pos ${zone(i)}`}>{i + 1}</td>
+                    <td className="pos">
+                      <span className={`badge ${zone(i)}`}>{i + 1}</span>
+                    </td>
                     <td className="club">
                       <span className="row" style={{ gap: 6 }}>
                         <ClubJersey club={c} size={22} />
@@ -67,7 +69,7 @@ export function TableScreen() {
                     <td>{r.pf - r.pc > 0 ? `+${r.pf - r.pc}` : r.pf - r.pc}</td>
                     <td>{r.tf}</td>
                     <td>{r.bo + r.bd}</td>
-                    <td style={{ fontWeight: 700 }}>{r.pts}</td>
+                    <td className="pts">{r.pts}</td>
                   </tr>
                 );
               })}

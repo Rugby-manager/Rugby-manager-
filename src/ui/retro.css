@@ -424,3 +424,42 @@ button.conf.hinchada { background: none; border: 0; color: inherit; padding: 0; 
 .int-ef { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
 .int-ef > div { display: grid; gap: 2px; padding: 6px 4px; border: 1px solid #0003; background: #0000000a; }
 .int-ef .label { font-size: 0.68rem; }
+
+/* Tabla de posiciones de noche: filas oscuras sobre una cancha iluminada */
+.nightcard { padding: 0; overflow: hidden; }
+.tablewrap.night {
+  background:
+    radial-gradient(ellipse 40% 30% at 12% 0%, rgba(255, 255, 230, 0.35), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 88% 0%, rgba(255, 255, 230, 0.35), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 26px),
+    linear-gradient(180deg, #1a2440 0%, #0d1428 55%, #10301c 100%);
+  padding: 6px 4px 8px;
+}
+table.std.noche { border-collapse: separate; border-spacing: 0 3px; color: #f1f3f8; }
+table.std.noche th { color: #f1f3f8; border: 0; font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.04em; text-shadow: 0 1px 0 #000; padding: 2px 4px; }
+table.std.noche td { border: 0; padding: 5px 4px; background: rgba(8, 10, 18, 0.72); font-family: var(--font-display); font-size: 1.2rem; line-height: 1; letter-spacing: 0.02em; }
+table.std.noche tbody tr:nth-child(even) td { background: rgba(30, 34, 48, 0.72); }
+table.std.noche td.club { font-family: var(--font-body); font-size: 0.86rem; font-weight: 600; }
+table.std.noche td.pts { font-size: 1.35rem; color: #fff; }
+table.std.noche tr.me td { background: rgba(8, 10, 18, 0.85); font-weight: 700; }
+table.std.noche tr.me td.club, table.std.noche tr.me td.pts { color: #ffe14d; }
+table.std.noche td.pos { border-left: 0; padding-left: 2px; }
+table.std.noche .badge {
+  display: inline-grid; place-items: center; min-width: 1.7em; height: 1.35em; padding-top: 2px; border-radius: 5px;
+  font-family: var(--font-display); font-size: 1.05rem; color: #fff; text-shadow: 0 1px 0 #0008;
+  background: linear-gradient(#5d6a80, #3a4458); border: 1px solid #0009; box-shadow: inset 0 1px 0 #fff5;
+}
+table.std.noche .badge.z-up { background: linear-gradient(#8fd14f, #4c9a1f); }
+table.std.noche .badge.z-po { background: linear-gradient(#5fb6ff, #1f6fd0); }
+table.std.noche .badge.z-promo { background: linear-gradient(#ffb547, #d07a10); }
+table.std.noche .badge.z-down { background: linear-gradient(#ff6b5b, #b9271a); }
+.nightcard + .legend, .nightcard .legend { padding: 0 10px; }
+.nightcard > p { padding: 0 10px 10px; }
+table.std.noche td, table.std.noche th { padding-left: 3px; padding-right: 3px; }
+table.std.noche td { font-size: 1.1rem; }
+table.std.noche td.club { font-size: 0.8rem; white-space: normal; line-height: 1.15; }
+table.std.noche td.pts { font-size: 1.25rem; }
+table.std.noche td.pos { width: 2.3em; padding-left: 4px; text-align: left; }
+table.std.noche .badge { min-width: 1.55em; font-size: 0.98rem; }
+.tablewrap.night { margin: 0; padding: 6px 4px 8px; }
+.nightcard .legend { padding: 0 10px; }
