@@ -238,7 +238,9 @@ export function switchClub(g: GameState, clubId: string) {
   const old = g.clubs[g.userClubId];
   old.entrenamiento = { foco: 'general', intensidad: 'normal' };
   for (const id of old.plantel) g.players[id].entreno = null;
+  delete old.hinchada;
   g.userClubId = clubId;
+  g.clubs[clubId].hinchada ??= 55;
   g.caja = [];
   g.ultimasMejoras = [];
   c.despedido = false;

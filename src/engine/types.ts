@@ -125,6 +125,8 @@ export interface Club {
   capitan?: string | null;
   /** Solo los clubes extranjeros. */
   pais?: string;
+  /** Humor de la hinchada, 0 a 100 (solo el club del usuario). */
+  hinchada?: number;
 }
 
 export interface RecordEntry {

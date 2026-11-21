@@ -409,3 +409,8 @@ button.lu-row:disabled { cursor: default; opacity: 1; }
 .paper-item { border-top: 1px solid #b9b2a0; padding-top: 5px; margin-top: 5px; font-size: 0.88rem; }
 .paper-item b { font-family: var(--font-display); font-size: 1.05rem; text-transform: uppercase; font-weight: 400; margin-right: 4px; }
 .press { border-color: #ffcc1a; }
+
+/* Hinchada (debajo de la confianza) */
+button.conf.hinchada { background: none; border: 0; color: inherit; padding: 0; margin-top: 6px; cursor: pointer; }
+.conf.hinchada .num { font-family: var(--font-display); font-size: 1rem; color: inherit; white-space: nowrap; }
+.conf.hinchada .hint { grid-column: 1 / -1; font-family: var(--font-body); font-size: 0.72rem; letter-spacing: 0; opacity: 0.85; }

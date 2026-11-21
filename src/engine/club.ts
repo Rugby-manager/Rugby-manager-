@@ -219,6 +219,8 @@ export function asistencia(g: GameState, home: Club, away: Club, playoff: boolea
   let demanda = (home.reputacion - 30) * 50 * form * rival * precioF * (playoff ? 1.7 : 1);
   if (home.division === 'A') demanda *= 1.15;
   if (isDerby(home, away)) demanda *= 1.5;
+  // La hinchada: contenta viene más, enojada viene menos (solo el club del usuario).
+  if (home.hinchada != null) demanda *= 0.75 + home.hinchada / 200;
   const publico = Math.max(0, Math.min(cap - socios, Math.round(demanda)));
   const total = socios + publico;
   return {
@@ -227,7 +229,7 @@ export function asistencia(g: GameState, home: Club, away: Club, playoff: boolea
     total,
     capacidad: cap,
     recaudacion: Math.round((publico * precio) / 1000) * 1000,
-    quincho: Math.round((total * 220 * (home.inst?.quincho ?? 0)) / 1000) * 1000,
+    quincho: Math.round((total * 220 * (home.inst?.quincho ?? 0) * (home.hinchada != null ? 0.6 + home.hinchada / 125 : 1)) / 1000) * 1000,
     lleno: total >= cap,
   };
 }

@@ -13,7 +13,8 @@ import { ClubJersey, Ovr, Sheet, formatMoney } from './common';
 import { FOCO_LABEL, INTENSIDAD_LABEL } from '../engine/training';
 import { LiveMatchScreen, MatchLive } from './MatchLive';
 import { makeObjective, prestigioTexto, switchClub } from '../engine/career';
-import type { Fixture, GameState, Player } from '../engine/types';
+import type { Club, Fixture, GameState, Player } from '../engine/types';
+import { estadoHinchada, humor, precioCaro } from '../engine/hinchada';
 
 export function HomeScreen() {
   const { g, refresh, saveNow, go, toast } = useGame();
@@ -169,6 +170,7 @@ export function HomeScreen() {
             </div>
           </>
         )}
+        <HinchadaBar club={club} onOpen={() => go('club', 'entradas')} />
         <div className="hub-actions">
           <button className="btn" onClick={async () => { await saveNow(true); toast('Partida guardada'); }}>
             Guardar
@@ -830,5 +832,21 @@ function VestuarioCard() {
       ))}
       <p className="small muted" style={{ margin: 0 }}>Si no contestás en dos fechas, se resuelve solo (y no de la mejor manera).</p>
     </section>
+  );
+}
+
+function HinchadaBar({ club, onOpen }: { club: Club; onOpen: () => void }) {
+  const h = humor(club);
+  const e = estadoHinchada(h);
+  const caro = precioCaro(club);
+  return (
+    <button className="conf hinchada" onClick={onOpen} title={e.texto}>
+      <span>Hinchada</span>
+      <div className="bar">
+        <i style={{ width: `${Math.max(3, h)}%`, background: h < 30 ? 'var(--loss)' : h < 55 ? 'var(--draw)' : 'var(--win)' }} />
+      </div>
+      <span className="num">{e.icono} {e.label}</span>
+      {caro > 0 && <span className="hint">🎟 La gente se queja: la entrada está {caro === 2 ? 'muy cara' : 'cara'}.</span>}
+    </button>
   );
 }

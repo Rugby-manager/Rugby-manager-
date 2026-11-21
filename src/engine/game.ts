@@ -1,4 +1,5 @@
 import { eventosVestuario } from './vestuario';
+import { HINCHADA_INICIAL, hinchadaTrasPartido } from './hinchada';
 import { cerrarPrensa, editarDiario, premiosTemporada } from './diario';
 import { refreshTransferibles, returnLoans } from './loans';
 import { makePreseason, nextFriendly, preseasonPending, choosePreseason as choosePre } from './preseason';
@@ -77,6 +78,7 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   const userIdx = clamp(opts.userClubIndex ?? 0, 0, Object.keys(g.clubs).length - 1);
   g.userClubId = `c${userIdx}`;
   g.clubs[g.userClubId].tactica = { ...DEFAULT_TACTICS };
+  g.clubs[g.userClubId].hinchada = HINCHADA_INICIAL;
   g.fixtures = makeLeagueFixtures(g, rng);
   refreshFreeAgents(g, rng);
   refreshTransferibles(g, rng);
@@ -289,6 +291,7 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
     applyMatchEffects(g, f, rng);
     for (const n of checkRecords(g, f)) addNews(g, '¡Récord!', n);
     if (isUser) afterUserMatch(g, f, rng);
+    if (isUser) for (const t of hinchadaTrasPartido(g, f, matchWinner(f))) addNews(g, '📣 Hinchada', t);
     // La recaudación es para el local (en la promoción y los playoffs, un poco más).
     const playoff = !isLeague(f.comp);
     if (home === user) {
@@ -917,6 +920,7 @@ export function migrate(g: GameState): GameState {
     g.version = 18;
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
+  g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;
   return g;
 }
 

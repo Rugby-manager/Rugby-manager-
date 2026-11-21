@@ -10,8 +10,8 @@ import { IcoCaja, IcoContrato, IcoEntrada, IcoEstadio, IcoPelota, IcoSilbato } f
 import { promoteYouth, releaseYouth } from '../engine/cup';
 import { overall, posText } from '../engine/players';
 import { Ovr, Sheet, Stars } from './common';
-import type { StaffKey } from '../engine/types';
-import type { Club } from '../engine/types';
+import type { Club, StaffKey } from '../engine/types';
+import { estadoHinchada, humor } from '../engine/hinchada';
 
 type Sec = 'caja' | 'entradas' | 'estadio' | 'empleados' | 'sponsor' | 'juveniles';
 const SECS: { v: Sec; l: string; i: JSX.Element }[] = [
@@ -147,6 +147,7 @@ function Entradas() {
           Un precio normal para tu club es {formatMoney(ref, true)}. Más barato va más gente; más caro, menos. Si la entrada está muy cara, también se enojan los socios. Los socios entran gratis.
         </p>
       </section>
+      <HinchadaCard c={c} />
       <section className="card stack">
         <h3>{local && rival ? `Próximo partido de local: vs ${rival.nombre}` : 'Estimación para un partido de local'}</h3>
         <div className="grid2">
@@ -526,6 +527,29 @@ function StadiumView({ c }: { c: Club }) {
         ))}
       </svg>
       <p className="small muted" style={{ margin: 0 }}>Cada mejora se ve acá: más gradas y gente, gimnasio, luces y césped en la cancha, y el quincho.</p>
+    </section>
+  );
+}
+
+function HinchadaCard({ c }: { c: Club }) {
+  const h = humor(c);
+  const e = estadoHinchada(h);
+  return (
+    <section className="card stack">
+      <h3>Hinchada y tercer tiempo</h3>
+      <div className="row" style={{ gap: 10 }}>
+        <span style={{ fontSize: 30 }}>{e.icono}</span>
+        <div style={{ flex: 1 }}>
+          <b>{e.label}</b>
+          <div className="fillbar" style={{ width: "100%" }} aria-label={`Humor de la hinchada ${h} de 100`}>
+            <span style={{ width: `${Math.max(3, h)}%`, background: h < 30 ? 'var(--loss)' : h < 55 ? 'var(--draw)' : 'var(--win)' }} />
+          </div>
+        </div>
+      </div>
+      <p className="small" style={{ margin: 0 }}>{e.texto}</p>
+      <p className="small muted" style={{ margin: 0 }}>
+        Sube cuando ganás (más en clásicos y finales) y baja cuando perdés. De local, la entrada cara la enoja y la barata la pone contenta. Contenta viene más gente y deja más plata en el quincho; muy enojada, la directiva te pierde confianza.
+      </p>
     </section>
   );
 }
