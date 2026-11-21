@@ -9,7 +9,7 @@ import { PlayerSheet } from './Squad';
 import type { Club, GameState } from '../engine/types';
 import { RECORD_LABEL, SELECCION, convocatoria, rivalOf, type RecordKey } from '../engine/extras';
 
-type Sec = 'campeones' | 'clubes' | 'jugadores' | 'records' | 'seleccion';
+type Sec = 'campeones' | 'clubes' | 'jugadores' | 'records' | 'seleccion' | 'premios';
 
 export function EncycloScreen() {
   const [sec, setSec] = useState<Sec>('campeones');
@@ -32,6 +32,7 @@ export function EncycloScreen() {
         onChange={setSec}
         options={[
           { v: 'records', l: 'Récords' },
+          { v: 'premios', l: 'Premios' },
           { v: 'seleccion', l: 'Selección' },
         ]}
       />
@@ -40,6 +41,7 @@ export function EncycloScreen() {
       {sec === 'jugadores' && <Jugadores />}
       {sec === 'records' && <Records />}
       {sec === 'seleccion' && <Seleccion />}
+      {sec === 'premios' && <Premios />}
     </>
   );
 }
@@ -249,6 +251,28 @@ function Jugadores() {
       </section>
       {open && <PlayerSheet g={g} p={g.players[open]} onClose={() => setOpen(null)} />}
     </>
+  );
+}
+
+function Premios() {
+  const { g } = useGame();
+  const ps = g.premios ?? [];
+  return (
+    <section className="card">
+      <h3>Premios</h3>
+      {!ps.length && <p className="small muted">Al terminar cada temporada se eligen el mejor jugador y la revelación.</p>}
+      {ps.map((t) => (
+        <div key={t.temporada} className="stack" style={{ gap: 4, marginBottom: 10 }}>
+          <div className="label">Temporada {t.temporada}</div>
+          {t.premios.map((x) => (
+            <div key={x.premio} className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <span className="small muted">{x.premio}</span>
+              <b className="small" style={{ textAlign: 'right' }}>{x.nombre} <span className="muted">({g.clubs[x.clubId]?.corto})</span></b>
+            </div>
+          ))}
+        </div>
+      ))}
+    </section>
   );
 }
 

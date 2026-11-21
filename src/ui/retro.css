@@ -398,3 +398,14 @@ button.lu-row:disabled { cursor: default; opacity: 1; }
 .pitch-cards .pc-stars .stars { font-size: inherit; letter-spacing: -0.5px; }
 .pitch-cards .pc-bot .pc-bars { flex: 1; }
 .pitch-cards .stars-bg { color: #7d8090 !important; }
+
+/* Diario del club */
+.paper { background: #f4efe1; color: #1b1b1b; border: 2px solid #000; border-radius: 3px; padding: 10px 12px 12px; box-shadow: var(--shadow); font-family: Georgia, 'Times New Roman', serif; }
+.paper-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #1b1b1b; padding-bottom: 4px; margin-bottom: 6px; }
+.paper-head > span { font-family: var(--font-display); font-size: 1.9rem; letter-spacing: 1px; text-transform: uppercase; line-height: 1; }
+.paper-date { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #555; }
+.paper-main { font-family: var(--font-display); font-size: 1.7rem; line-height: 1.05; text-transform: uppercase; margin: 2px 0; }
+.paper-sub { margin: 0 0 6px; font-size: 0.95rem; }
+.paper-item { border-top: 1px solid #b9b2a0; padding-top: 5px; margin-top: 5px; font-size: 0.88rem; }
+.paper-item b { font-family: var(--font-display); font-size: 1.05rem; text-transform: uppercase; font-weight: 400; margin-right: 4px; }
+.press { border-color: #ffcc1a; }

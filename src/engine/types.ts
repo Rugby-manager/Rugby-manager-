@@ -272,6 +272,12 @@ export interface SeasonRecord {
   posicionUsuario: { division: DivId; puesto: number };
 }
 
+export interface Edicion {
+  temporada: number;
+  round: number;
+  titulares: { titulo: string; bajada: string }[];
+}
+
 export interface NewsItem {
   id: string;
   temporada: number;
@@ -295,6 +301,12 @@ export interface GameState {
   fixtures: Fixture[];
   history: SeasonRecord[];
   news: NewsItem[];
+  /** Ediciones del diario (la más nueva primero). */
+  diario?: Edicion[];
+  /** Conferencia de prensa antes de un partido grande. */
+  prensa?: { fixtureId: string; eleccion: number; resuelta?: boolean };
+  /** Premios de cada temporada (la más nueva primero). */
+  premios?: { temporada: number; premios: { premio: string; playerId: string; nombre: string; clubId: string }[] }[];
   nextId: number;
   /** Jugadores sin club que se pueden fichar. */
   libres: string[];

@@ -1,4 +1,5 @@
 import { ofertasVigentes } from '../engine/offers';
+import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { preseasonPending, skipPreseason } from '../engine/preseason';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
 import { useState, type ReactNode } from 'react';
@@ -111,6 +112,7 @@ export function HomeScreen() {
         </button>
       )}
       {pre && <PreseasonCard />}
+      {!pre && conferenciaPendiente(g) && <PressConference />}
       <div className="hub-date">
         <span>{pre ? `Pretemporada ${g.temporada}` : seasonDate(g.temporada, g.round)}</span>
         <span className="pill">{phase}</span>
@@ -233,6 +235,7 @@ export function HomeScreen() {
 
       {last && <LastResult g={g} f={last} />}
 
+      <Diario />
       <section className="card" id="noticias">
         <h3>Noticias</h3>
         <div className="list">
@@ -426,6 +429,17 @@ function SeasonEnd() {
           <span className="small" style={{ opacity: 0.8 }}>Le ganó la final a {n(rec.subcampeonA)}</span>
         </div>
       </div>
+      {g.premios?.[0]?.temporada === rec.temporada && (
+        <div className="card stack">
+          <h3>🏆 Premios de la temporada</h3>
+          {g.premios[0].premios.map((x) => (
+            <div key={x.premio} className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <span className="small muted">{x.premio}</span>
+              <b className="small" style={{ textAlign: 'right' }}>{x.nombre} <span className="muted">({g.clubs[x.clubId]?.corto})</span></b>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="card stack">
         <h3>Tu temporada</h3>
         <p>
@@ -708,6 +722,78 @@ function PreseasonCard() {
         })}
       </div>
       <p className="small muted" style={{ margin: 0 }}>Premio al terminar: {formatMoney(prop.premio)}. Después arranca la liga.</p>
+    </section>
+  );
+}
+
+/** Conferencia de prensa antes de un clásico o un partido de playoff. */
+function PressConference() {
+  const { g, refresh, toast } = useGame();
+  const f = conferenciaPendiente(g)!;
+  const club = g.clubs[g.userClubId];
+  const rival = g.clubs[f.home === club.id ? f.away : f.home];
+  const motivo = isDerby(g.clubs[f.home], g.clubs[f.away]) ? `del clásico contra ${rival.nombre}` : `de la ${COMP_NAME[f.comp].toLowerCase()} contra ${rival.nombre}`;
+  return (
+    <section className="card stack press">
+      <h3>🎤 Conferencia de prensa</h3>
+      <p className="small" style={{ margin: 0 }}>
+        Antes {motivo}, un periodista de {DIARIO_NOMBRE} te pregunta: <i>"¿Qué le dice a la gente?"</i>
+      </p>
+      {RESPUESTAS_PRENSA.map((r, i) => (
+        <button
+          key={r.texto}
+          className="btn block"
+          style={{ textAlign: 'left', height: 'auto', padding: '8px 10px' }}
+          onClick={() => {
+            toast(responderPrensa(g, i));
+            refresh();
+          }}
+        >
+          <span style={{ display: 'block' }}>"{r.texto}"</span>
+          <span className="small" style={{ textTransform: 'none', fontFamily: 'var(--font-body)', fontWeight: 400, opacity: 0.8 }}>{r.efecto}</span>
+        </button>
+      ))}
+    </section>
+  );
+}
+
+/** La última edición del diario, con las anteriores a un toque. */
+function Diario() {
+  const { g } = useGame();
+  const [todas, setTodas] = useState(false);
+  const ed = g.diario?.[0];
+  if (!ed || !ed.titulares.length) return null;
+  const titulo = (e: NonNullable<GameState['diario']>[number]) => (e.round === 99 ? `Temporada ${e.temporada} · Premios` : `Temporada ${e.temporada} · ${roundName(e.round)}`);
+  const Ed = ({ e }: { e: NonNullable<GameState['diario']>[number] }) => (
+    <>
+      <div className="paper-date">{titulo(e)}</div>
+      <div className="paper-main">{e.titulares[0].titulo}</div>
+      <p className="paper-sub">{e.titulares[0].bajada}</p>
+      {e.titulares.slice(1).map((t) => (
+        <div key={t.titulo} className="paper-item">
+          <b>{t.titulo}</b> <span>{t.bajada}</span>
+        </div>
+      ))}
+    </>
+  );
+  return (
+    <section className="paper">
+      <div className="paper-head">
+        <span>{DIARIO_NOMBRE}</span>
+        <button className="btn small" onClick={() => setTodas(true)}>Anteriores</button>
+      </div>
+      <Ed e={ed} />
+      {todas && (
+        <Sheet title={DIARIO_NOMBRE} onClose={() => setTodas(false)}>
+          <div className="stack">
+            {(g.diario ?? []).map((e, i) => (
+              <section key={i} className="paper">
+                <Ed e={e} />
+              </section>
+            ))}
+          </div>
+        </Sheet>
+      )}
     </section>
   );
 }

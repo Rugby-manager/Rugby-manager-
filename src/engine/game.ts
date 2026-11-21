@@ -1,3 +1,4 @@
+import { cerrarPrensa, editarDiario, premiosTemporada } from './diario';
 import { refreshTransferibles, returnLoans } from './loans';
 import { makePreseason, nextFriendly, preseasonPending, choosePreseason as choosePre } from './preseason';
 import { generateOffers, nombreOfertante, OFERTA_FECHAS } from './offers';
@@ -319,6 +320,8 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
     g.career.confianza = clamp(g.career.confianza - 3, 0, 100);
     addNews(g, 'Números en rojo', `La caja de ${user.nombre} está en rojo. La comisión directiva está preocupada: vendé jugadores o bajá gastos.`);
   }
+  editarDiario(g, fixtures);
+  if (uf?.result) cerrarPrensa(g, uf);
   const report: RoundReport = { round: g.round, fixtures, userFixture: fixtures.find((f) => f.home === user.id || f.away === user.id), autoCambios };
   weeklyRecovery(g, fixtures, rng);
   advanceCalendar(g, rng);
@@ -530,6 +533,8 @@ function closeSeason(g: GameState, rng: Rng) {
   };
   g.history.push(rec);
   seasonRecords(g);
+  const premios = premiosTemporada(g);
+  if (premios.length) addNews(g, '🏆 Premios de la temporada', premios.map((x) => `${x.premio}: ${x.nombre} (${g.clubs[x.clubId]?.corto ?? ''})`).join('. ') + '.');
   closeCareerSeason(g, rec, rng);
   addNews(
     g,
