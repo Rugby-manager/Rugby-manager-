@@ -1,3 +1,4 @@
+import { aplicarAyuda, type AyudaInicial } from './ayuda';
 import { eventosVestuario } from './vestuario';
 import { HINCHADA_INICIAL, hinchadaTrasPartido } from './hinchada';
 import { cerrarPrensa, editarDiario, premiosTemporada } from './diario';
@@ -43,7 +44,7 @@ function newId(g: GameState, prefix: string) {
   return `${prefix}${(g.nextId++).toString(36)}`;
 }
 
-export function createGame(opts: { seed?: number; userClubIndex?: number; manager?: string; modo?: 'carrera' | 'libre'; amistosos?: boolean } = {}): GameState {
+export function createGame(opts: { seed?: number; userClubIndex?: number; manager?: string; modo?: 'carrera' | 'libre'; amistosos?: boolean; ayuda?: AyudaInicial } = {}): GameState {
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
   const rng = new Rng(seed);
   const g: GameState = {
@@ -83,12 +84,14 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   refreshFreeAgents(g, rng);
   refreshTransferibles(g, rng);
   g.career = newCareer(g);
+  const textoAyuda = aplicarAyuda(g, opts.ayuda ?? 'nada', rng);
   g.sponsorOfertas = sponsorOffers(g.clubs[g.userClubId].reputacion, rng, g.clubs[g.userClubId]);
   drawCup(g, rng);
   scoutYouth(g, rng);
   g.amistosos = !!opts.amistosos;
   if (g.amistosos) makePreseason(g, rng);
   g.rng = rng.s;
+  if (textoAyuda) addNews(g, 'Ayuda para arrancar', textoAyuda);
   addNews(g, 'Bienvenido al club', `${g.manager} asume como entrenador de ${g.clubs[g.userClubId].nombre}.${g.modo === 'carrera' ? ' Nadie te conoce todavía: es tu oportunidad de hacerte un nombre.' : ''} La comisión directiva pide: ${g.career.objetivo.texto.toLowerCase()}.`);
   return g;
 }

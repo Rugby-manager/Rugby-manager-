@@ -4,6 +4,7 @@ const CLUB_SEEDS = [...SEEDS_AB, ...CLUB_SEEDS_C];
 import { createGame, DIV_NAME, SAVE_VERSION } from '../engine/game';
 import { firstOffers } from '../engine/career';
 import type { GameState } from '../engine/types';
+import { AYUDAS, type AyudaInicial } from '../engine/ayuda';
 import { deleteGame, listSaves, loadGame, newSaveId, parseBackup, saveGame, storageOk, type SaveMeta } from '../store/saves';
 import { CloudBadge, Jersey } from './common';
 
@@ -151,6 +152,7 @@ function NewGame({ onCancel, onOpen }: { onCancel: () => void; onOpen: (g: GameS
   const [modo, setModo] = useState<'carrera' | 'libre'>('carrera');
   const [club, setClub] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ayuda, setAyuda] = useState<AyudaInicial>('nada');
   const [seed] = useState(() => Math.floor(Math.random() * 2 ** 31));
   const preview = useMemo(() => createGame({ seed, modo: 'carrera' }), [seed]);
   const offers = useMemo(() => firstOffers(preview).map((id) => Number(id.slice(1))), [preview]);
@@ -208,12 +210,27 @@ function NewGame({ onCancel, onOpen }: { onCancel: () => void; onOpen: (g: GameS
           </div>
         ))
       )}
+      <div className="card stack">
+        <h3>Una ayuda para arrancar</h3>
+        <p className="small muted">Elegí una sola. Si querés el desafío completo, dejá "Nada".</p>
+        <div className="ayudas">
+          {AYUDAS.filter((a) => !a.soloCarrera || modo === 'carrera').map((a) => (
+            <button key={a.id} className="ayuda" aria-pressed={ayuda === a.id} onClick={() => setAyuda(a.id)}>
+              <span className="ay-ic">{a.icono}</span>
+              <span className="ay-tx">
+                <b>{a.titulo}</b>
+                <small>{a.texto}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
       <button
         className="btn primary block"
         disabled={club === null || busy}
         onClick={async () => {
           setBusy(true);
-          const g = createGame({ seed, userClubIndex: club!, manager: name, modo, amistosos: true });
+          const g = createGame({ seed, userClubIndex: club!, manager: name, modo, amistosos: true, ayuda: ayuda === 'paciencia' && modo !== 'carrera' ? 'nada' : ayuda });
           const id = newSaveId();
           await saveGame(id, g);
           onOpen(g, id);
