@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, playRound, startNextSeason } from '../src/engine/game';
-import { asistencia, build, renew, setStaff, signSponsor } from '../src/engine/club';
+import { asistencia, build, candidatosStaff, contratarStaff, despedirStaff, renew, signSponsor } from '../src/engine/club';
 
 describe('el club como negocio', () => {
   it('el sponsor paga al firmar', () => {
@@ -36,9 +36,26 @@ describe('el club como negocio', () => {
 
   it('los empleados cobran sueldo cada fecha', () => {
     const g = createGame({ seed: 34, modo: 'libre' });
-    setStaff(g, 'medico', 3);
+    const [mejor] = candidatosStaff(g, 'medico');
+    contratarStaff(g, 'medico', mejor);
     playRound(g);
     expect(g.caja.some((m) => m.concepto === 'Sueldos de empleados' && m.monto < 0)).toBe(true);
+  });
+
+  it('los candidatos tienen de 1 a 5 estrellas y más estrellas rinden más', () => {
+    const g = createGame({ seed: 36, modo: 'libre' });
+    const cs = candidatosStaff(g, 'ayudante');
+    expect(cs).toHaveLength(3);
+    for (const x of cs) expect(x.estrellas >= 1 && x.estrellas <= 5).toBe(true);
+    expect(candidatosStaff(g, 'ayudante')).toEqual(cs);
+    const c = g.clubs[g.userClubId];
+    contratarStaff(g, 'ayudante', { ...cs[0], estrellas: 5, prima: 0 });
+    expect(c.staff.ayudante).toBe(3);
+    contratarStaff(g, 'ayudante', { ...cs[0], estrellas: 1, prima: 0 });
+    expect(c.staff.ayudante).toBeLessThan(1);
+    despedirStaff(g, 'ayudante');
+    expect(c.staff.ayudante).toBe(0);
+    expect(c.staffPersonas?.ayudante).toBeUndefined();
   });
 
   it('si no renovás, el jugador se va libre al terminar la temporada', () => {

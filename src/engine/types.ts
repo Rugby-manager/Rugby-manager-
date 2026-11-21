@@ -104,6 +104,8 @@ export interface Club {
   precioEntrada: number;
   inst: Instalaciones;
   staff: Staff;
+  /** Quién ocupa cada puesto de empleado (nombre y estrellas de 1 a 5). */
+  staffPersonas?: Partial<Record<StaffKey, { nombre: string; estrellas: number }>>;
   obras: Obra[];
   sponsor: SponsorDeal | null;
   /** Gente en la cancha en el último partido de local. */

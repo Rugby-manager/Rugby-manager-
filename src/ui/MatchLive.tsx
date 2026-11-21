@@ -402,7 +402,7 @@ function AssistantTips({ live, side }: { live: LiveMatch; side: 'H' | 'A' }) {
   return (
     <div className="tips">
       <div className="label">💬 Tu ayudante de campo</div>
-      {tips.slice(0, nivel + 1).map((t) => (
+      {tips.slice(0, Math.round(nivel) + 1).map((t) => (
         <p key={t} className="small" style={{ margin: '2px 0' }}>
           • {t}
         </p>

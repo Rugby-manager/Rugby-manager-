@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useGame } from './App';
 import {
-  INST, INST_ORDER, STAFF, STAFF_NIVEL, STAFF_ORDER, asistencia, build, canBuild, capacidad, cuotaSocio, gastosFecha, ingresosFecha,
-  precioReferencia, setStaff, signSponsor, staffSueldo,
+  INST, INST_ORDER, STAFF, STAFF_ORDER, SUELDO_ESTRELLAS, asistencia, build, canBuild, candidatosStaff, capacidad, contratarStaff, cuotaSocio,
+  despedirStaff, gastosFecha, ingresosFecha, nombreStaff, precioReferencia, signSponsor, staffEstrellas,
 } from '../engine/club';
 import { userFixture } from '../engine/game';
 import { formatMoney } from './common';
 import { IcoCaja, IcoContrato, IcoEntrada, IcoEstadio, IcoPelota, IcoSilbato } from './icons';
 import { promoteYouth, releaseYouth } from '../engine/cup';
 import { overall, posText } from '../engine/players';
-import { Ovr, Stars } from './common';
+import { Ovr, Sheet, Stars } from './common';
+import type { StaffKey } from '../engine/types';
 import type { Club } from '../engine/types';
 
 type Sec = 'caja' | 'entradas' | 'estadio' | 'empleados' | 'sponsor' | 'juveniles';
@@ -247,40 +248,84 @@ function Estadio() {
 function Empleados() {
   const { g, refresh, toast } = useGame();
   const c = g.clubs[g.userClubId];
+  const [elegir, setElegir] = useState<StaffKey | null>(null);
+  const run = (f: () => string) => {
+    try {
+      const msg = f();
+      if (msg) toast(msg);
+      refresh();
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  };
   return (
     <>
       <p className="small" style={{ margin: 0, color: 'var(--on-bg)' }}>
-        Contratar a alguien cuesta dos fechas de sueldo de entrada. Después cobran cada fecha. Podés cambiarlos o despedirlos cuando quieras.
+        Cada empleado tiene de 1 a 5 estrellas: cuantas más, mejor trabaja y más cobra. Contratar cuesta dos fechas de sueldo de entrada. Los candidatos cambian cada fecha.
       </p>
-      {STAFF_ORDER.map((k) => (
-        <section key={k} className="card stack">
-          <h3>{STAFF[k].nombre}</h3>
-          <p className="small" style={{ margin: 0 }}>{STAFF[k].efecto}</p>
-          <div className="seg" role="group" aria-label={STAFF[k].nombre}>
-            {STAFF_NIVEL.map((l, n) => (
-              <button
-                key={l}
-                aria-pressed={c.staff[k] === n}
-                onClick={() => {
-                  try {
-                    const msg = setStaff(g, k, n);
-                    if (msg) toast(msg);
-                    refresh();
-                  } catch (e) {
-                    toast((e as Error).message);
-                  }
-                }}
-              >
-                {n === 0 ? 'Nadie' : l}
+      {STAFF_ORDER.map((k) => {
+        const e = staffEstrellas(c, k);
+        return (
+          <section key={k} className="card stack">
+            <h3>{STAFF[k].nombre}</h3>
+            <p className="small" style={{ margin: 0 }}>{STAFF[k].efecto}</p>
+            {e > 0 ? (
+              <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+                <div>
+                  <div className="name">{nombreStaff(c, k)}</div>
+                  <Stars n={e} />
+                </div>
+                <div className="small muted" style={{ textAlign: 'right' }}>Cobra {formatMoney(SUELDO_ESTRELLAS[e])}<br />por fecha</div>
+              </div>
+            ) : (
+              <div className="small muted">No tenés {STAFF[k].nombre.toLowerCase()}.</div>
+            )}
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn small grow" onClick={() => setElegir(k)}>
+                {e > 0 ? 'Buscar otro' : 'Ver candidatos'}
               </button>
+              {e > 0 && (
+                <button className="btn small" onClick={() => run(() => despedirStaff(g, k))}>
+                  Despedir
+                </button>
+              )}
+            </div>
+          </section>
+        );
+      })}
+      {elegir && (
+        <Sheet title={`Candidatos: ${STAFF[elegir].nombre.toLowerCase()}`} onClose={() => setElegir(null)}>
+          <div className="stack">
+            <p className="small muted" style={{ margin: 0 }}>Caja: {formatMoney(c.presupuesto)}. 5 estrellas es lo mejor.</p>
+            {candidatosStaff(g, elegir).map((cand) => (
+              <div key={cand.nombre} className="stack cand" style={{ gap: 6 }}>
+                <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+                  <div>
+                    <div className="name">{cand.nombre}</div>
+                    <Stars n={cand.estrellas} />
+                  </div>
+                  <div className="small" style={{ textAlign: 'right' }}>
+                    {formatMoney(cand.sueldo)} por fecha
+                    <br />
+                    <span className="muted">Entrada: {formatMoney(cand.prima)}</span>
+                  </div>
+                </div>
+                <button
+                  className="btn small primary"
+                  disabled={c.presupuesto < cand.prima}
+                  onClick={() => {
+                    const k = elegir;
+                    setElegir(null);
+                    run(() => contratarStaff(g, k, cand));
+                  }}
+                >
+                  {c.presupuesto < cand.prima ? 'No te alcanza' : 'Contratar'}
+                </button>
+              </div>
             ))}
           </div>
-          <div className="small muted">
-            {c.staff[k] ? `Cobra ${formatMoney(staffSueldo(c.staff[k]))} por fecha.` : 'No tenés.'} Sueldos: bueno {formatMoney(staffSueldo(1))}, muy bueno {formatMoney(staffSueldo(2))}, excelente {formatMoney(staffSueldo(3))}.
-          </div>
-        </section>
-      ))}
-      <p className="small" style={{ margin: 0, color: 'var(--on-bg-muted)' }}>Más adelante vas a poder contratar también un ayudante de campo y un ojeador de juveniles.</p>
+        </Sheet>
+      )}
     </>
   );
 }

@@ -389,3 +389,6 @@ button.lu-row:disabled { cursor: default; opacity: 1; }
 .pitch-cards .slot.picked { background: linear-gradient(180deg, #fff3a8, #ffcc1a); box-shadow: 0 0 0 2px #ffcc1a, 0 0 10px #ffcc1a; }
 .pitch-cards .slot.picked .sn { background: none; color: #ffcc1a; }
 .pitch-cards .slot.target { outline: 1px dashed #fff; }
+
+.cand { background: #eef0f7; color: #111; border: 2px solid #000; border-radius: 3px; padding: 10px; box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+.cand .muted { color: #555; }

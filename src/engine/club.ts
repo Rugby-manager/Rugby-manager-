@@ -2,6 +2,7 @@ import { isDerby } from './extras';
 import { Rng, clamp } from './rng';
 import { wageFor } from './players';
 import { logMoney } from './market';
+import { APELLIDOS, NOMBRES } from './names';
 import type { Club, Fixture, GameState, InstKey, Instalaciones, Player, SponsorDeal, Staff, StaffKey } from './types';
 
 // ---------- Instalaciones ----------
@@ -99,29 +100,83 @@ export const STAFF: Record<StaffKey, StaffInfo> = {
   ojeador: { nombre: 'Ojeador de juveniles', efecto: 'Recorre los clubes del interior buscando pibes. Cuanto mejor, más juveniles encuentra cada temporada y con más futuro.' },
 };
 export const STAFF_ORDER: StaffKey[] = ['nutricionista', 'kinesiologo', 'medico', 'ayudante', 'ojeador'];
-export const STAFF_NIVEL = ['Sin contratar', 'Bueno', 'Muy bueno', 'Excelente'];
-/** Sueldo por fecha según el nivel. */
-export const staffSueldo = (n: number) => [0, 90_000, 200_000, 380_000][n] ?? 0;
+/** Sueldo por fecha según las estrellas (1 a 5). */
+export const SUELDO_ESTRELLAS = [0, 50_000, 90_000, 150_000, 230_000, 380_000];
+// Los niveles viejos (bueno, muy bueno, excelente) equivalen a 2, 4 y 5 estrellas.
+const ESTRELLAS_VIEJAS = [0, 2, 4, 5];
+/** Cuánto rinde un empleado según sus estrellas (5 estrellas = lo que antes era "excelente"). */
+export const efectoEstrellas = (e: number) => Math.round(e * 0.6 * 10) / 10;
+
+export function staffEstrellas(c: Club, k: StaffKey): number {
+  const p = c.staffPersonas?.[k];
+  if (p) return p.estrellas;
+  const n = c.staff?.[k] ?? 0;
+  return ESTRELLAS_VIEJAS[Math.max(0, Math.min(3, Math.round(n)))];
+}
+export const staffSueldo = (estrellas: number) => SUELDO_ESTRELLAS[estrellas] ?? 0;
+
+function hashStr(s: string) {
+  let h = 2166136261;
+  for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return h;
+}
+
+/** Nombre del empleado (los que ya estaban en el club también tienen uno). */
+export function nombreStaff(c: Club, k: StaffKey): string {
+  const p = c.staffPersonas?.[k];
+  if (p) return p.nombre;
+  const rng = new Rng(hashStr(`${c.id}|${k}|staff`));
+  return `${rng.pick(NOMBRES)} ${rng.pick(APELLIDOS)}`;
+}
+
+export interface CandidatoStaff {
+  nombre: string;
+  estrellas: number;
+  sueldo: number;
+  prima: number;
+}
+
+/** Tres candidatos para el puesto. Cambian cada fecha. */
+export function candidatosStaff(g: GameState, k: StaffKey): CandidatoStaff[] {
+  const rng = new Rng(hashStr(`${g.userClubId}|${k}|${g.temporada}|${Math.floor(g.round)}`));
+  const actual = g.clubs[g.userClubId].staffPersonas?.[k]?.nombre;
+  const rangos: [number, number][] = [[1, 2], [2, 4], [3, 5]];
+  const usados = new Set<string>(actual ? [actual] : []);
+  return rangos.map(([a, b]) => {
+    let nombre = '';
+    do nombre = `${rng.pick(NOMBRES)} ${rng.pick(APELLIDOS)}`;
+    while (usados.has(nombre));
+    usados.add(nombre);
+    const estrellas = rng.int(a, b);
+    const sueldo = staffSueldo(estrellas);
+    return { nombre, estrellas, sueldo, prima: sueldo * 2 };
+  }).sort((x, y) => y.estrellas - x.estrellas);
+}
+
+/** Contratás a un candidato: paga dos fechas de sueldo de entrada. Si ya había alguien, se va. */
+export function contratarStaff(g: GameState, k: StaffKey, cand: CandidatoStaff): string {
+  const c = g.clubs[g.userClubId];
+  if (c.presupuesto < cand.prima) throw new Error('No alcanza la plata para contratarlo.');
+  c.presupuesto -= cand.prima;
+  logMoney(g, `Contratación: ${cand.nombre} (${STAFF[k].nombre.toLowerCase()}, ${cand.estrellas}★)`, -cand.prima);
+  c.staffPersonas = { ...(c.staffPersonas ?? {}), [k]: { nombre: cand.nombre, estrellas: cand.estrellas } };
+  c.staff[k] = efectoEstrellas(cand.estrellas);
+  return `Contrataste a ${cand.nombre} como ${STAFF[k].nombre.toLowerCase()} (${cand.estrellas} ${cand.estrellas === 1 ? 'estrella' : 'estrellas'}).`;
+}
+
+export function despedirStaff(g: GameState, k: StaffKey): string {
+  const c = g.clubs[g.userClubId];
+  const quien = nombreStaff(c, k);
+  if (c.staffPersonas) delete c.staffPersonas[k];
+  c.staff[k] = 0;
+  return quien ? `${quien} dejó el club.` : `Se fue el ${STAFF[k].nombre.toLowerCase()}.`;
+}
 
 export function staffInicial(rep: number): Staff {
   const n = rep >= 72 ? 2 : rep >= 62 ? 1 : 0;
   return { nutricionista: n, kinesiologo: n, medico: rep >= 58 ? Math.max(1, n) : 0, ayudante: n, ojeador: rep >= 66 ? 1 : 0 };
 }
 
-export function setStaff(g: GameState, k: StaffKey, nivel: number): string {
-  const c = g.clubs[g.userClubId];
-  const prev = c.staff[k];
-  if (nivel === prev) return '';
-  // Contratar a alguien nuevo cuesta dos fechas de sueldo de entrada.
-  if (nivel > 0) {
-    const prima = staffSueldo(nivel) * 2;
-    if (c.presupuesto < prima) throw new Error('No alcanza la plata para contratarlo.');
-    c.presupuesto -= prima;
-    logMoney(g, `Contratación: ${STAFF[k].nombre.toLowerCase()} (${STAFF_NIVEL[nivel].toLowerCase()})`, -prima);
-  }
-  c.staff[k] = nivel;
-  return nivel === 0 ? `Se fue el ${STAFF[k].nombre.toLowerCase()}.` : `Contrataste un ${STAFF[k].nombre.toLowerCase()} ${STAFF_NIVEL[nivel].toLowerCase()}.`;
-}
 
 // ---------- Socios, entradas y plata por fecha ----------
 
@@ -180,7 +235,7 @@ export function asistencia(g: GameState, home: Club, away: Club, playoff: boolea
 /** Gastos fijos del club por fecha. */
 export function gastosFecha(g: GameState, c: Club) {
   const sueldos = c.plantel.reduce((s, id) => s + (g.players[id]?.sueldo ?? 0), 0);
-  const empleados = STAFF_ORDER.reduce((s, k) => s + staffSueldo(c.staff[k]), 0);
+  const empleados = STAFF_ORDER.reduce((s, k) => s + staffSueldo(staffEstrellas(c, k)), 0);
   const mant = INST_ORDER.reduce((s, k) => s + INST[k].mant * c.inst[k], 0);
   return { sueldos, empleados, mant, total: sueldos + empleados + mant };
 }
