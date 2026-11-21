@@ -40,8 +40,21 @@ export function TeamScreen() {
   const tapSlot = (i: number) => {
     if (!sel) return setSel({ slot: i });
     if (sel.slot === i) return setSel(null);
-    // Con una camiseta elegida, tocar otra solo cambia cuál elegiste: el reemplazo sale del banco.
-    if (sel.slot !== undefined) return setSel({ slot: i });
+    // Dos titulares: intercambian los puestos.
+    if (sel.slot !== undefined) {
+      const xv = [...club.xv];
+      const a = xv[sel.slot];
+      const b = xv[i];
+      xv[sel.slot] = b;
+      xv[i] = a;
+      club.xv = xv;
+      const na = a ? g.players[a].apellido : null;
+      const nb = b ? g.players[b].apellido : null;
+      toast(na && nb ? `${na} pasa a la ${i + 1} y ${nb} a la ${sel.slot + 1}` : `${na ?? nb} pasa a la ${na ? i + 1 : sel.slot + 1}`);
+      setSel(null);
+      refresh();
+      return;
+    }
     if (sel.bench) {
       const p = g.players[sel.bench];
       if (p.lesion > 0) return toast(`${p.apellido} está lesionado`);
@@ -93,13 +106,13 @@ export function TeamScreen() {
         </button>
       </div>
       <p className="small muted" style={{ margin: 0 }}>
-        Para hacer un cambio, tocá al jugador que sale y después al suplente que entra (en la lista de abajo). El número de abajo de cada camiseta es cuánto rinde en ese puesto.
+        Tocá un jugador y después otro titular para que cambien de puesto, o un suplente de la lista de abajo para que entre. El número de abajo de cada camiseta es cuánto rinde en ese puesto.
       </p>
       {sel && (
         <div className="swapbar" role="status">
           <span>
             {sel.slot !== undefined
-              ? `Sale ${players[sel.slot]?.apellido ?? 'la camiseta ' + (sel.slot + 1)}. Ahora tocá el suplente que entra.`
+              ? `Elegiste a ${players[sel.slot]?.apellido ?? 'la camiseta ' + (sel.slot + 1)}. Tocá otro titular para cambiarlos de puesto, o un suplente para que entre.`
               : `Elegiste a ${g.players[sel.bench!].apellido}. Ahora tocá la camiseta donde entra.`}
           </span>
           {sel.slot !== undefined && (
