@@ -398,6 +398,8 @@ export interface GameState {
   /** Si hay pretemporada con amistosos al empezar cada temporada. */
   amistosos?: boolean;
   pretemporada?: Pretemporada;
+  /** Qué hace el plantel entre temporadas. */
+  postemporada?: { temporada: number; plan: import('./postemporada').PlanPost };
   /** Último tercer tiempo resuelto. */
   tercerTiempo?: { fixtureId: string };
   /** Logros del DT. */

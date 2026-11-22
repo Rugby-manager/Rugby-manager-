@@ -1,3 +1,4 @@
+import { aplicarPostemporada } from './postemporada';
 import { ESTILO, arbitroDe } from './arbitros';
 import { logrosPartido, logrosTemporada } from './logros';
 import { chequearRecaidas } from './lesiones';
@@ -843,6 +844,8 @@ export function startNextSeason(g: GameState): string[] {
   scoutYouth(g, rng);
   startCareerSeason(g);
   if (g.amistosos) makePreseason(g, rng);
+  const post = aplicarPostemporada(g, rng);
+  if (post) addNews(g, '💪 Postemporada', post);
   g.rng = rng.s;
   addNews(g, `Arranca la temporada ${g.temporada}`, `${user.nombre} juega en ${DIV_NAME[user.division]}. ${informes.join(' ')}`);
   if (europa.length) addNews(g, 'Se van a Europa', `Clubes de afuera se llevaron a ${europa.join(', ')}.`);

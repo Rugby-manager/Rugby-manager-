@@ -3,6 +3,7 @@ import { describirEvento, resolverEvento } from '../engine/vestuario';
 import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { preseasonPending, skipPreseason } from '../engine/preseason';
 import { hacerTercer, opcionesTercer, tercerPendiente } from '../engine/tercer';
+import { PLANES_POST, elegirPostemporada } from '../engine/postemporada';
 import { SEVEN_NOMBRE, SEVEN_PREMIO, jugarSeven, plantelSeven, rechazarSeven, sevenPendiente } from '../engine/seven';
 import { ESTILO, arbitroDe } from '../engine/arbitros';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
@@ -546,6 +547,7 @@ function SeasonEnd() {
         )}
       </div>
       {g.career && <BoardVerdict />}
+      {!g.career?.despedido && <PostemporadaPick />}
       <p className="small muted">Al empezar la temporada nueva, los jugadores cumplen un año: los jóvenes mejoran, los veteranos bajan y algunos se retiran. Suben juveniles de la cantera.</p>
       <button
         className="btn primary block"
@@ -995,6 +997,37 @@ function TercerTiempo() {
           <small>{o.efecto}</small>
         </button>
       ))}
+    </section>
+  );
+}
+
+function PostemporadaPick() {
+  const { g, refresh } = useGame();
+  const actual = g.postemporada?.temporada === g.temporada ? g.postemporada.plan : null;
+  return (
+    <section className="card stack">
+      <h3>💪 Postemporada</h3>
+      <p className="small muted" style={{ margin: 0 }}>Terminó el torneo. ¿Qué hace el plantel hasta la temporada que viene?</p>
+      <div className="ayudas">
+        {PLANES_POST.map((x) => (
+          <button
+            key={x.id}
+            className="ayuda"
+            aria-pressed={actual === x.id}
+            onClick={() => {
+              elegirPostemporada(g, x.id);
+              refresh();
+            }}
+          >
+            <span className="ay-ic">{x.icono}</span>
+            <span className="ay-tx">
+              <b>{x.titulo}</b>
+              <small>{x.texto}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+      {!actual && <p className="small" style={{ margin: 0 }}>Si no elegís, se van de vacaciones cortas y no pasa nada.</p>}
     </section>
   );
 }
