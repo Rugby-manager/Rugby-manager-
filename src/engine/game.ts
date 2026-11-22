@@ -12,7 +12,7 @@ import { CLUB_SEEDS, CLUB_SEEDS_C, type ClubSeed } from './names';
 import { LiveMatch, simulateMatch } from './match';
 import {
   ATTR_KEYS, convertirAttrs, MIN_BY_POS, POS_ORDER, SQUAD_TEMPLATE, assignDorsal, bestXV, generatePlayer, overall, ratingAs, readyXV, rollSecondary, wageFor,
-  rollActitud, teamAverage, lesionNombre,
+  rollActitud, teamAverage, lesionNombre, completarXV,
 } from './players';
 import { presupuestoInicial, refreshFreeAgents, sponsor, taquilla, logMoney } from './market';
 import { ENERGIA_ENTRENO, planNuevo, trainAll } from './training';
@@ -1025,6 +1025,7 @@ export function migrate(g: GameState): GameState {
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;
   // La estrella de la ayuda inicial tiene que estar en el XV mientras el cartel siga sin cerrar.
+  completarXV(g.clubs[g.userClubId], g.players);
   const est = g.ayudaAviso?.playerId ? g.players[g.ayudaAviso.playerId] : undefined;
   if (est) {
     est.estrella = true;

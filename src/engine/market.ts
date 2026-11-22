@@ -1,5 +1,5 @@
 import { Rng, clamp } from './rng';
-import { MIN_BY_POS, POS_LABEL, POS_ORDER, assignDorsal, generatePlayer, marketValue, overall, wageFor } from './players';
+import { MIN_BY_POS, POS_LABEL, POS_ORDER, assignDorsal, generatePlayer, marketValue, overall, wageFor, completarXV } from './players';
 import type { GameState, Player, Pos } from './types';
 
 export const MAX_SQUAD = 36;
@@ -87,6 +87,7 @@ export function sellPlayer(g: GameState, id: string, rng: Rng): string {
   const user = g.clubs[g.userClubId];
   user.plantel = user.plantel.filter((x) => x !== id);
   user.xv = user.xv.map((x) => (x === id ? null : x));
+  completarXV(user, g.players);
   user.presupuesto += chk.price;
   // Lo compra el club al que más le falta ese puesto.
   const buyers = Object.values(g.clubs)

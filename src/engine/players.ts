@@ -384,3 +384,18 @@ export function lesionNombre(semanas: number, seed: string): string {
   for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return group[h % group.length];
 }
+
+/** Si se fue un titular (venta, préstamo, contrato, Europa…) su lugar no queda vacío:
+ *  entra el mejor disponible para ese puesto. Los lesionados quedan donde están. Devuelve cuántos entraron. */
+export function completarXV(club: Club, players: Record<string, Player>): number {
+  const keep = club.xv.map((id) => (id && players[id] && club.plantel.includes(id) ? id : null));
+  if (keep.every(Boolean)) return 0;
+  const fill = bestXV(club, players, keep);
+  let n = 0;
+  club.xv = keep.map((id, i) => {
+    if (id) return id;
+    if (fill[i] && !keep.includes(fill[i])) n++;
+    return fill[i] && !keep.includes(fill[i]) ? fill[i] : null;
+  });
+  return n;
+}

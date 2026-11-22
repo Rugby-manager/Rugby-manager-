@@ -1,5 +1,5 @@
 import { Rng, clamp } from './rng';
-import { MIN_BY_POS, POS_LABEL, assignDorsal, marketValue, overall } from './players';
+import { MIN_BY_POS, POS_LABEL, assignDorsal, marketValue, overall, completarXV } from './players';
 import { MAX_SQUAD, MIN_SQUAD, logMoney, marketOpen } from './market';
 import type { Club, GameState, Player } from './types';
 
@@ -109,6 +109,7 @@ export function loanOut(g: GameState, id: string, rng: Rng): string {
   if (!dest) throw new Error('Ningún club lo quiere a préstamo ahora.');
   user.plantel = user.plantel.filter((x) => x !== id);
   user.xv = user.xv.map((x) => (x === id ? null : x));
+  completarXV(user, g.players);
   if (user.capitan === id) user.capitan = null;
   dest.plantel.push(id);
   user.presupuesto += chk.price;

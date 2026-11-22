@@ -1,5 +1,5 @@
 import { Rng } from './rng';
-import { assignDorsal, marketValue, overall } from './players';
+import { assignDorsal, marketValue, overall, completarXV } from './players';
 import { MAX_SQUAD, canSell, logMoney, marketOpen } from './market';
 import type { GameState, Oferta } from './types';
 
@@ -83,6 +83,7 @@ export function acceptOffer(g: GameState, id: string): string {
   if (o.exterior) {
     user.plantel = user.plantel.filter((x) => x !== p.id);
     user.xv = user.xv.map((x) => (x === p.id ? null : x));
+    completarXV(user, g.players);
     if (user.capitan === p.id) user.capitan = null;
     user.presupuesto += o.monto;
     g.ofertas = g.ofertas!.filter((x) => x.playerId !== p.id);
@@ -97,6 +98,7 @@ export function acceptOffer(g: GameState, id: string): string {
   }
   user.plantel = user.plantel.filter((x) => x !== p.id);
   user.xv = user.xv.map((x) => (x === p.id ? null : x));
+  completarXV(user, g.players);
   if (user.capitan === p.id) user.capitan = null;
   buyer.plantel.push(p.id);
   buyer.presupuesto -= o.monto;
