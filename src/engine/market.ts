@@ -7,9 +7,18 @@ export const MIN_SQUAD = 23;
 export const LIBRES = 24;
 
 /** Lo que pide el club (o el jugador libre, como prima por firmar). */
-export function askingPrice(p: Player): number {
+export function askingPrice(p: Player, g?: GameState): number {
   const v = marketValue(p);
-  return p.clubId ? Math.round((v * (p.transferible ? 0.95 : 1.15)) / 100_000) * 100_000 : Math.max(500_000, Math.round((v * 0.3) / 100_000) * 100_000);
+  // A un club chico le cobran menos: en la B un 10% menos, en la C un 25% menos.
+  const div = g?.clubs[g.userClubId]?.division;
+  const divF = div === 'C' ? 0.75 : div === 'B' ? 0.9 : 1;
+  return p.clubId ? Math.round((v * (p.transferible ? 0.95 : 1.15) * divF) / 100_000) * 100_000 : Math.max(500_000, Math.round((v * 0.3 * divF) / 100_000) * 100_000);
+}
+
+/** En las categorías chicas los jugadores aceptan cobrar menos (A 100%, B 85%, C 70%). */
+export function factorSueldo(g?: GameState): number {
+  const div = g?.clubs[g.userClubId]?.division;
+  return div === 'C' ? 0.7 : div === 'B' ? 0.85 : 1;
 }
 
 /** Lo que te pagan si vendés. */
@@ -25,14 +34,14 @@ const countPos = (g: GameState, clubId: string, pos: Pos) => g.clubs[clubId].pla
 
 export function canBuy(g: GameState, id: string): { ok: boolean; reason?: string; price: number } {
   const p = g.players[id];
-  const price = askingPrice(p);
+  const price = askingPrice(p, g);
   const user = g.clubs[g.userClubId];
   if (!marketOpen(g)) return { ok: false, reason: 'El mercado está cerrado durante los playoffs.', price };
   if (p.clubId === user.id) return { ok: false, reason: 'Ya es tuyo.', price };
   if (p.prestamo) return { ok: false, reason: 'Está a préstamo: no se puede comprar hasta fin de temporada.', price };
   if (user.plantel.length >= MAX_SQUAD) return { ok: false, reason: `Tu plantel está lleno (máximo ${MAX_SQUAD}). Vendé a alguien primero.`, price };
   if (user.presupuesto < price) return { ok: false, reason: 'No te alcanza el presupuesto.', price };
-  if (user.presupuesto - price < signingWage(p) * 4) return { ok: false, reason: 'Te quedarías sin plata para pagarle el sueldo.', price };
+  if (user.presupuesto - price < signingWage(p, g) * 4) return { ok: false, reason: 'Te quedarías sin plata para pagarle el sueldo.', price };
   if (p.clubId) {
     const seller = g.clubs[p.clubId];
     if (seller.plantel.length <= 26 || countPos(g, seller.id, p.pos) <= MIN_BY_POS[p.pos])
@@ -58,7 +67,7 @@ export function buyPlayer(g: GameState, id: string): string {
   p.moral = clamp(p.moral + 10, 0, 100);
   user.plantel.push(id);
   p.entreno = null;
-  p.sueldo = signingWage(p);
+  p.sueldo = signingWage(p, g);
   p.contrato = p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2;
   assignDorsal(user, g.players, p);
   user.presupuesto -= chk.price;
@@ -110,8 +119,8 @@ export function sellPlayer(g: GameState, id: string, rng: Rng): string {
 }
 
 /** Sueldo que pide para firmar con vos (los libres piden un poco más). */
-export function signingWage(p: Player) {
-  return Math.round((wageFor(p) * (p.clubId ? 1.1 : 1.2)) / 1000) * 1000;
+export function signingWage(p: Player, g?: GameState) {
+  return Math.round((wageFor(p) * (p.clubId ? 1.1 : 1.2) * factorSueldo(g)) / 1000) * 1000;
 }
 
 export function logMoney(g: GameState, concepto: string, monto: number) {

@@ -37,7 +37,7 @@ export function MarketScreen() {
     list = Object.values(g.players)
       .filter((p) => p.clubId && p.clubId !== user.id && !p.prestamo && g.clubs[p.clubId]?.division !== 'X')
       .filter((p) => pos === 'ALL' || p.pos === pos)
-      .filter((p) => maxPrice === 'all' || askingPrice(p) <= user.presupuesto)
+      .filter((p) => maxPrice === 'all' || askingPrice(p, g) <= user.presupuesto)
       .sort((a, b) => overall(b) - overall(a));
   } else if (mode === 'transferibles') {
     list = transferibles(g)
@@ -133,7 +133,7 @@ export function MarketScreen() {
             {list.length === 0 && <p className="muted small">No hay jugadores con este filtro.</p>}
             <div className="list">
               {list.slice(0, limit).map((p) => {
-                const price = mode === 'vender' ? salePrice(p) : mode === 'prestamos' ? costoPrestamo(p) : askingPrice(p);
+                const price = mode === 'vender' ? salePrice(p) : mode === 'prestamos' ? costoPrestamo(p) : askingPrice(p, g);
                 const club = p.clubId ? g.clubs[p.clubId] : null;
                 return (
                   <button key={p.id} className="li" onClick={() => setOpen(p.id)}>
@@ -198,7 +198,7 @@ function DealBox({ id, mode, onDo }: { id: string; mode: Mode; onDo: () => void 
       </div>
       {!sell && (
         <div className="small">
-          Sueldo que pide: <b>{formatMoney(signingWage(p))} por fecha</b> · Contrato por {p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2} temporadas
+          Sueldo que pide: <b>{formatMoney(signingWage(p, g))} por fecha</b> · Contrato por {p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2} temporadas
         </div>
       )}
       {sell && <div className="small muted">Te ahorrás su sueldo de {formatMoney(p.sueldo)} por fecha.</div>}

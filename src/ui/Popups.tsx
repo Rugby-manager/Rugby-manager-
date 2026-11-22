@@ -186,7 +186,7 @@ function eventos(g: GameState): Evento[] {
   }
   // Contratos que se terminan.
   for (const p of contratosPorVencer(g)) {
-    const pide = renewalDemand(p);
+    const pide = renewalDemand(p, g);
     const anios = p.edad >= 32 ? [1] : [2, 1];
     out.push({
       key: `contrato-${p.id}-${g.temporada}`,

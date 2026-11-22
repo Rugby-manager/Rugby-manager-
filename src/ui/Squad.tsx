@@ -467,7 +467,7 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
 function ContractBox({ g, p, mine, onChange }: { g: GameState; p: Player; mine: boolean; onChange?: () => void }) {
   const { toast } = useGame();
   const [open, setOpen] = useState(false);
-  const pide = renewalDemand(p);
+  const pide = renewalDemand(p, g);
   const maxAnios = p.edad >= 32 ? 1 : 3;
   return (
     <div className="card stack" style={{ padding: 10 }}>

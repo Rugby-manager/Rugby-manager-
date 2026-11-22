@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useGame } from './App';
 import {
-  INST, INST_ORDER, STAFF, STAFF_ORDER, SUELDO_ESTRELLAS, asistencia, build, canBuild, candidatosStaff, capacidad, contratarStaff, cuotaSocio,
-  despedirStaff, gastosFecha, ingresosFecha, nombreStaff, precioReferencia, signSponsor, staffEstrellas,
+  INST, INST_ORDER, STAFF, STAFF_ORDER, asistencia, build, canBuild, candidatosStaff, capacidad, contratarStaff, cuotaSocio,
+  costoDiv, despedirStaff, staffSueldo, gastosFecha, ingresosFecha, nombreStaff, precioReferencia, signSponsor, staffEstrellas,
 } from '../engine/club';
 import { userFixture } from '../engine/game';
 import { formatMoney } from './common';
@@ -214,7 +214,7 @@ function Estadio() {
               </span>
             </div>
             <p className="small" style={{ margin: 0 }}>{info.efecto}</p>
-            <div className="small muted">Nivel {lvl} de {info.max}{lvl ? ` · Mantenimiento ${formatMoney(info.mant * lvl)} por fecha` : ''}</div>
+            <div className="small muted">Nivel {lvl} de {info.max}{lvl ? ` · Mantenimiento ${formatMoney(Math.round(info.mant * lvl * costoDiv(c)))} por fecha` : ''}</div>
             {obra ? (
               <div>
                 <div className="small">En obra: nivel {lvl + 1}. Faltan {obra.fechas} {obra.fechas === 1 ? 'fecha' : 'fechas'}.</div>
@@ -276,7 +276,7 @@ function Empleados() {
                   <div className="name">{nombreStaff(c, k)}</div>
                   <Stars n={e} />
                 </div>
-                <div className="small muted" style={{ textAlign: 'right' }}>Cobra {formatMoney(SUELDO_ESTRELLAS[e])}<br />por fecha</div>
+                <div className="small muted" style={{ textAlign: 'right' }}>Cobra {formatMoney(staffSueldo(e, c))}<br />por fecha</div>
               </div>
             ) : (
               <div className="small muted">No tenés {STAFF[k].nombre.toLowerCase()}.</div>

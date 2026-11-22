@@ -113,7 +113,10 @@ export function staffEstrellas(c: Club, k: StaffKey): number {
   const n = c.staff?.[k] ?? 0;
   return ESTRELLAS_VIEJAS[Math.max(0, Math.min(3, Math.round(n)))];
 }
-export const staffSueldo = (estrellas: number) => SUELDO_ESTRELLAS[estrellas] ?? 0;
+/** En las categorías chicas todo sale menos: empleados y mantenimiento (A 100%, B 75%, C 50%). */
+export const COSTO_DIVISION: Record<string, number> = { A: 1, B: 0.75, C: 0.5 };
+export const costoDiv = (c: Club) => COSTO_DIVISION[c.division] ?? 1;
+export const staffSueldo = (estrellas: number, c?: Club) => Math.round(((SUELDO_ESTRELLAS[estrellas] ?? 0) * (c ? costoDiv(c) : 1)) / 1000) * 1000;
 
 function hashStr(s: string) {
   let h = 2166136261;
@@ -148,7 +151,7 @@ export function candidatosStaff(g: GameState, k: StaffKey): CandidatoStaff[] {
     while (usados.has(nombre));
     usados.add(nombre);
     const estrellas = rng.int(a, b);
-    const sueldo = staffSueldo(estrellas);
+    const sueldo = staffSueldo(estrellas, g.clubs[g.userClubId]);
     return { nombre, estrellas, sueldo, prima: sueldo * 2 };
   }).sort((x, y) => y.estrellas - x.estrellas);
 }
@@ -183,7 +186,7 @@ export function staffInicial(rep: number): Staff {
 export const cuotaSocio = (rep: number) => Math.round((700 + (rep - 40) * 25) / 50) * 50;
 export const precioReferencia = (rep: number) => Math.round((1500 + (rep - 40) * 50) / 100) * 100;
 export const sociosIniciales = (rep: number) => Math.round(((rep - 35) * 70) / 10) * 10;
-export const tv = (c: Club) => (c.division === 'A' ? 1_200_000 : 400_000);
+export const tv = (c: Club) => (c.division === 'A' ? 1_200_000 : c.division === 'B' ? 650_000 : 550_000);
 
 /** Cómo viene el equipo en los últimos partidos (-1 a 1). */
 function racha(g: GameState, clubId: string) {
@@ -238,8 +241,8 @@ export function asistencia(g: GameState, home: Club, away: Club, playoff: boolea
 export function gastosFecha(g: GameState, c: Club) {
   const sueldos = c.plantel.reduce((s, id) => s + (g.players[id]?.sueldo ?? 0), 0);
   // Si el sponsor paga los sueldos de los empleados, al club no le cuestan nada.
-  const empleados = c.sponsor?.extra?.tipo === 'sueldos' ? 0 : STAFF_ORDER.reduce((s, k) => s + staffSueldo(staffEstrellas(c, k)), 0);
-  const mant = INST_ORDER.reduce((s, k) => s + INST[k].mant * c.inst[k], 0);
+  const empleados = c.sponsor?.extra?.tipo === 'sueldos' ? 0 : STAFF_ORDER.reduce((s, k) => s + staffSueldo(staffEstrellas(c, k), c), 0);
+  const mant = Math.round(INST_ORDER.reduce((s, k) => s + INST[k].mant * c.inst[k], 0) * costoDiv(c));
   return { sueldos, empleados, mant, total: sueldos + empleados + mant };
 }
 
@@ -347,8 +350,9 @@ export function signSponsor(g: GameState, i: number): string {
 // ---------- Contratos ----------
 
 /** Lo que pide para renovar (por fecha). */
-export function renewalDemand(p: Player): number {
-  const base = wageFor(p);
+export function renewalDemand(p: Player, g?: GameState): number {
+  const div = g?.clubs[g.userClubId]?.division;
+  const base = wageFor(p) * (div === 'C' ? 0.7 : div === 'B' ? 0.85 : 1);
   const moralF = p.moral < 45 ? 1.25 : p.moral < 60 ? 1.12 : 1.05;
   return Math.round((Math.max(base, p.sueldo) * moralF) / 1000) * 1000;
 }
@@ -357,7 +361,7 @@ export function renew(g: GameState, id: string, anios: number): string {
   const p = g.players[id];
   if (p.clubId !== g.userClubId) throw new Error('No es de tu club.');
   if (p.edad >= 32 && anios > 1) throw new Error('A esta edad solo firma por una temporada.');
-  p.sueldo = renewalDemand(p);
+  p.sueldo = renewalDemand(p, g);
   p.contrato = Math.max(p.contrato, 0) + anios;
   p.moral = clamp(p.moral + 5, 0, 100);
   return `${p.apellido} renovó por ${anios} ${anios === 1 ? 'temporada' : 'temporadas'} más.`;

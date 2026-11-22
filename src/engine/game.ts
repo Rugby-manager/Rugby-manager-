@@ -536,7 +536,7 @@ export const PREMIOS_LIGA = {
   ascensoRepechaje: 12_000_000,
 };
 /** Ayuda de la federación a cada club al empezar la temporada, según la categoría. */
-export const AYUDA_TEMPORADA: Record<'A' | 'B' | 'C', number> = { A: 20_000_000, B: 12_000_000, C: 7_000_000 };
+export const AYUDA_TEMPORADA: Record<'A' | 'B' | 'C', number> = { A: 20_000_000, B: 16_000_000, C: 14_000_000 };
 
 const millones = (n: number) => `$${(n / 1_000_000).toLocaleString('es-AR')} millones`;
 
