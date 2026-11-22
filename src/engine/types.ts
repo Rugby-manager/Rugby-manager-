@@ -64,6 +64,8 @@ export interface Player {
   conClub?: { clubId: string; partidos: number; tries: number; temporadas: number };
   /** Fecha de la última charla individual con el DT. */
   ultimaCharla?: number;
+  /** Temporada en que ya decidiste dejarlo ir (no te vuelve a avisar del contrato). */
+  avisoContrato?: number;
   /** Volvió apurado de una lesión: puede recaer en los próximos partidos. */
   recaida?: { riesgo: number; partidos: number; semanas: number };
   /** Cómo terminó cada temporada (para ver cuánto mejoró). */

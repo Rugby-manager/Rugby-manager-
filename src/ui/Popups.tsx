@@ -11,7 +11,8 @@ import { acceptOffer, nombreOfertante, rejectOffer } from '../engine/offers';
 import { LOGROS } from '../engine/logros';
 import { prestigioTexto } from '../engine/career';
 import { isDerby } from '../engine/extras';
-import { overall } from '../engine/players';
+import { overall, posText } from '../engine/players';
+import { contratosPorVencer, dejarIr, renew, renewalDemand } from '../engine/club';
 
 function hash(s: string) {
   let h = 2166136261;
@@ -180,6 +181,35 @@ function eventos(g: GameState): Evento[] {
         { texto: 'Aceptar', tono: 'si', hacer: () => acceptOffer(g, o.id) },
         { texto: 'Rechazar', tono: 'no', hacer: () => rejectOffer(g, o.id) },
         { texto: 'Pensarlo (Mercado > Ofertas)', tono: 'neutro', hacer: () => ((o.vista = true), '') },
+      ],
+    });
+  }
+  // Contratos que se terminan.
+  for (const p of contratosPorVencer(g)) {
+    const pide = renewalDemand(p);
+    const anios = p.edad >= 32 ? [1] : [2, 1];
+    out.push({
+      key: `contrato-${p.id}-${g.temporada}`,
+      banda: 'Se termina un contrato',
+      color: '#ee8a12',
+      icono: '📄',
+      titulo: `${p.nombre} ${p.apellido}`,
+      club: yo,
+      texto: (
+        <>
+          {posText(p)}, {p.edad} años, {overall(p)} de media. Le queda <b>la última temporada</b>: si no le renovás, se va libre cuando termine el torneo.
+          <br />
+          Para seguir pide <b>{formatMoney(pide)} por fecha</b>
+          {pide > p.sueldo ? ` (hoy cobra ${formatMoney(p.sueldo)})` : ''}.
+        </>
+      ),
+      opciones: [
+        ...anios.map((n) => ({
+          texto: `Renovar ${n} ${n === 1 ? 'temporada' : 'temporadas'}`,
+          tono: (n === anios[0] ? 'si' : 'neutro') as Opcion['tono'],
+          hacer: () => renew(g, p.id, n),
+        })),
+        { texto: 'Dejarlo ir', tono: 'no', hacer: () => dejarIr(g, p.id) },
       ],
     });
   }

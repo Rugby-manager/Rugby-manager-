@@ -1,6 +1,6 @@
 import { isDerby } from './extras';
 import { Rng, clamp } from './rng';
-import { wageFor } from './players';
+import { overall, wageFor } from './players';
 import { logMoney } from './market';
 import { APELLIDOS, NOMBRES } from './names';
 import type { Club, Fixture, GameState, InstKey, Instalaciones, Player, SponsorDeal, SponsorExtra, Staff, StaffKey } from './types';
@@ -361,6 +361,26 @@ export function renew(g: GameState, id: string, anios: number): string {
   p.contrato = Math.max(p.contrato, 0) + anios;
   p.moral = clamp(p.moral + 5, 0, 100);
   return `${p.apellido} renovó por ${anios} ${anios === 1 ? 'temporada' : 'temporadas'} más.`;
+}
+
+/** Desde esta fecha te avisan de los contratos que se terminan. */
+export const AVISO_CONTRATO_FECHA = 10;
+
+/** Jugadores tuyos en su último año que todavía no decidiste. Los mejores primero. */
+export function contratosPorVencer(g: GameState): Player[] {
+  if (g.phase === 'fin' || g.round < AVISO_CONTRATO_FECHA) return [];
+  const c = g.clubs[g.userClubId];
+  return c.plantel
+    .map((id) => g.players[id])
+    .filter((p) => p && p.contrato <= 1 && !p.estrella && !p.prestamo && p.avisoContrato !== g.temporada)
+    .sort((a, b) => overall(b) - overall(a));
+}
+
+/** Decidiste no renovarle: se va libre al final de la temporada. */
+export function dejarIr(g: GameState, id: string): string {
+  const p = g.players[id];
+  p.avisoContrato = g.temporada;
+  return `${p.apellido} juega lo que queda de la temporada y después se va libre.`;
 }
 
 /** Valores iniciales de las cosas nuevas del club. */
