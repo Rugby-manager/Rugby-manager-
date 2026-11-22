@@ -89,13 +89,21 @@ export const RESPUESTAS_PRENSA = [
   { texto: 'Respetamos mucho al rival', efecto: 'El plantel se tranquiliza (+2 de moral). Sin riesgos.' },
   { texto: 'Lo vamos a ganar, no hay dudas', efecto: 'El plantel se agranda (+6 de moral). Si ganás, la directiva te aplaude; si perdés, te lo van a reprochar.' },
   { texto: 'Que hable la cancha', efecto: 'No pasa nada: ni presión ni motivación.' },
+  { texto: 'Les vamos a pasar por arriba', efecto: 'La hinchada se enciende (+5) y el plantel también (+4 de moral). Pero si perdés, la hinchada y la directiva te matan.' },
 ];
 
 /** Antes de un clásico o un partido de playoff hay conferencia de prensa. */
 export function conferenciaPendiente(g: GameState): Fixture | null {
   const f = userFixture(g);
   if (!f || f.result || f.comp === 'AMISTOSO') return null;
-  const grande = isDerby(g.clubs[f.home], g.clubs[f.away]) || f.comp === 'SEMI' || f.comp === 'FINAL' || (f.comp === 'INTL' && f.etapa === 3);
+  const rival = f.home === g.userClubId ? f.away : f.home;
+  // También contra el puntero (o si el puntero sos vos, contra el segundo) a partir de la fecha 4.
+  let vsPunta = false;
+  if (isLeague(f.comp) && g.round >= 4) {
+    const t = standings(g, g.clubs[g.userClubId].division);
+    vsPunta = t.slice(0, 2).some((r) => r.clubId === rival) && t.slice(0, 3).some((r) => r.clubId === g.userClubId || r.clubId === rival);
+  }
+  const grande = isDerby(g.clubs[f.home], g.clubs[f.away]) || vsPunta || f.comp === 'SEMI' || f.comp === 'FINAL' || f.comp === 'PROMO1' || f.comp === 'PROMO2' || (f.comp === 'COPA' && (f.etapa ?? 0) >= 3) || (f.comp === 'INTL' && f.etapa === 3);
   if (!grande) return null;
   if (g.prensa?.fixtureId === f.id) return null;
   return f;
@@ -106,24 +114,36 @@ export function responderPrensa(g: GameState, i: number): string {
   if (!f) throw new Error('No hay conferencia pendiente.');
   g.prensa = { fixtureId: f.id, eleccion: i };
   const club = g.clubs[g.userClubId];
-  const delta = i === 0 ? 2 : i === 1 ? 6 : 0;
+  const delta = [2, 6, 0, 4][i] ?? 0;
   for (const id of club.plantel) {
     const p = g.players[id];
     p.moral = clamp(p.moral + delta, 20, 100);
   }
-  return i === 0 ? 'Mensaje de calma. El plantel lo valoró.' : i === 1 ? '¡Lo dijiste fuerte! El plantel está agrandado... ahora hay que ganar.' : 'Pocas palabras. La prensa se quedó con ganas.';
+  if (club.hinchada !== undefined) club.hinchada = clamp(club.hinchada + ([0, 2, 0, 5][i] ?? 0), 0, 100);
+  return [
+    'Mensaje de calma. El plantel lo valoró.',
+    '¡Lo dijiste fuerte! El plantel está agrandado... ahora hay que ganar.',
+    'Pocas palabras. La prensa se quedó con ganas.',
+    '¡Picante! La hinchada enloqueció con tus declaraciones. Ahora no se puede perder.',
+  ][i];
 }
 
 /** Después del partido: si prometiste ganar, la directiva te pasa la cuenta. */
 export function cerrarPrensa(g: GameState, f: Fixture) {
   if (!g.prensa || g.prensa.fixtureId !== f.id || g.prensa.resuelta) return;
   g.prensa.resuelta = true;
-  if (g.prensa.eleccion !== 1 || !g.career) return;
+  const e = g.prensa.eleccion;
+  if (e !== 1 && e !== 3) return;
   const w = matchWinner(f);
-  if (w === g.userClubId) g.career.confianza = clamp(g.career.confianza + 3, 0, 100);
-  else if (w !== null) {
-    g.career.confianza = clamp(g.career.confianza - 4, 0, 100);
-    g.diario?.[0]?.titulares.unshift({ titulo: 'Palabras que pesan', bajada: 'El técnico había prometido ganar. La directiva no está contenta.' });
+  const club = g.clubs[g.userClubId];
+  const fuerte = e === 3 ? 2 : 1;
+  if (w === g.userClubId) {
+    if (g.career) g.career.confianza = clamp(g.career.confianza + 3 * fuerte, 0, 100);
+    if (club.hinchada !== undefined) club.hinchada = clamp(club.hinchada + 3 * fuerte, 0, 100);
+  } else if (w !== null) {
+    if (g.career) g.career.confianza = clamp(g.career.confianza - 4 * fuerte, 0, 100);
+    if (club.hinchada !== undefined) club.hinchada = clamp(club.hinchada - 4 * fuerte, 0, 100);
+    g.diario?.[0]?.titulares.unshift({ titulo: 'Palabras que pesan', bajada: e === 3 ? 'El técnico había dicho que les pasaban por arriba. La hinchada no lo perdona.' : 'El técnico había prometido ganar. La directiva no está contenta.' });
   }
 }
 
