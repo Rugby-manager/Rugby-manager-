@@ -392,6 +392,8 @@ export interface GameState {
   /** Si hay pretemporada con amistosos al empezar cada temporada. */
   amistosos?: boolean;
   pretemporada?: Pretemporada;
+  /** Seven de verano de esta temporada (jugado o rechazado). */
+  seven?: import('./seven').SevenEstado;
 }
 
 export interface PropuestaAmistosa {

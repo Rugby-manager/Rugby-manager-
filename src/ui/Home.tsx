@@ -2,6 +2,7 @@ import { ofertasVigentes } from '../engine/offers';
 import { describirEvento, resolverEvento } from '../engine/vestuario';
 import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { preseasonPending, skipPreseason } from '../engine/preseason';
+import { SEVEN_NOMBRE, SEVEN_PREMIO, jugarSeven, plantelSeven, rechazarSeven, sevenPendiente } from '../engine/seven';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
 import { useState, type ReactNode } from 'react';
 import { roundName } from '../engine/cup';
@@ -123,6 +124,7 @@ export function HomeScreen() {
   return (
     <>
       {aviso}
+      <SevenCard />
       {g.sponsorOfertas.length > 0 && (
         <button className="notice block-notice" onClick={() => go('club', 'sponsor')}>
           📝 Tenés {g.sponsorOfertas.length} ofertas de sponsors para esta temporada. Tocá acá para elegir una.
@@ -896,5 +898,66 @@ function HinchadaBar({ club, onOpen }: { club: Club; onOpen: () => void }) {
       <span className="num">{e.icono} {e.label}</span>
       {caro > 0 && <span className="hint">🎟 La gente se queja: la entrada está {caro === 2 ? 'muy cara' : 'cara'}.</span>}
     </button>
+  );
+}
+
+function SevenCard() {
+  const { g, refresh, saveNow, toast } = useGame();
+  const club = g.clubs[g.userClubId];
+  const st = g.seven;
+  if (sevenPendiente(g)) {
+    const ps = plantelSeven(g, club);
+    return (
+      <section className="seven-card">
+        <div className="sv-hd">🏉 {SEVEN_NOMBRE} · opcional</div>
+        <p>
+          Torneo de rugby 7 en la playa antes de la liga: cuartos, semi y final contra clubes de tu categoría y la de al lado. Van tus 10 más rápidos. Los que juegan suben velocidad y resistencia, pero llegan un poco cansados.
+        </p>
+        <p className="small">
+          Premio: {formatMoney(SEVEN_PREMIO.victoria)} por partido ganado y {formatMoney(SEVEN_PREMIO.campeon)} más si salís campeón.
+        </p>
+        <div className="sv-ps">{ps.map((p) => p.apellido).join(' · ')}</div>
+        <div className="row">
+          <button
+            className="btn primary"
+            onClick={async () => {
+              const r = jugarSeven(g);
+              refresh();
+              await saveNow();
+              toast(r.campeon ? '¡Campeones del Seven!' : 'Terminó el Seven');
+            }}
+          >
+            Jugar el Seven
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              rechazarSeven(g);
+              refresh();
+            }}
+          >
+            No, gracias
+          </button>
+        </div>
+      </section>
+    );
+  }
+  if (!st?.jugado || st.temporada !== g.temporada || g.round > 2) return null;
+  return (
+    <section className="seven-card">
+      <div className="sv-hd">🏉 {SEVEN_NOMBRE} {st.campeon ? '· ¡CAMPEONES!' : ''}</div>
+      {st.partidos.map((m) => (
+        <div key={m.etapa} className="row sv-row">
+          <span className="small">{m.etapa}</span>
+          <span className="grow">{m.rival}</span>
+          <b className={`num ${m.gano ? 'sv-w' : 'sv-l'}`}>
+            {m.pf}-{m.pc}
+          </b>
+        </div>
+      ))}
+      <p className="small">
+        {st.premio > 0 ? `Cobraste ${formatMoney(st.premio)}. ` : ''}Los 10 que fueron subieron velocidad y resistencia.
+      </p>
+    </section>
   );
 }
