@@ -566,3 +566,7 @@ table.std.noche .badge { min-width: 1.55em; font-size: 0.98rem; }
 
 .lesion-item { border-bottom: 1px solid #0002; padding-bottom: 6px; }
 .lesion-item .kine { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 0.74rem; background: #eef4ff; border: 1px solid #0002; padding: 5px 6px; color: #223; }
+
+.charla-ops { display: grid; gap: 6px; }
+.charla-ops .btn { display: grid; text-align: left; gap: 2px; }
+.charla-ops .btn small { font-family: var(--font-body); text-transform: none; letter-spacing: 0; font-size: 0.7rem; font-weight: 500; opacity: 0.8; }

@@ -4,6 +4,7 @@ import { useGame } from './App';
 import { ATTR_DESC, ATTR_GROUPS, ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, toStars } from './common';
 import { apurarVuelta, parteKine } from '../engine/lesiones';
+import { CHARLA_CADA, charlar, puedeCharlar, type TipoCharla } from '../engine/vestuario';
 import { FOCOS, FOCO_ATTRS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL, planLabel } from '../engine/training';
 import type { ReactNode } from 'react';
 import type { AttrKey, FocoEntreno, Intensidad, PlanEntreno } from '../engine/types';
@@ -387,6 +388,7 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
       {p.prestamo && <div className="small muted">A préstamo: es de {g.clubs[p.prestamo.clubId]?.nombre} y vuelve a fin de temporada.</div>}
       <Evolucion g={g} p={p} />
       {p.clubId && <ContractBox g={g} p={p} mine={mine} onChange={onTrain} />}
+      {mine && onTrain && <CharlaBox g={g} p={p} onChange={onTrain} />}
       {action}
       <div className="card">
         <div className="attr2 hd">
@@ -603,6 +605,45 @@ function Evolucion({ g, p }: { g: GameState; p: Player }) {
             </span>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Charla individual en la oficina del DT. */
+function CharlaBox({ g, p, onChange }: { g: GameState; p: Player; onChange: () => void }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const ok = puedeCharlar(g, p);
+  const ops: { t: TipoCharla; l: string; d: string }[] = [
+    { t: 'felicitar', l: '👏 Felicitarlo', d: 'Sube la moral, más si es titular.' },
+    { t: 'exigir', l: '😤 Exigirle más', d: 'Si tiene buena actitud, responde. Si no, se enoja.' },
+    { t: 'minutos', l: '🤝 Prometerle minutos', d: 'Se pone contento, pero tiene que jugar en 3 fechas.' },
+  ];
+  return (
+    <div className="card stack charla">
+      <div className="label">🗣 Charla en tu oficina</div>
+      {msg ? (
+        <p style={{ margin: 0, fontWeight: 600 }}>{msg}</p>
+      ) : ok ? (
+        <div className="charla-ops">
+          {ops.map((o) => (
+            <button
+              key={o.t}
+              className="btn small"
+              onClick={() => {
+                setMsg(charlar(g, p.id, o.t));
+                onChange();
+              }}
+            >
+              {o.l}
+              <small>{o.d}</small>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>
+          Ya hablaste con él hace poco. Podés volver a llamarlo dentro de {CHARLA_CADA - (g.round - (p.ultimaCharla ?? 0))} {CHARLA_CADA - (g.round - (p.ultimaCharla ?? 0)) === 1 ? 'fecha' : 'fechas'}.
+        </p>
       )}
     </div>
   );

@@ -60,6 +60,8 @@ export interface Player {
   prestamo?: { clubId: string; temporada: number };
   /** Qué lesión tiene (si está lesionado). */
   lesionTipo?: string;
+  /** Fecha de la última charla individual con el DT. */
+  ultimaCharla?: number;
   /** Volvió apurado de una lesión: puede recaer en los próximos partidos. */
   recaida?: { riesgo: number; partidos: number; semanas: number };
   /** Cómo terminó cada temporada (para ver cuánto mejoró). */
@@ -325,7 +327,7 @@ export interface SeasonRecord {
 
 export interface VestuarioEvento {
   id: string;
-  tipo: 'minutos' | 'irse' | 'pelea';
+  tipo: 'minutos' | 'irse' | 'pelea' | 'aumento';
   players: string[];
   round: number;
 }

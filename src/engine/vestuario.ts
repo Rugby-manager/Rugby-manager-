@@ -33,6 +33,16 @@ export function describirEvento(g: GameState, e: VestuarioEvento): { titulo: str
         { texto: 'Dejarlo ir', efecto: 'Lo ponés transferible y se va contento cuando aparezca una oferta.' },
       ],
     };
+  if (e.tipo === 'aumento')
+    return {
+      titulo: `${a.apellido} pide un aumento`,
+      texto: `${nom(a)} viene jugando todos los partidos y te pide una mejora: "Dejo todo por el club, quiero que se note en el sueldo."`,
+      opciones: [
+        { texto: 'Aumento del 20%', efecto: `Cobra ${Math.round(a.sueldo * 0.2).toLocaleString('es-AR')} más por fecha y queda feliz (+18 de moral).` },
+        { texto: 'Aumento del 10%', efecto: `Cobra ${Math.round(a.sueldo * 0.1).toLocaleString('es-AR')} más por fecha. Lo acepta a medias (+6 de moral).` },
+        { texto: 'Ahora no hay plata', efecto: 'Se enoja (−12 de moral) y si queda muy bajoneado puede pedir irse.' },
+      ],
+    };
   return {
     titulo: `Pelea en el vestuario`,
     texto: `${nom(a)} y ${nom(b)} se agarraron a las piñas después del entrenamiento. Todo el plantel vio la escena.`,
@@ -74,7 +84,7 @@ export function eventosVestuario(g: GameState, rng: Rng): string[] {
   if (g.vestuario || !rng.chance(0.22)) return avisos;
   const ps = club.plantel.map((id) => g.players[id]).filter((p) => p && p.lesion === 0 && !p.prestamo);
   const xv = new Set(club.xv);
-  const tipo = rng.weighted(['minutos', 'irse', 'pelea'] as const, [3, 1.5, 2]);
+  const tipo = rng.weighted(['minutos', 'irse', 'pelea', 'aumento'] as const, [3, 1.5, 2, 2]);
   let players: string[] = [];
   if (tipo === 'minutos') {
     const c = ps.filter((p) => !xv.has(p.id) && overall(p) >= 62 && p.edad >= 19);
@@ -82,6 +92,9 @@ export function eventosVestuario(g: GameState, rng: Rng): string[] {
   } else if (tipo === 'irse') {
     const top = [...ps].sort((a, b) => overall(b) - overall(a)).slice(0, 5).filter((p) => p.edad <= 31);
     if (top.length) players = [rng.weighted(top, top.map((p) => 1 + (100 - p.moral) / 15)).id];
+  } else if (tipo === 'aumento') {
+    const c = ps.filter((p) => xv.has(p.id) && p.temporada.partidos >= 4 && !p.estrella);
+    if (c.length) players = [rng.weighted(c, c.map((p) => 1 + p.temporada.tries * 2 + Math.max(0, overall(p) - 60)))].map((p) => p.id);
   } else {
     const c = ps.filter((p) => p.attrs.actitud < 70 || p.moral < 55);
     if (c.length >= 2) {
@@ -138,6 +151,20 @@ export function resolverEvento(g: GameState, opcion: number, rng = new Rng(g.rng
     mov(a, 5);
     return `${a.apellido} queda transferible. Te agradece la sinceridad.`;
   }
+  if (e.tipo === 'aumento') {
+    if (opcion === 0 || opcion === 1) {
+      const f = opcion === 0 ? 1.2 : 1.1;
+      a.sueldo = Math.round((a.sueldo * f) / 1000) * 1000;
+      mov(a, opcion === 0 ? 18 : 6);
+      return opcion === 0 ? `${a.apellido} firmó el aumento y está feliz.` : `${a.apellido} aceptó el 10%, aunque esperaba más.`;
+    }
+    mov(a, -12);
+    if (a.moral < 45) {
+      a.transferible = true;
+      return `${a.apellido} se enojó mucho y pidió irse: quedó transferible.`;
+    }
+    return `${a.apellido} se fue enojado de la oficina.`;
+  }
   // Pelea
   if (opcion === 0) {
     for (const p of [a, b]) if (p) mov(p, -8);
@@ -150,4 +177,44 @@ export function resolverEvento(g: GameState, opcion: number, rng = new Rng(g.rng
   }
   for (const id of club.plantel) mov(g.players[id], -3);
   return 'Miraste para otro lado y el plantel lo notó.';
+}
+
+export type TipoCharla = 'felicitar' | 'exigir' | 'minutos';
+export const CHARLA_CADA = 3;
+
+/** Se puede hablar con cada jugador una vez cada 3 fechas. */
+export const puedeCharlar = (g: GameState, p: Player) => p.clubId === g.userClubId && (p.ultimaCharla === undefined || g.round - p.ultimaCharla >= CHARLA_CADA);
+
+/** Charla individual: lo llamás a tu oficina. */
+export function charlar(g: GameState, id: string, tipo: TipoCharla, rng = new Rng(g.rng ^ 0x7c7c)): string {
+  const p = g.players[id];
+  const club = g.clubs[g.userClubId];
+  if (!p || !puedeCharlar(g, p)) throw new Error('Ya hablaste con él hace poco. Esperá unas fechas.');
+  p.ultimaCharla = g.round;
+  const mov = (d: number) => (p.moral = clamp(p.moral + d, 20, 100));
+  const titular = club.xv.includes(p.id);
+  if (tipo === 'felicitar') {
+    if (titular) {
+      mov(8);
+      return `${p.apellido} se fue agrandado: "Gracias, profe."`;
+    }
+    mov(2);
+    return `${p.apellido} agradece, pero lo que quiere es jugar.`;
+  }
+  if (tipo === 'exigir') {
+    if (rng.chance(p.attrs.actitud / 110)) {
+      p.attrs.actitud = Math.min(99, p.attrs.actitud + 2);
+      mov(2);
+      return `${p.apellido} recibió el mensaje: entrena con todo (+2 de actitud).`;
+    }
+    mov(-8);
+    return `${p.apellido} se lo tomó a mal y anda con cara larga.`;
+  }
+  if (titular) {
+    mov(3);
+    return `${p.apellido} ya es titular, pero le gustó escucharlo.`;
+  }
+  mov(12);
+  g.promesas = [...(g.promesas ?? []).filter((x) => x.playerId !== p.id), { playerId: p.id, hasta: g.round + 3, partidos: p.temporada.partidos }];
+  return `Le prometiste a ${p.apellido} que va a jugar en las próximas 3 fechas. No le falles.`;
 }
