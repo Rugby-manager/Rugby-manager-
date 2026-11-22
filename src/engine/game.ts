@@ -28,7 +28,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -1037,6 +1037,17 @@ export function migrate(g: GameState): GameState {
     }
     g.ultimasMejoras = [];
     g.version = 19;
+  }
+  if (g.version < 20) {
+    // Luca: Valle Hermoso, Tandil, Santa Celina, ODP, Deportivo Camet y Sierras de los Padres (con sus camisetas).
+    const cambian = ['LAG', 'BRR', 'ALG', 'BAÑ', 'CUB', 'PEN'];
+    for (const c of Object.values(g.clubs)) {
+      c.codigo ??= c.corto;
+      if (!cambian.includes(c.codigo)) continue;
+      const s = [...CLUB_SEEDS, ...CLUB_SEEDS_C].find((x) => x.codigo === c.codigo);
+      if (s) Object.assign(c, { nombre: s.nombre, corto: s.corto, ciudad: s.ciudad, colores: s.colores, patron: s.patron });
+    }
+    g.version = 20;
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;

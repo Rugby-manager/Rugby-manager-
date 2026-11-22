@@ -24,7 +24,7 @@ export const CLUB_SEEDS: ClubSeed[] = [
   { nombre: 'El Puerto RC', corto: 'PTO', codigo: 'PQU', ciudad: 'El Puerto', apodo: 'Los Portuarios', colores: ['#c62828', '#151515'], patron: 'aros', division: 'A' },
   { nombre: 'La Puna RC', corto: 'PUN', codigo: 'MED', ciudad: 'La Puna', apodo: 'Los Puneños', colores: ['#ef7d1a', '#151515'], patron: 'banda', division: 'A' },
   { nombre: 'Club Arroyitos', corto: 'ARR', codigo: 'ARH', ciudad: 'Arroyitos', apodo: 'Los del Arroyo', colores: ['#0f5132', '#151515'], patron: 'lisa', division: 'A' },
-  { nombre: 'Club Atlético Camet', corto: 'CMT', codigo: 'LAG', ciudad: 'Camet', apodo: 'Los Patos', colores: ['#0d8fa3', '#ffffff'], patron: 'cuartos', division: 'B' },
+  { nombre: 'Deportivo Camet', corto: 'DCA', codigo: 'LAG', ciudad: 'Camet', apodo: 'Los Patos', colores: ['#ffffff', '#f2f2f2'], patron: 'lisa', division: 'B' },
   { nombre: 'Club Mataderos', corto: 'MAT', codigo: 'QUE', ciudad: 'Mataderos', apodo: 'Los Quebrachos', colores: ['#1f4fa3', '#ffffff'], patron: 'banda', division: 'B' },
   { nombre: 'Club Atlético El Puerto', corto: 'CEP', codigo: 'ESP', ciudad: 'El Puerto', apodo: 'El Espinillo', colores: ['#f2c230', '#1d7a3a'], patron: 'aros', division: 'B' },
   { nombre: 'Club Social Playa Grande', corto: 'PGR', codigo: 'CER', ciudad: 'Playa Grande', apodo: 'Los del Cerro', colores: ['#4a5560', '#ffffff'], patron: 'cuartos', division: 'B' },
@@ -32,8 +32,8 @@ export const CLUB_SEEDS: ClubSeed[] = [
   { nombre: 'Club Atlético Chauvin', corto: 'CHV', codigo: 'CHA', ciudad: 'Chauvin', apodo: 'Los Chañares', colores: ['#d35400', '#ffffff'], patron: 'cuartos', division: 'B' },
   { nombre: 'Güemes RC', corto: 'GUE', codigo: 'PAH', ciudad: 'Güemes', apodo: 'Los del Bajo', colores: ['#1f4fa3', '#c62828'], patron: 'aros', division: 'B' },
   { nombre: 'La Perla RC', corto: 'LPE', codigo: 'JUN', ciudad: 'La Perla', apodo: 'Los Juncos', colores: ['#7cb342', '#151515'], patron: 'banda', division: 'B' },
-  { nombre: 'Atlético Barrancas Rojas', corto: 'BRR', ciudad: 'Barrancas Rojas', apodo: 'Los Barranqueros', colores: ['#8e1b1b', '#f2c230'], patron: 'cuartos', division: 'B' },
-  { nombre: 'Club Algarrobo Viejo', corto: 'ALG', ciudad: 'Algarrobo Viejo', apodo: 'Los Algarrobos', colores: ['#3e6b48', '#f0e6d2'], patron: 'cuartos', division: 'B' },
+  { nombre: 'Tandil Rugby', corto: 'TAN', codigo: 'BRR', ciudad: 'Tandil', apodo: 'Los Tandilenses', colores: ['#0b4d2c', '#ffffff'], patron: 'lisa', division: 'B' },
+  { nombre: 'Valle Hermoso Rugby', corto: 'VHE', codigo: 'ALG', ciudad: 'Valle Hermoso', apodo: 'Los del Valle', colores: ['#3cb043', '#ffffff'], patron: 'lisa', division: 'B' },
 ];
 
 /** La tercera categoría (Primera C). También inventados. */
@@ -43,11 +43,11 @@ export const CLUB_SEEDS_C: ClubSeed[] = [
   { nombre: 'Parque Luro Club', corto: 'PLU', codigo: 'TAL', ciudad: 'Parque Luro', apodo: 'Los del Tala', colores: ['#1565c0', '#ffffff'], patron: 'aros', division: 'C' },
   { nombre: 'Pacheco Club', corto: 'PAC', codigo: 'CRE', ciudad: 'Pacheco', apodo: 'Los Camineros', colores: ['#b71c1c', '#f0e6d2'], patron: 'cuartos', division: 'C' },
   { nombre: 'Carupá RC', corto: 'CRP', codigo: 'CAÑ', ciudad: 'Carupá', apodo: 'Los de la Cañada', colores: ['#00838f', '#151515'], patron: 'cuartos', division: 'C' },
-  { nombre: 'Atlético Bañado Norte', corto: 'BAÑ', ciudad: 'Bañado Norte', apodo: 'Los Bañadenses', colores: ['#558b2f', '#ffffff'], patron: 'aros', division: 'C' },
+  { nombre: 'Santa Celina', corto: 'SCE', codigo: 'BAÑ', ciudad: 'Santa Celina', apodo: 'Los Celinenses', colores: ['#2e7d32', '#6d3b1a'], patron: 'aros', division: 'C' },
   { nombre: 'Mistol Blanco RC', corto: 'MIS', ciudad: 'Mistol Blanco', apodo: 'Los Mistoles', colores: ['#f5f5f5', '#4a148c'], patron: 'banda', division: 'C' },
   { nombre: 'Club Jarilla', corto: 'JAR', ciudad: 'Jarilla', apodo: 'Los Jarilleros', colores: ['#f9a825', '#151515'], patron: 'cuartos', division: 'C' },
-  { nombre: 'Atlético Cuesta Brava', corto: 'CUB', ciudad: 'Cuesta Brava', apodo: 'Los de la Cuesta', colores: ['#37474f', '#ef7d1a'], patron: 'aros', division: 'C' },
-  { nombre: 'Club Peñón Negro', corto: 'PEN', ciudad: 'Peñón Negro', apodo: 'Los Peñoneros', colores: ['#151515', '#ffffff'], patron: 'mitades', division: 'C' },
+  { nombre: 'Sierras de los Padres RC', corto: 'SDP', codigo: 'CUB', ciudad: 'Sierras de los Padres', apodo: 'Los Serranos', colores: ['#7ec8f0', '#ffffff'], patron: 'lisa', division: 'C' },
+  { nombre: 'ODP RC', corto: 'ODP', codigo: 'PEN', ciudad: 'ODP', apodo: 'Los de ODP', colores: ['#151515', '#ffffff'], patron: 'aros', division: 'C' },
 ];
 
 export const NOMBRES = [
