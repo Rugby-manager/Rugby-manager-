@@ -1,3 +1,4 @@
+import { chequearRecaidas } from './lesiones';
 import { aplicarAyuda, ponerEnXV, type AyudaInicial } from './ayuda';
 import { eventosVestuario } from './vestuario';
 import { HINCHADA_INICIAL, hinchadaTrasPartido } from './hinchada';
@@ -365,6 +366,7 @@ function applyMatchEffects(g: GameState, f: Fixture, rng: Rng) {
     if (pl.lesion <= l.semanas) pl.lesionTipo = lesionNombre(l.semanas + 1, pl.id + f.id);
     pl.lesion = Math.max(pl.lesion, l.semanas + 1);
   }
+  for (const t of chequearRecaidas(g, f, rng)) addNews(g, '🩹 Recaída', t);
   const winner = matchWinner(f);
   for (const side of ['H', 'A'] as const) {
     const club = g.clubs[side === 'H' ? f.home : f.away];

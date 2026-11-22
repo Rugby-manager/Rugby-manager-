@@ -60,6 +60,8 @@ export interface Player {
   prestamo?: { clubId: string; temporada: number };
   /** Qué lesión tiene (si está lesionado). */
   lesionTipo?: string;
+  /** Volvió apurado de una lesión: puede recaer en los próximos partidos. */
+  recaida?: { riesgo: number; partidos: number; semanas: number };
   /** Cómo terminó cada temporada (para ver cuánto mejoró). */
   historia?: { temporada: number; ovr: number; partidos: number; tries: number; clubId: string }[];
   /** Temporadas de contrato que le quedan (contando la actual). */

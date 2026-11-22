@@ -563,3 +563,6 @@ table.std.noche .badge { min-width: 1.55em; font-size: 0.98rem; }
 .seven-card .sv-ps { font-size: 0.75rem; background: #0005; padding: 4px 6px; border: 1px solid #fff3; }
 .sv-row { gap: 8px; background: #0004; padding: 4px 6px; }
 .sv-w { color: #7dff9a; } .sv-l { color: #ff8a6b; }
+
+.lesion-item { border-bottom: 1px solid #0002; padding-bottom: 6px; }
+.lesion-item .kine { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 0.74rem; background: #eef4ff; border: 1px solid #0002; padding: 5px 6px; color: #223; }

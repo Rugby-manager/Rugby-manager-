@@ -3,6 +3,7 @@ import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
 import { ATTR_DESC, ATTR_GROUPS, ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, toStars } from './common';
+import { apurarVuelta, parteKine } from '../engine/lesiones';
 import { FOCOS, FOCO_ATTRS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL, planLabel } from '../engine/training';
 import type { ReactNode } from 'react';
 import type { AttrKey, FocoEntreno, Intensidad, PlanEntreno } from '../engine/types';
@@ -518,8 +519,11 @@ function ContractBox({ g, p, mine, onChange }: { g: GameState; p: Player; mine: 
 }
 
 /** Los lesionados del plantel, con su lesión y cuánto les falta. */
+const club0 = (g: GameState) => g.clubs[g.userClubId];
+
 function Lesionados({ onOpen }: { onOpen: (id: string) => void }) {
-  const { g } = useGame();
+  const { g, refresh, toast } = useGame();
+  const apurados = club0(g).plantel.map((id) => g.players[id]).filter((p) => p.recaida);
   const club = g.clubs[g.userClubId];
   const list = club.plantel.map((id) => g.players[id]).filter((p) => p.lesion > 0).sort((a, b) => b.lesion - a.lesion);
   return (
@@ -527,22 +531,41 @@ function Lesionados({ onOpen }: { onOpen: (id: string) => void }) {
       <h3>🩹 Lesionados</h3>
       <div className="list">
         {list.map((p) => (
-          <button key={p.id} className="li" onClick={() => onOpen(p.id)}>
-            <Ovr v={overall(p)} />
-            <div className="grow">
-              <div className="name">
-                {p.nombre} {p.apellido}
+          <div key={p.id} className="lesion-item">
+            <button className="li" onClick={() => onOpen(p.id)}>
+              <Ovr v={overall(p)} />
+              <div className="grow">
+                <div className="name">
+                  {p.nombre} {p.apellido}
+                </div>
+                <div className="small muted">
+                  {posText(p)} · {p.lesionTipo ?? 'Lesión'}
+                </div>
               </div>
-              <div className="small muted">
-                {posText(p)} · {p.lesionTipo ?? 'Lesión'}
-              </div>
+              <b className="num" style={{ color: 'var(--loss)' }}>
+                {p.lesion} {p.lesion === 1 ? 'fecha' : 'fechas'}
+              </b>
+            </button>
+            <div className="kine">
+              <span>🩺 {parteKine(p, club)}</span>
+              <button
+                className="btn small danger"
+                onClick={() => {
+                  toast(apurarVuelta(g, p.id));
+                  refresh();
+                }}
+              >
+                Apurar la vuelta
+              </button>
             </div>
-            <b className="num" style={{ color: 'var(--loss)' }}>
-              {p.lesion} {p.lesion === 1 ? 'fecha' : 'fechas'}
-            </b>
-          </button>
+          </div>
         ))}
       </div>
+      {apurados.length > 0 && (
+        <p className="small" style={{ margin: '6px 0 0' }}>
+          ⚠ Volvieron apurados (pueden recaer): {apurados.map((p) => `${p.apellido} (${Math.round(p.recaida!.riesgo * 100)}%)`).join(', ')}
+        </p>
+      )}
       {!(club.staff?.medico) && <p className="small muted" style={{ margin: '6px 0 0' }}>Con un médico y un kinesiólogo (en Empleados) se recuperan más rápido.</p>}
     </section>
   );
