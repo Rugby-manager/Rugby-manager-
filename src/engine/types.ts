@@ -57,7 +57,10 @@ export interface Player {
   /** Está en la lista de transferibles de su club. */
   transferible?: boolean;
   /** Está a préstamo: de qué club es y hasta qué temporada. */
-  prestamo?: { clubId: string; temporada: number };
+  /** A préstamo: clubId es el dueño; hasta = última temporada del préstamo (si falta, la misma en que empezó). */
+  prestamo?: { clubId: string; temporada: number; hasta?: number };
+  /** Lo pusiste en la lista de préstamos: le llegan ofertas de cesión. */
+  listaPrestamo?: boolean;
   /** Qué lesión tiene (si está lesionado). */
   lesionTipo?: string;
   /** Lo que lleva jugado con su club actual (para el Salón de la Fama). */
@@ -449,4 +452,6 @@ export interface Oferta {
   exterior?: string;
   /** Ya la viste en la ventana emergente. */
   vista?: boolean;
+  /** Es una oferta de préstamo por esta cantidad de temporadas (no de compra). */
+  prestamo?: number;
 }

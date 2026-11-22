@@ -3,7 +3,7 @@ import { useGame } from './App';
 import { POS_LABEL, POS_ORDER, overall, posText } from '../engine/players';
 import { askingPrice, buyPlayer, canBuy, canSell, freeAgents, marketOpen, salePrice, sellPlayer, signingWage, MAX_SQUAD } from '../engine/market';
 import { Rng } from '../engine/rng';
-import { canLoanIn, canLoanOut, costoPrestamo, loanIn, loanOut, pagoCesion, prestables, toggleTransferible, transferibles } from '../engine/loans';
+import { canLoanIn, canLoanOut, costoPrestamo, hastaTexto, loanIn, loanOut, pagoCesion, prestables, toggleListaPrestamo, toggleTransferible, transferibles } from '../engine/loans';
 import { OFERTA_FECHAS, acceptOffer, counterOffer, nombreOfertante, ofertasVigentes, rejectOffer } from '../engine/offers';
 import { marketValue } from '../engine/players';
 import { ClubJersey, Ovr, formatMoney } from './common';
@@ -58,9 +58,9 @@ export function MarketScreen() {
 
   list = list.filter(edadOk);
 
-  const act = (id: string) => {
+  const act = (id: string, anios = 1) => {
     try {
-      const msg = mode === 'vender' ? sellPlayer(g, id, new Rng(Date.now() & 0xffffffff)) : mode === 'prestamos' ? loanIn(g, id) : buyPlayer(g, id);
+      const msg = mode === 'vender' ? sellPlayer(g, id, new Rng(Date.now() & 0xffffffff)) : mode === 'prestamos' ? loanIn(g, id, anios) : buyPlayer(g, id);
       setOpen(null);
       refresh();
       toast(msg);
@@ -145,6 +145,7 @@ export function MarketScreen() {
                       <div className="small muted">
                         {posText(p)} · {p.edad} años{club && mode !== 'vender' ? ` · ${club.corto}` : ''}
                         {p.transferible && mode === 'vender' ? ' · 🏷️ transferible' : ''}
+                        {p.listaPrestamo && mode === 'vender' ? ' · 🔁 lista de préstamos' : ''}
                         {p.prestamo && mode === 'vender' ? ' · a préstamo' : ''}
                       </div>
                     </div>
@@ -170,7 +171,7 @@ export function MarketScreen() {
           g={g}
           p={g.players[open]}
           onClose={() => setOpen(null)}
-          action={mode === 'prestamos' ? <LoanBox id={open} onDo={() => act(open)} /> : <DealBox id={open} mode={mode} onDo={() => act(open)} />}
+          action={mode === 'prestamos' ? <LoanBox id={open} onDo={(n) => act(open, n)} /> : <DealBox id={open} mode={mode} onDo={() => act(open)} />}
         />
       )}
     </>
@@ -255,7 +256,8 @@ function Ofertas() {
         const quedan = Math.max(1, OFERTA_FECHAS + 1 - Math.ceil(g.round - o.fecha));
         return (
           <section key={o.id} className="card stack">
-            <h3>{o.exterior ? '🌍 ' : ''}Oferta de {nombreOfertante(g, o)}</h3>
+            <h3>{o.exterior ? '🌍 ' : o.prestamo ? '🔁 ' : ''}{o.prestamo ? 'Pedido de préstamo' : 'Oferta'} de {nombreOfertante(g, o)}</h3>
+            {o.prestamo && <div className="small">Se lo llevan cedido {o.prestamo >= 2 ? 'por dos temporadas' : 'hasta fin de temporada'}: ellos le pagan el sueldo y después vuelve.</div>}
             {o.exterior && <div className="small">Lo quieren de afuera. Pagan muy bien, pero si no lo dejás ir se va a poner mal (baja su moral).</div>}
             <div className="row">
               {club ? <ClubJersey club={club} size={30} /> : <span style={{ fontSize: 28 }}>🌍</span>}
@@ -263,7 +265,7 @@ function Ofertas() {
                 <div className="label">Ofrecen</div>
                 <b className="num" style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem' }}>{formatMoney(o.monto)}</b>
               </div>
-              <span className={`pill ${pct >= 100 ? 'good' : ''}`}>{pct}% de lo que vale</span>
+              {!o.prestamo && <span className={`pill ${pct >= 100 ? 'good' : ''}`}>{pct}% de lo que vale</span>}
             </div>
             <button className="li" onClick={() => setOpen(p.id)}>
               <Ovr v={overall(p)} />
@@ -305,7 +307,7 @@ function Ofertas() {
                 Rechazar
               </button>
               <button className="btn primary" onClick={() => run(() => acceptOffer(g, o.id))}>
-                Aceptar y vender
+                {o.prestamo ? 'Aceptar el préstamo' : 'Aceptar y vender'}
               </button>
             </div>
           </section>
@@ -323,52 +325,80 @@ function SellExtras({ id }: { id: string }) {
   const ced = canLoanOut(g, id);
   if (p.prestamo) return null;
   return (
-    <div className="grid2">
-      <button
-        className="btn"
-        onClick={() => {
-          toast(toggleTransferible(g, id));
-          refresh();
-        }}
-      >
-        {p.transferible ? 'Sacar de transferibles' : 'Poner transferible'}
-      </button>
-      <button
-        className="btn"
-        disabled={!ced.ok}
-        title={ced.reason}
-        onClick={() => {
-          try {
-            toast(loanOut(g, id, new Rng(Date.now() & 0xffffffff)));
-          } catch (e) {
-            toast((e as Error).message);
-          }
-          refresh();
-        }}
-      >
-        Ceder a préstamo
-        <small className="sub">Te pagan {formatMoney(ced.price)}</small>
-      </button>
-    </div>
+    <>
+      <div className="grid2">
+        <button
+          className="btn"
+          onClick={() => {
+            toast(toggleTransferible(g, id));
+            refresh();
+          }}
+        >
+          {p.transferible ? 'Sacar de transferibles' : 'Poner transferible'}
+        </button>
+        <button
+          className="btn"
+          onClick={() => {
+            toast(toggleListaPrestamo(g, id));
+            refresh();
+          }}
+        >
+          {p.listaPrestamo ? 'Sacar de la lista de préstamos' : 'Poner en lista de préstamos'}
+          <small className="sub">Te lo piden cedido</small>
+        </button>
+      </div>
+      <div className="grid2">
+        {[1, 2].map((n) => (
+          <button
+            key={n}
+            className="btn"
+            disabled={!ced.ok}
+            title={ced.reason}
+            onClick={() => {
+              try {
+                toast(loanOut(g, id, new Rng(Date.now() & 0xffffffff), n));
+              } catch (e) {
+                toast((e as Error).message);
+              }
+              refresh();
+            }}
+          >
+            Cederlo {n === 1 ? '1 temporada' : '2 temporadas'}
+            <small className="sub">Te pagan {formatMoney(pagoCesion(p, n))}</small>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
-function LoanBox({ id, onDo }: { id: string; onDo: () => void }) {
+function LoanBox({ id, onDo }: { id: string; onDo: (anios: number) => void }) {
   const { g } = useGame();
-  const chk = canLoanIn(g, id);
+  const [anios, setAnios] = useState(1);
+  const chk = canLoanIn(g, id, anios);
   const p = g.players[id];
   return (
     <div className="card stack">
+      <div className="row small">
+        <span className="muted">¿Por cuánto?</span>
+        {[1, 2].map((n) => (
+          <button key={n} className="chip" aria-pressed={anios === n} onClick={() => setAnios(n)}>
+            {n === 1 ? '1 temporada' : '2 temporadas'}
+          </button>
+        ))}
+      </div>
       <div className="row">
         <div className="grow">
-          <div className="label">Préstamo hasta fin de temporada</div>
+          <div className="label">{anios === 1 ? 'Préstamo hasta fin de temporada' : 'Préstamo por dos temporadas'}</div>
           <b className="num" style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{formatMoney(chk.price)}</b>
         </div>
       </div>
-      <div className="small">Además pagás su sueldo: {formatMoney(p.sueldo)} por fecha. Al terminar la temporada vuelve a {p.clubId ? g.clubs[p.clubId].nombre : 'su club'}.</div>
+      <div className="small">
+        Además pagás su sueldo: {formatMoney(p.sueldo)} por fecha. {anios === 1 ? 'Al terminar la temporada' : 'Al terminar la temporada que viene'} vuelve a {p.clubId ? g.clubs[p.clubId].nombre : 'su club'}.
+      </div>
       {!chk.ok && <div className="notice">{chk.reason}</div>}
       {chk.ok && (
-        <button className="btn primary block" onClick={onDo}>
+        <button className="btn primary block" onClick={() => onDo(anios)}>
           Pedirlo a préstamo
         </button>
       )}
@@ -394,7 +424,7 @@ function MisPrestamos() {
               <div className="name">
                 {p.nombre} {p.apellido}
               </div>
-              <div className="small muted">Llegó de {g.clubs[p.prestamo!.clubId]?.nombre} · vuelve a fin de temporada</div>
+              <div className="small muted">Llegó de {g.clubs[p.prestamo!.clubId]?.nombre} · {hastaTexto(g, p)}</div>
             </div>
           </div>
         ))}
@@ -406,7 +436,7 @@ function MisPrestamos() {
                 {p.nombre} {p.apellido}
               </div>
               <div className="small muted">
-                Cedido a {p.clubId ? g.clubs[p.clubId].nombre : '—'} · jugó {p.temporada.partidos} partidos · cobraste {formatMoney(pagoCesion(p))}
+                Cedido a {p.clubId ? g.clubs[p.clubId].nombre : '—'} · {hastaTexto(g, p)} · jugó {p.temporada.partidos} partidos
               </div>
             </div>
           </div>

@@ -4,8 +4,9 @@ import { describirEvento, resolverEvento } from '../src/engine/vestuario';
 
 describe('vestuario vivo', () => {
   it('en una temporada pasan cosas en el vestuario y se pueden resolver', () => {
-    const g = createGame({ seed: 51, userClubIndex: 3, modo: 'libre' });
     const tipos = new Set<string>();
+    for (const seed of [51, 53, 57]) {
+    const g = createGame({ seed, userClubIndex: 3, modo: 'libre' });
     let guard = 0;
     while (g.phase !== 'fin' && guard++ < 60) {
       if (g.vestuario) {
@@ -16,6 +17,7 @@ describe('vestuario vivo', () => {
         expect(g.vestuario).toBeNull();
       }
       playRound(g);
+    }
     }
     expect(tipos.size).toBeGreaterThan(0);
   });

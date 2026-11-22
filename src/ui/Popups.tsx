@@ -165,6 +165,29 @@ function eventos(g: GameState): Evento[] {
   for (const o of (g.ofertas ?? []).filter((x) => !x.vista)) {
     const p = g.players[o.playerId];
     if (!p) continue;
+    if (o.prestamo) {
+      const club = g.clubs[o.clubId];
+      out.push({
+        key: `oferta-${o.id}`,
+        banda: 'Pedido de préstamo',
+        color: '#0f7c8c',
+        icono: '🔁',
+        titulo: `Piden a ${p.apellido} cedido`,
+        club,
+        texto: (
+          <>
+            {club?.nombre} quiere llevarse a {p.nombre} {p.apellido} ({overall(p)} de media, {p.edad} años) a préstamo{' '}
+            <b>{o.prestamo >= 2 ? 'por dos temporadas' : 'hasta fin de temporada'}</b>. Te pagan <b>{formatMoney(o.monto)}</b>, ellos le pagan el sueldo y allá suma minutos.
+          </>
+        ),
+        opciones: [
+          { texto: 'Aceptar el préstamo', tono: 'si', hacer: () => acceptOffer(g, o.id) },
+          { texto: 'Rechazar', tono: 'no', hacer: () => rejectOffer(g, o.id) },
+          { texto: 'Pensarlo (Mercado > Ofertas)', tono: 'neutro', hacer: () => ((o.vista = true), '') },
+        ],
+      });
+      continue;
+    }
     out.push({
       key: `oferta-${o.id}`,
       banda: o.exterior ? 'Oferta del exterior' : 'Oferta por un jugador',
