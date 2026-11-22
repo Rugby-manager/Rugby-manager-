@@ -1,3 +1,4 @@
+import { ESTILO, arbitroDe } from './arbitros';
 import { logrosPartido, logrosTemporada } from './logros';
 import { chequearRecaidas } from './lesiones';
 import { aplicarAyuda, ponerEnXV, type AyudaInicial } from './ayuda';
@@ -255,7 +256,7 @@ export function startUserMatch(g: GameState): { fixture: Fixture; live: LiveMatc
   const away = g.clubs[f.away];
   const side = home.id === g.userClubId ? 'H' : 'A';
   const live = new LiveMatch(
-    { home, away, homeXV: readyXV(home, g.players).xv, awayXV: readyXV(away, g.players).xv, players: g.players, neutral: false, detailed: true, interactive: side, clima: climaDe(f, g.temporada), clasico: isDerby(home, away) },
+    { home, away, homeXV: readyXV(home, g.players).xv, awayXV: readyXV(away, g.players).xv, players: g.players, neutral: false, detailed: true, interactive: side, clima: climaDe(f, g.temporada), clasico: isDerby(home, away), arbitro: arbitroInput(f, g.temporada) },
     new Rng((g.rng ^ 0x5bd1e995) >>> 0 || 1),
   );
   return { fixture: f, live };
@@ -289,7 +290,7 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
     const res =
       isUser && userResult
         ? userResult
-        : simulateMatch({ home, away, homeXV: hx.xv, awayXV: ax.xv, players: g.players, neutral: false, detailed: isUser, clima: climaDe(f, g.temporada), clasico: isDerby(home, away) }, rng);
+        : simulateMatch({ home, away, homeXV: hx.xv, awayXV: ax.xv, players: g.players, neutral: false, detailed: isUser, clima: climaDe(f, g.temporada), clasico: isDerby(home, away), arbitro: arbitroInput(f, g.temporada) }, rng);
     if ((f.comp === 'SEMI' || f.comp === 'FINAL' || (f.comp === 'INTL' && f.etapa === 3)) && res.ptsH === res.ptsA) {
       res.definicion = res.triesH !== res.triesA
         ? `Empate: pasa ${res.triesH > res.triesA ? home.nombre : away.nombre} por más tries.`
@@ -1066,7 +1067,7 @@ function playFriendly(g: GameState, userResult?: MatchResult): RoundReport {
   const ax = readyXV(away, g.players);
   const res =
     userResult ??
-    simulateMatch({ home, away, homeXV: hx.xv, awayXV: ax.xv, players: g.players, neutral: false, detailed: true, clima: climaDe(f, g.temporada) }, rng);
+    simulateMatch({ home, away, homeXV: hx.xv, awayXV: ax.xv, players: g.players, neutral: false, detailed: true, clima: climaDe(f, g.temporada), arbitro: arbitroInput(f, g.temporada) }, rng);
   f.result = res;
   const me = g.userClubId;
   for (const id of res.jugaron) {
@@ -1107,4 +1108,11 @@ function playFriendly(g: GameState, userResult?: MatchResult): RoundReport {
   }
   g.rng = rng.s;
   return { round: g.round, fixtures: [f], userFixture: f, autoCambios: f.home === me ? hx.cambios : ax.cambios };
+}
+
+/** El árbitro del partido, listo para el simulador. */
+export function arbitroInput(f: Fixture, temporada: number) {
+  const a = arbitroDe(f, temporada);
+  const e = ESTILO[a.estilo];
+  return { nombre: a.nombre, estilo: e.label.toLowerCase(), pen: e.pen, amarilla: e.amarilla };
 }

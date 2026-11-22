@@ -4,6 +4,7 @@ import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa
 import { preseasonPending, skipPreseason } from '../engine/preseason';
 import { hacerTercer, opcionesTercer, tercerPendiente } from '../engine/tercer';
 import { SEVEN_NOMBRE, SEVEN_PREMIO, jugarSeven, plantelSeven, rechazarSeven, sevenPendiente } from '../engine/seven';
+import { ESTILO, arbitroDe } from '../engine/arbitros';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
 import { useState, type ReactNode } from 'react';
 import { roundName } from '../engine/cup';
@@ -175,6 +176,10 @@ export function HomeScreen() {
                 <br />
                 <span title={CLIMA_DESC[climaDe(fx, g.temporada)]}>
                   {CLIMA_ICON[climaDe(fx, g.temporada)]} {CLIMA_LABEL[climaDe(fx, g.temporada)]}
+                </span>
+                <br />
+                <span className="arbitro" title={ESTILO[arbitroDe(fx, g.temporada).estilo].texto}>
+                  🧑‍⚖️ {arbitroDe(fx, g.temporada).nombre.split(' ').slice(-1)[0]} · {ESTILO[arbitroDe(fx, g.temporada).estilo].label}
                 </span>
                 {isDerby(g.clubs[fx.home], g.clubs[fx.away]) && (
                   <>

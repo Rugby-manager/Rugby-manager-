@@ -92,6 +92,8 @@ export interface MatchInput {
   clima?: Clima;
   /** Clásico: más tarjetas y partido más impredecible. */
   clasico?: boolean;
+  /** Árbitro del partido: cuánto cobra (penales) y cuántas tarjetas saca. */
+  arbitro?: { nombre: string; estilo: string; pen: number; amarilla: number };
 }
 
 const CLIMA_KICK: Record<Clima, number> = { sol: 0, nublado: 0, lluvia: -0.06, viento: -0.1, frio: -0.01 };
@@ -153,6 +155,7 @@ export class LiveMatch {
     this.formaciones = { H: formacion(this.H), A: formacion(this.A) };
     this.push(0, 'inicio', null, `¡Arranca el partido! ${input.home.nombre} recibe a ${input.away.nombre}.`);
     if (input.clasico) this.push(0, 'jugada', null, `🔥 ¡Es el clásico! La cancha explota, nadie quiere perder este partido.`);
+    if (input.arbitro) this.push(0, 'jugada', null, `🧑‍⚖️ Arbitra ${input.arbitro.nombre} (${input.arbitro.estilo}).`);
     if (input.clima === 'lluvia') this.push(0, 'jugada', null, '🌧️ Llueve fuerte: la pelota está jabonosa y la cancha pesada.');
     else if (input.clima === 'viento') this.push(0, 'jugada', null, '💨 Sopla un viento bárbaro: los pateadores van a sufrir.');
     else if (input.clima === 'frio') this.push(0, 'jugada', null, '❄️ Hace un frío de locos, se ve el vapor en los scrums.');
@@ -496,7 +499,7 @@ export class LiveMatch {
     const pTry = TUNING.baseTry * Math.exp(diff * TUNING.kTry) * am.t * pm.t * dm.t * lluvia * jt * opp;
     // Un pack descoordinado regala penales.
     const disciplina = clamp(1 + (att.ratings.coord - def.ratings.coord) * 0.01, 0.8, 1.25);
-    const pPen = TUNING.basePen * Math.exp(diff * TUNING.kPen) * am.p * pm.p * dm.p * jp * disciplina;
+    const pPen = TUNING.basePen * Math.exp(diff * TUNING.kPen) * am.p * pm.p * dm.p * jp * disciplina * (this.input.arbitro?.pen ?? 1);
     const pDrop = TUNING.baseDrop * pm.d * (this.input.clima === 'viento' ? 0.5 : 1);
     const r = rng.next();
 
@@ -525,7 +528,7 @@ export class LiveMatch {
     }
 
     // Tarjetas para el que defiende. Los indisciplinados (poca actitud) se hacen echar más.
-    const indis = clamp(actitudMult(def.ratings.act, -0.02), 0.5, 1.6) * (this.input.clasico ? 1.3 : 1) * def.talkCards;
+    const indis = clamp(actitudMult(def.ratings.act, -0.02), 0.5, 1.6) * (this.input.clasico ? 1.3 : 1) * def.talkCards * (this.input.arbitro?.amarilla ?? 1);
     if (rng.chance(TUNING.amarilla * dm.y * indis)) {
       const slots = this.activeSlots(def);
       if (slots.length > 12) {
