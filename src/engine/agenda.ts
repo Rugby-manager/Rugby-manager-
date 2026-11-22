@@ -4,8 +4,8 @@ import { CUP_ETAPA, CUP_ROUNDS } from './cup';
 import { INTL_ETAPA, INTL_NOMBRE, INTL_ROUNDS } from './internacional';
 import { SEVEN_NOMBRE, sevenPendiente } from './seven';
 import { preseasonPending } from './preseason';
-import { deIso, esAnioMundial, fechaAmistoso, fechaRonda, fechaSeven, fechasJulio, fechasMundial, fechasNoviembre } from './calendario';
-import { COMP_SEL, focoDe, paisDe, ventanaActual, ventanaPendiente, type PartidoSel } from './seleccion';
+import { deIso, esAnioMundial, fechaAmistoso, fechaRonda, fechaSeven, fechasJulio, fechasMundial, fechasNoviembre, fechasRC, fechasSeis } from './calendario';
+import { COMP_SEL, RC, SEIS, focoDe, paisDe, tablaTorneo, ventanaActual, ventanaPendiente, type PartidoSel } from './seleccion';
 import type { Fixture, GameState } from './types';
 
 export type TipoEv = 'pre' | 'seven' | 'liga' | 'copa' | 'intl' | 'playoff' | 'sel' | 'mundial' | 'fin';
@@ -96,15 +96,27 @@ export function agenda(g: GameState): Evento[] {
   const fp = paisDe(foco);
   const vs = g.nacional?.ventanas.filter((v) => v.temporada === y) ?? [];
   const julio = vs.find((v) => v.tipo === 'julio');
-  const resto = vs.find((v) => v.tipo !== 'julio');
+  const resto = vs.find((v) => v.tipo === 'noviembre' || v.tipo === 'mundial');
   const mio = !!g.nacional?.paisId;
   const filas = (v: NonNullable<typeof julio>) => {
-    const id = v.foco;
+    const id = v.tipo === 'seis' || v.tipo === 'rc' ? foco : v.foco;
     for (const p of v.partidos.filter((x) => x.home === id || x.away === id)) {
       const rival = paisDe(p.home === id ? p.away : p.home);
       ev.push({ fecha: deIso(p.fecha), tipo: v.tipo === 'mundial' ? 'mundial' : 'sel', titulo: `${paisDe(id).bandera} ${paisDe(id).nombre} vs ${rival.bandera} ${rival.nombre}`, detalle: `${COMP_SEL[p.comp]} · ${p.fase}`, res: resSel(p, id), mio, grande: p.fase === 'Final' });
     }
   };
+  // Seis Naciones y Rugby Championship: los partidos de tu selección (o de Argentina) y cuándo arranca y termina.
+  for (const [tipo, ids, fechas, nombre] of [['seis', SEIS, fechasSeis(y), 'Seis Naciones'], ['rc', RC, fechasRC(y), 'Rugby Championship']] as const) {
+    const v = vs.find((x) => x.tipo === tipo);
+    const juegaFoco = ids.includes(foco);
+    if (v && juegaFoco) filas(v);
+    else if (juegaFoco) fechas.forEach((d, i) => ev.push({ fecha: d, tipo: 'sel', titulo: `${nombre} · fecha ${i + 1}`, detalle: `Juega ${fp.bandera} ${fp.nombre}.`, mio }));
+    const fin = v?.terminada ? tablaTorneo(v)[0].id : null;
+    if (!juegaFoco || !v) {
+      ev.push({ fecha: fechas[0], tipo: 'sel', titulo: `🏆 Arranca el ${nombre}`, detalle: tipo === 'seis' ? 'Inglaterra, Francia, Irlanda, Italia, Escocia y Gales.' : 'Argentina, Nueva Zelanda, Sudáfrica y Australia.' });
+    }
+    ev.push({ fecha: fechas[fechas.length - 1], tipo: 'sel', titulo: `🏆 Última fecha del ${nombre}`, detalle: fin ? `Campeón: ${paisDe(fin).nombre}` : undefined, grande: true });
+  }
   if (julio) filas(julio);
   else fechasJulio(y).forEach((d, i) => ev.push({ fecha: d, tipo: 'sel', titulo: `Ventana de julio · test ${i + 1}`, detalle: `Se para la liga: juegan las selecciones (${fp.bandera} ${fp.nombre}).`, mio }));
   if (esAnioMundial(y)) {

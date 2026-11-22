@@ -31,6 +31,11 @@ export const fechaSeven = (y: number) => mas(primerSabado(y, 2), -7);
 export const fechasJulio = (y: number) => [14, 21, 28].map((d) => mas(fechaRonda(y, RONDA_VENTANA), d));
 /** Ventana de noviembre: 3 sábados y el fin de semana de las finales (Nations Championship). */
 export const fechasNoviembre = (y: number) => [0, 7, 14, 21].map((d) => mas(primerSabado(y, 10), d));
+/** Seis Naciones: 5 fechas entre febrero y marzo, con dos fines de semana libres. */
+export const fechasSeis = (y: number) => [0, 7, 21, 28, 42].map((d) => mas(primerSabado(y, 1), d));
+/** Rugby Championship: después de la final del club. En año de Mundial es más corto (3 fechas). */
+export const fechasRC = (y: number) =>
+  (esAnioMundial(y) ? [7, 14, 21] : [7, 14, 28, 35, 42, 49]).map((d) => mas(fechaRonda(y, 20), d));
 /** Mundial: 3 fechas de grupos, octavos, cuartos, semis y final (2027: 2 de octubre al 13 de noviembre). */
 export const fechasMundial = (y: number) => [0, 7, 14, 21, 28, 35, 42].map((d) => mas(primerSabado(y, 9), d));
 

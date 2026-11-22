@@ -11,7 +11,7 @@ import { makePreseason, nextFriendly, preseasonPending, choosePreseason as choos
 import { generateOffers, nombreOfertante, OFERTA_FECHAS } from './offers';
 const formatPesos = (v: number) => `$${Math.round(v).toLocaleString('es-AR')}`;
 import { checkRecords, climaDe, convocatoria, isDerby, seasonRecords } from './extras';
-import { finDeTemporadaSel, nuevaTemporadaSel, simularVentana, ventanaJulio, ventanaPendiente } from './seleccion';
+import { avanzarHasta, fechaClub, finDeTemporadaSel, inicioTemporadaSel, nuevaTemporadaSel, ventanaJulio } from './seleccion';
 import { RONDA_VENTANA } from './calendario';
 import { Rng, clamp } from './rng';
 import { CLUB_SEEDS, CLUB_SEEDS_C, type ClubSeed } from './names';
@@ -96,6 +96,7 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   scoutYouth(g, rng);
   g.amistosos = !!opts.amistosos;
   if (g.amistosos) makePreseason(g, rng);
+  inicioTemporadaSel(g, rng);
   g.rng = rng.s;
   if (textoAyuda) {
     addNews(g, 'Ayuda para arrancar', textoAyuda);
@@ -269,10 +270,14 @@ export function startUserMatch(g: GameState): { fixture: Fixture; live: LiveMatc
 export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
   if (g.phase === 'fin') throw new Error('La temporada terminó');
   if (g.career?.despedido) throw new Error('Primero elegí un club nuevo');
+  {
+    // Primero se juega lo de las selecciones que cae antes (si quedó algo tuyo sin jugar, se juega solo).
+    const r = new Rng(g.rng);
+    avanzarHasta(g, fechaClub(g), r, true);
+    g.rng = r.s;
+  }
   if (preseasonPending(g)) return playFriendly(g, userResult);
   const rng = new Rng(g.rng);
-  // Si quedó algún partido de tu selección sin jugar, se juega solo.
-  if (ventanaPendiente(g)) simularVentana(g, rng);
   // Si no elegiste sponsor, la directiva firma con el que paga más seguro.
   if (g.sponsorOfertas?.length && g.round >= 2) {
     const nombre = g.sponsorOfertas[0].nombre;
@@ -834,6 +839,7 @@ export function startNextSeason(g: GameState): string[] {
   refreshTransferibles(g, rng);
   nuevaTemporadaSel(g, rng);
   g.temporada++;
+  inicioTemporadaSel(g, rng);
   pagarAyudaTemporada(g);
   g.round = 1;
   g.phase = 'regular';

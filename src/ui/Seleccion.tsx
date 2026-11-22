@@ -7,7 +7,7 @@ import { prestigioTexto } from '../engine/career';
 import { deIso, esAnioMundial, fechaCorta, fechaLarga } from '../engine/calendario';
 import {
   COMP_SEL, MAX_LISTA, PAISES, aceptarSeleccion, completarLista, convocarAuto, faseAlcanzada, focoDe, jugadorSel, jugarSiguiente, nacional, nombrePais,
-  objetivoMundial, paisDe, poolSeleccion, prestigioPedido, proximoSel, rechazarOfertasSel, renunciarSeleccion, simularResto, tablaGrupo, tablaNC, toggleConvocado,
+  objetivoMundial, paisDe, tablaTorneo, poolSeleccion, prestigioPedido, proximoSel, rechazarOfertasSel, renunciarSeleccion, simularResto, tablaGrupo, tablaNC, toggleConvocado,
   ventanaActual, ventanaEnCurso, ventanaPendiente, type PartidoSel, type Ventana,
 } from '../engine/seleccion';
 import type { Ataque, Defensa, JuegoPie, Player, Pos } from '../engine/types';
@@ -93,7 +93,7 @@ export function SeleccionScreen() {
         options={[
           { v: 'partidos', l: 'Partidos' },
           ...(pais ? [{ v: 'lista' as Sec, l: 'Convocados' }] : []),
-          { v: 'torneo', l: esAnioMundial(g.temporada) ? 'Mundial' : 'Tablas' },
+          { v: 'torneo', l: 'Torneos' },
           { v: 'paises', l: 'Países' },
         ]}
       />
@@ -123,13 +123,16 @@ export function SeleccionScreen() {
         </section>
       )}
 
-      {(n.historial.length > 0 || n.mundiales.length > 0) && (
+      {(n.historial.length > 0 || n.mundiales.length > 0 || (n.torneos ?? []).length > 0) && (
         <section className="card stack">
           <h3>Historia</h3>
           {n.mundiales.map((m) => (
             <div key={m.temporada} className="small">
               🏆 <b>Mundial {m.temporada}:</b> {nombrePais(m.campeon)} campeón, {paisDe(m.sub).nombre} subcampeón{m.tuyo ? ` · ${m.tuyo}` : ''}.
             </div>
+          ))}
+          {(n.torneos ?? []).map((x) => (
+            <div key={x.nombre} className="small">🏆 <b>{x.nombre}:</b> {nombrePais(x.campeon)}.</div>
           ))}
           {n.nc.map((x) => (
             <div key={x.temporada} className="small">🏆 <b>Nations Championship {x.temporada}:</b> {nombrePais(x.campeon)}.</div>
@@ -233,7 +236,9 @@ function Partidos({ ultimo, onJugar }: { ultimo: PartidoSel | null; onJugar: (p:
       {v && !pendiente && !v.terminada && (
         <section className="card stack">
           <h3>{v.nombre}</h3>
-          <p className="small">Se juega {v.tipo === 'mundial' ? 'del 2 de octubre a mediados de noviembre' : 'cuando termine la temporada del club'}. Si no dirigís ninguna selección se juega solo al arrancar la temporada que viene.</p>
+          <p className="small">
+            {v.tipo === 'seis' ? 'Se juega en febrero y marzo, a la par del arranque de la liga.' : v.tipo === 'rc' ? 'Se juega en agosto y septiembre, después de la final del club.' : v.tipo === 'mundial' ? 'Se juega del 2 de octubre a mediados de noviembre.' : 'Se juega cuando termina la temporada del club.'} Los partidos se van jugando solos a medida que pasan las fechas.
+          </p>
           <button className="btn small" onClick={() => { simularResto(g); refresh(); void saveNow(); }}>
             Ver cómo termina ⏩
           </button>
@@ -245,11 +250,12 @@ function Partidos({ ultimo, onJugar }: { ultimo: PartidoSel | null; onJugar: (p:
         </section>
       )}
       {vs.map((w) => {
-        const ps = w.partidos.filter((p) => p.home === w.foco || p.away === w.foco);
+        const fid = w.tipo === 'seis' || w.tipo === 'rc' ? foco : w.foco;
+        const ps = w.partidos.filter((p) => p.home === fid || p.away === fid);
         return (
           <section key={w.nombre} className="card stack">
             <h3>{w.nombre}</h3>
-            {ps.map((p) => <Marcador key={p.id} p={p} id={w.foco} />)}
+            {ps.length ? ps.map((p) => <Marcador key={p.id} p={p} id={fid} />) : <p className="small muted">{paisDe(fid).nombre} no juega este torneo.</p>}
             <button className="btn small" onClick={() => setVerTodos(w)}>Ver todos los partidos</button>
           </section>
         );
@@ -390,6 +396,30 @@ function Tabla({ filas, titulo, pasan, foco }: { filas: ReturnType<typeof tablaN
 }
 
 function Torneo() {
+  const { g } = useGame();
+  const n = nacional(g);
+  const foco = focoDe(g);
+  const vs = n.ventanas.filter((v) => v.temporada === g.temporada);
+  const torneos = vs.filter((v) => v.tipo === 'seis' || v.tipo === 'rc');
+  return (
+    <>
+      {torneos.map((v) => (
+        <section key={v.nombre} className="card stack">
+          <h3>🏆 {v.nombre}</h3>
+          <p className="small muted">
+            {v.tipo === 'seis'
+              ? 'Inglaterra, Francia, Irlanda, Italia, Escocia y Gales: todos contra todos en febrero y marzo.'
+              : `Argentina, Nueva Zelanda, Sudáfrica y Australia (el viejo Tres Naciones, con Argentina desde 2012). ${esAnioMundial(g.temporada) ? 'En año de Mundial se juega a una sola rueda.' : 'Ida y vuelta en agosto y septiembre.'}`}
+          </p>
+          <Tabla titulo={v.terminada ? `Campeón: ${nombrePais(tablaTorneo(v)[0].id)}` : 'Posiciones'} filas={tablaTorneo(v)} pasan={1} foco={foco} />
+        </section>
+      ))}
+      <TorneoGrande />
+    </>
+  );
+}
+
+function TorneoGrande() {
   const { g } = useGame();
   const n = nacional(g);
   const foco = focoDe(g);

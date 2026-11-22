@@ -364,7 +364,7 @@ function SeleccionAviso() {
     const rival = p ? paisDe(p.home === n.paisId ? p.away : p.home) : null;
     return (
       <button className="notice block-notice sel-aviso" onClick={() => go('seleccion')}>
-        🌎 <b>{v.nombre}</b>: se para la liga y {paisDe(n.paisId!).nombre} {rival ? `juega contra ${rival.bandera} ${rival.nombre}` : 'tiene partidos'}. Tocá acá para armar la lista y jugar.
+        🌎 <b>{v.nombre}</b>: {v.tipo === 'julio' ? 'se para la liga y ' : ''}{paisDe(n.paisId!).nombre} {rival ? `juega contra ${rival.bandera} ${rival.nombre}` : 'tiene partidos'}. Tocá acá para armar la lista y jugar.
       </button>
     );
   }

@@ -6,7 +6,8 @@ import { ATTR_KEYS, POS_ORDER, bestXV, generatePlayer, overall } from './players
 import { simulateMatch } from './match';
 import { addNews } from './game';
 import { logMoney } from './market';
-import { esAnioMundial, fechasJulio, fechasMundial, fechasNoviembre, iso } from './calendario';
+import { esAnioMundial, fechaAmistoso, fechaRonda, fechasJulio, fechasMundial, fechasNoviembre, fechasRC, fechasSeis, iso } from './calendario';
+import { preseasonPending } from './preseason';
 import type { Club, GameState, Player, Pos, Tactics } from './types';
 
 type Region = 'hisp' | 'angl' | 'fran' | 'ital' | 'paci' | 'japo' | 'geor' | 'ruma' | 'port' | 'asia' | 'afri';
@@ -100,8 +101,8 @@ function jugadorPais(rng: Rng, id: string, pais: Pais, pos: Pos, nivel: number, 
 
 // ---------- Estado ----------
 
-export type CompSel = 'TEST' | 'NC' | 'NCF' | 'RWC';
-export const COMP_SEL: Record<CompSel, string> = { TEST: 'Test match', NC: 'Nations Championship', NCF: 'Nations Championship · Finales', RWC: 'Mundial' };
+export type CompSel = 'TEST' | 'NC' | 'NCF' | 'RWC' | 'SN' | 'RC';
+export const COMP_SEL: Record<CompSel, string> = { TEST: 'Test match', NC: 'Nations Championship', NCF: 'Nations Championship · Finales', RWC: 'Mundial', SN: 'Seis Naciones', RC: 'Rugby Championship' };
 
 export interface PartidoSel {
   id: string;
@@ -125,7 +126,7 @@ export interface PartidoSel {
   mvp?: string;
 }
 
-export type TipoVentana = 'julio' | 'noviembre' | 'mundial';
+export type TipoVentana = 'julio' | 'noviembre' | 'mundial' | 'seis' | 'rc';
 export interface Ventana {
   temporada: number;
   tipo: TipoVentana;
@@ -159,6 +160,8 @@ export interface Nacional {
   historial: { temporada: number; texto: string }[];
   mundiales: { temporada: number; campeon: string; sub: string; tercero?: string; tuyo?: string }[];
   nc: { temporada: number; campeon: string }[];
+  /** Campeones del Seis Naciones y del Rugby Championship. */
+  torneos?: { temporada: number; nombre: string; campeon: string }[];
   nextId: number;
 }
 
@@ -172,6 +175,9 @@ export function nacional(g: GameState): Nacional {
 
 const NC_N = ['ENG', 'FRA', 'IRL', 'ITA', 'SCO', 'WAL'];
 const NC_S = ['NZL', 'AUS', 'RSA', 'ARG', 'FIJ', 'JPN'];
+/** Seis Naciones y Rugby Championship (el viejo Tres Naciones, con Argentina desde 2012). */
+export const SEIS = NC_N;
+export const RC = ['NZL', 'RSA', 'AUS', 'ARG'];
 
 /** El país cuyos partidos se siguen: el tuyo, o Argentina. */
 export const focoDe = (g: GameState) => g.nacional?.paisId ?? 'ARG';
@@ -289,8 +295,10 @@ export function ofertasSeleccion(g: GameState, rng: Rng) {
 
 /** No se puede cambiar de selección en medio de una ventana. */
 export const ventanaEnCurso = (g: GameState) => {
-  const v = ventanaActual(g);
-  return !!v && v.jornada > 0 && !v.terminada;
+  const id = g.nacional?.paisId;
+  return (g.nacional?.ventanas ?? []).some(
+    (v) => v.temporada === g.temporada && v.jornada > 0 && !v.terminada && (!id || v.partidos.some((p) => p.ph == null && (p.home === id || p.away === id))),
+  );
 };
 
 export function aceptarSeleccion(g: GameState, paisId: string): string | null {
@@ -307,12 +315,11 @@ export function aceptarSeleccion(g: GameState, paisId: string): string | null {
   n.convocados = convocarAuto(g);
   n.historial.unshift({ temporada: g.temporada, texto: `Asumiste en ${pais.nombre}${antes ? ` (dejaste ${paisDe(antes).nombre})` : ''}.` });
   // Si la ventana que viene todavía no arrancó, se arma de nuevo con tu selección.
-  const v = ventanaActual(g);
-  if (v && v.jornada === 0 && !v.terminada && v.tipo !== 'mundial' && v.foco !== paisId) {
+  for (const v of n.ventanas.filter((x) => x.temporada === g.temporada && x.jornada === 0 && !x.terminada && (x.tipo === 'julio' || x.tipo === 'noviembre') && x.foco !== paisId)) {
     n.ventanas = n.ventanas.filter((x) => x !== v);
     abrirVentana(g, v.tipo, rng);
   }
-  addNews(g, `🌎 Nuevo DT de ${pais.nombre}`, `${g.manager} es el nuevo entrenador de ${pais.nombre}. Vas a dirigir en las ventanas de julio y noviembre, y en el Mundial.`);
+  addNews(g, `🌎 Nuevo DT de ${pais.nombre}`, `${g.manager} es el nuevo entrenador de ${pais.nombre}. Vas a dirigir en las ventanas de julio y noviembre, en el Mundial${pais.nc && SEIS.includes(pais.id) ? ' y en el Seis Naciones' : RC.includes(pais.id) ? ' y en el Rugby Championship' : ''}.`);
   return null;
 }
 
@@ -333,17 +340,52 @@ export function renunciarSeleccion(g: GameState): string | null {
 
 // ---------- Ventanas ----------
 
-export function ventanaActual(g: GameState): Ventana | undefined {
-  const vs = g.nacional?.ventanas.filter((v) => v.temporada === g.temporada) ?? [];
-  return vs.find((v) => !v.terminada) ?? undefined;
+const juega = (p: PartidoSel, id: string | null | undefined) => !!id && (p.home === id || p.away === id);
+/** Fecha de la próxima jornada sin jugar de un torneo. */
+const fechaProx = (v: Ventana) => v.partidos.find((p) => p.jornada === v.jornada && p.ph == null)?.fecha ?? '9999';
+
+function abiertas(g: GameState): Ventana[] {
+  return (g.nacional?.ventanas ?? []).filter((v) => v.temporada === g.temporada && !v.terminada).sort((a, b) => fechaProx(a).localeCompare(fechaProx(b)));
 }
 
-/** Tu selección tiene partidos sin jugar en la ventana abierta. */
+/** El torneo que sigue: el de tu selección si tenés partidos pendientes, si no el que viene primero. */
+export function ventanaActual(g: GameState): Ventana | undefined {
+  const vs = abiertas(g);
+  const id = g.nacional?.paisId;
+  return (id && vs.find((v) => v.partidos.some((p) => p.ph == null && juega(p, id)))) || vs[0];
+}
+
+/** Próximo partido de tu selección (por fecha). */
+function proximoMio(g: GameState): PartidoSel | undefined {
+  const id = g.nacional?.paisId;
+  if (!id) return undefined;
+  return abiertas(g).flatMap((v) => v.partidos.filter((p) => p.ph == null && juega(p, id))).sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
+}
+
+/** Día del próximo partido del club (amistoso o fecha oficial). */
+export function fechaClub(g: GameState): string {
+  if (preseasonPending(g)) {
+    const pre = g.pretemporada!;
+    const i = pre.elegida == null ? 0 : Math.max(0, pre.partidos.findIndex((f) => !f.result));
+    return iso(fechaAmistoso(g.temporada, i));
+  }
+  return iso(fechaRonda(g.temporada, g.round));
+}
+
+/** Tu selección juega antes que el próximo partido del club (o ya terminó la temporada del club). */
 export function ventanaPendiente(g: GameState): boolean {
-  const n = g.nacional;
-  if (!n?.paisId) return false;
-  const v = ventanaActual(g);
-  return !!v && v.partidos.some((p) => p.ph == null && (p.home === n.paisId || p.away === n.paisId));
+  const p = proximoMio(g);
+  return !!p && (g.phase === 'fin' || p.fecha <= fechaClub(g));
+}
+
+/** Juega todas las jornadas hasta ese día. Si conMios es false, frena antes de un partido de tu selección. */
+export function avanzarHasta(g: GameState, hasta: string, rng: Rng, conMios: boolean) {
+  for (let guard = 0; guard < 200; guard++) {
+    const v = abiertas(g)[0];
+    if (!v || fechaProx(v) > hasta) return;
+    if (!conMios && v.partidos.some((p) => p.jornada === v.jornada && p.ph == null && juega(p, g.nacional?.paisId))) return;
+    jugarJornadaDe(g, v, rng);
+  }
 }
 
 function nuevoId(n: Nacional) {
@@ -367,7 +409,18 @@ export function abrirVentana(g: GameState, tipo: TipoVentana, rng: Rng): Ventana
   let nombre = '';
   let jornadas = 3;
   let grupos: Record<string, string[]> | undefined;
-  if (tipo === 'mundial') {
+  if (tipo === 'seis' || tipo === 'rc') {
+    const ids = tipo === 'seis' ? SEIS : RC;
+    const comp: CompSel = tipo === 'seis' ? 'SN' : 'RC';
+    nombre = tipo === 'seis' ? `Seis Naciones ${y}` : `Rugby Championship ${y}`;
+    const f = tipo === 'seis' ? fechasSeis(y) : fechasRC(y);
+    const rondas = todosContraTodos(ids, rng);
+    jornadas = f.length;
+    for (let j = 0; j < f.length; j++) {
+      const vuelta = j >= rondas.length;
+      for (const [a, b] of rondas[j % rondas.length]) add(f[j], comp, `Fecha ${j + 1}`, j, vuelta ? b : a, vuelta ? a : b);
+    }
+  } else if (tipo === 'mundial') {
     nombre = `Mundial ${y}`;
     jornadas = 7;
     grupos = gruposMundial(y, rng);
@@ -402,6 +455,28 @@ export function abrirVentana(g: GameState, tipo: TipoVentana, rng: Rng): Ventana
   const v: Ventana = { temporada: y, tipo, nombre, partidos, jornada: 0, jornadas, terminada: false, grupos, foco: foco.id };
   n.ventanas.push(v);
   return v;
+}
+
+/** Todos contra todos a una rueda (método del círculo). */
+function todosContraTodos(ids: string[], rng: Rng): [string, string][][] {
+  const t = rng.shuffle([...ids]);
+  const out: [string, string][][] = [];
+  for (let r = 0; r < t.length - 1; r++) {
+    const ronda: [string, string][] = [];
+    for (let i = 0; i < t.length / 2; i++) {
+      const a = t[i];
+      const b = t[t.length - 1 - i];
+      ronda.push(r % 2 ? [b, a] : [a, b]);
+    }
+    out.push(ronda);
+    t.splice(1, 0, t.pop()!);
+  }
+  return out;
+}
+
+/** Tabla de un torneo de todos contra todos (Seis Naciones o Rugby Championship). */
+export function tablaTorneo(v: Ventana) {
+  return tabla(v.tipo === 'seis' ? SEIS : RC, v.partidos);
 }
 
 function gruposMundial(y: number, rng: Rng): Record<string, string[]> {
@@ -537,14 +612,12 @@ function jugarMio(g: GameState, p: PartidoSel, rng: Rng, julio: boolean) {
   } else n.pe++;
 }
 
-/** Juega la jornada que sigue de la ventana: tu partido con tus convocados y el resto rápido. */
-export function jugarJornada(g: GameState, rng: Rng): PartidoSel[] {
+/** Juega una jornada de un torneo: tu partido con tus convocados y el resto rápido. */
+function jugarJornadaDe(g: GameState, v: Ventana, rng: Rng): PartidoSel[] {
   const n = nacional(g);
-  const v = ventanaActual(g);
-  if (!v) return [];
   const ronda = v.partidos.filter((p) => p.jornada === v.jornada && p.ph == null);
   for (const p of ronda) {
-    if (n.paisId && (p.home === n.paisId || p.away === n.paisId)) jugarMio(g, p, rng, v.tipo === 'julio');
+    if (juega(p, n.paisId)) jugarMio(g, p, rng, v.tipo === 'julio');
     else Object.assign(p, rapido(rng, paisDe(p.home), paisDe(p.away), !!p.neutral));
     if (eliminacion(p)) p.ganador = decidir(p);
   }
@@ -554,11 +627,26 @@ export function jugarJornada(g: GameState, rng: Rng): PartidoSel[] {
   return ronda;
 }
 
+/** Juega lo que haya antes y después la jornada del próximo partido de tu selección. */
+export function jugarJornada(g: GameState, rng: Rng): PartidoSel[] {
+  const id = g.nacional?.paisId;
+  for (let guard = 0; guard < 200; guard++) {
+    const v = abiertas(g)[0];
+    if (!v) return [];
+    const mia = v.partidos.some((p) => p.jornada === v.jornada && p.ph == null && juega(p, id));
+    const ronda = jugarJornadaDe(g, v, rng);
+    if (mia || !id) return ronda;
+  }
+  return [];
+}
+
+/** Termina el torneo que sigue (y lo que se juegue antes). */
 export function simularVentana(g: GameState, rng: Rng) {
-  let v = ventanaActual(g);
-  while (v && !v.terminada) {
-    jugarJornada(g, rng);
-    v = ventanaActual(g) === v ? v : undefined;
+  const v = ventanaActual(g);
+  for (let guard = 0; v && !v.terminada && guard < 200; guard++) {
+    const w = abiertas(g)[0];
+    if (!w) break;
+    jugarJornadaDe(g, w, rng);
   }
 }
 
@@ -656,6 +744,22 @@ function cerrarVentana(g: GameState, v: Ventana) {
         logMoney(g, `Premio por salir campeón del mundo con ${paisDe(mio).nombre}`, 20_000_000);
       }
     }
+  } else if (v.tipo === 'seis' || v.tipo === 'rc') {
+    const t = tablaTorneo(v);
+    const campeon = t[0].id;
+    (n.torneos ??= []).unshift({ temporada: v.temporada, nombre: v.nombre, campeon });
+    const mioAca = mio && t.some((r) => r.id === mio);
+    if (mioAca) {
+      const pos = t.findIndex((r) => r.id === mio) + 1;
+      const esperado = [...t].sort((a, b) => paisDe(b.id).fuerza - paisDe(a.id).fuerza).findIndex((r) => r.id === mio) + 1;
+      n.confianza = clamp(n.confianza + (esperado - pos) * 5 + (pos === 1 ? 6 : 0), 0, 100);
+      if (pos === 1) {
+        if (g.career) g.career.prestigio = clamp(g.career.prestigio + 7, 0, 100);
+        n.historial.unshift({ temporada: v.temporada, texto: `Campeón del ${v.nombre} con ${paisDe(mio!).nombre} 🏆` });
+      } else n.historial.unshift({ temporada: v.temporada, texto: `${v.nombre}: ${paisDe(mio!).nombre} terminó ${pos}.º.` });
+    }
+    const arg = t.findIndex((r) => r.id === 'ARG') + 1;
+    addNews(g, `🏆 ${paisDe(campeon).nombre} gana el ${v.nombre}`, `${t.map((r, i) => `${i + 1}.º ${paisDe(r.id).nombre} (${r.pts})`).join(', ')}.${mioAca ? '' : arg ? ` Argentina terminó ${arg}.ª.` : ''}`);
   } else {
     const mios = v.partidos.filter((p) => p.ph != null && (p.home === foco || p.away === foco));
     const texto = mios.map((p) => res(p, foco)).join(', ');
@@ -691,9 +795,9 @@ export function ventanaJulio(g: GameState, rng: Rng, convocatoriaLiga: () => str
   if (n.paisId) completarLista(g);
   abrirVentana(g, 'julio', rng);
   // Argentina convoca a los mejores de la liga (o los elegís vos si sos el DT).
-  const ids = n.paisId === 'ARG' ? n.convocados.filter((id) => g.players[id]) : n.paisId ? [] : convocatoriaLiga();
+  const ids = n.paisId === 'ARG' ? n.convocados.filter((id) => g.players[id]) : convocatoriaLiga();
   const user = g.clubs[g.userClubId];
-  if (!n.paisId) {
+  if (n.paisId !== 'ARG') {
     for (const id of ids) {
       const p = g.players[id];
       p.caps = (p.caps ?? 0) + 3;
@@ -706,30 +810,39 @@ export function ventanaJulio(g: GameState, rng: Rng, convocatoriaLiga: () => str
     user.presupuesto += PREMIO_CONVOCADO * mios.length;
     logMoney(g, 'Compensación por convocados a Argentina', PREMIO_CONVOCADO * mios.length);
   }
+  const v = n.ventanas[n.ventanas.length - 1];
   if (!n.paisId) {
-    simularVentana(g, rng);
-    const v = n.ventanas[n.ventanas.length - 1];
+    avanzarHasta(g, iso(fechasJulio(g.temporada)[2]), rng, true);
     const resumen = v.partidos.filter((p) => p.home === 'ARG' || p.away === 'ARG').map((p) => `${p.home === 'ARG' ? p.ph : p.pa}-${p.home === 'ARG' ? p.pa : p.ph} vs ${paisDe(p.home === 'ARG' ? p.away : p.home).nombre}`).join(', ');
     g.seleccion = { temporada: g.temporada, ids, rival: v.nombre, resultado: resumen };
-    if (mios.length) addNews(g, '🇦🇷 Convocados de tu club', `Argentina se llevó a ${mios.map((id) => g.players[id].apellido).join(', ')} para la ventana de julio. Vuelven cansados pero contentos; la Unión te paga una compensación.`);
   } else {
-    addNews(g, `🌎 Ventana de julio`, `Se para la liga: ${paisDe(n.paisId).nombre} juega ${n.ventanas[n.ventanas.length - 1].nombre}. Armá la lista de 23 y jugá los partidos en Selección.`);
+    g.seleccion = { temporada: g.temporada, ids, rival: 'la ventana de julio', resultado: n.paisId === 'ARG' ? 'los convocaste vos' : 'convocados por la Unión' };
+    addNews(g, `🌎 Ventana de julio`, `Se para la liga: ${paisDe(n.paisId).nombre} juega ${v.nombre}. Armá la lista de 23 y jugá los partidos en Selección.`);
   }
+  if (mios.length && n.paisId !== 'ARG') addNews(g, '🇦🇷 Convocados de tu club', `Argentina se llevó a ${mios.map((id) => g.players[id].apellido).join(', ')} para la ventana de julio. Vuelven cansados pero contentos; la Unión te paga una compensación.`);
 }
 
 /** Cuando termina la temporada del club: llamados de selecciones y la ventana de noviembre o el Mundial. */
 export function finDeTemporadaSel(g: GameState, rng: Rng) {
   ofertasSeleccion(g, rng);
   const n = nacional(g);
-  if (n.ventanas.some((v) => v.temporada === g.temporada && v.tipo !== 'julio')) return;
-  abrirVentana(g, esAnioMundial(g.temporada) ? 'mundial' : 'noviembre', rng);
+  const hay = (t: TipoVentana) => n.ventanas.some((v) => v.temporada === g.temporada && v.tipo === t);
+  if (!hay('rc')) abrirVentana(g, 'rc', rng);
+  const t = esAnioMundial(g.temporada) ? 'mundial' : 'noviembre';
+  if (!hay(t)) abrirVentana(g, t, rng);
+}
+
+/** Al empezar cada temporada: el Seis Naciones de febrero y marzo. */
+export function inicioTemporadaSel(g: GameState, rng: Rng) {
+  const n = nacional(g);
+  if (!n.ventanas.some((v) => v.temporada === g.temporada && v.tipo === 'seis')) abrirVentana(g, 'seis', rng);
 }
 
 /** Al arrancar la temporada nueva: se termina lo que quedó sin jugar y la base envejece. */
 export function nuevaTemporadaSel(g: GameState, rng: Rng) {
   const n = g.nacional;
   if (!n) return;
-  simularVentana(g, rng);
+  avanzarHasta(g, '9999', rng, true);
   n.ventanas = n.ventanas.filter((v) => v.temporada >= g.temporada);
   n.ofertas = [];
   if (n.poolPais) {
