@@ -1,3 +1,4 @@
+import { hastaTexto } from '../engine/loans';
 import { useEffect, useState } from 'react';
 import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
@@ -385,7 +386,7 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
           🩹 Lesionado: <b>{p.lesionTipo ?? 'lesión'}</b>. Le {p.lesion === 1 ? 'falta 1 fecha' : `faltan ${p.lesion} fechas`} para volver.
         </div>
       )}
-      {p.prestamo && <div className="small muted">A préstamo: es de {g.clubs[p.prestamo.clubId]?.nombre} y vuelve a fin de temporada.</div>}
+      {p.prestamo && <div className="small muted">A préstamo: es de {g.clubs[p.prestamo.clubId]?.nombre} y {hastaTexto(g, p)}.</div>}
       <Evolucion g={g} p={p} />
       {p.clubId && <ContractBox g={g} p={p} mine={mine} onChange={onTrain} />}
       {mine && onTrain && <CharlaBox g={g} p={p} onChange={onTrain} />}

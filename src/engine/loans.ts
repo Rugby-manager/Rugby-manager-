@@ -38,8 +38,20 @@ export function toggleTransferible(g: GameState, id: string): string {
 
 // ---------- Préstamos ----------
 
-export const costoPrestamo = (p: Player) => r100k(marketValue(p) * 0.1);
-export const pagoCesion = (p: Player) => r100k(marketValue(p) * 0.05);
+/** Por dos temporadas sale un poco menos que dos veces una. */
+const porAnios = (anios: number) => (anios >= 2 ? 1.8 : 1);
+export const costoPrestamo = (p: Player, anios = 1) => r100k(marketValue(p) * 0.1 * porAnios(anios));
+export const pagoCesion = (p: Player, anios = 1) => r100k(marketValue(p) * 0.05 * porAnios(anios));
+export const hastaTexto = (g: GameState, p: Player) =>
+  (p.prestamo?.hasta ?? p.prestamo?.temporada ?? g.temporada) > g.temporada ? 'vuelve al final de la temporada que viene' : 'vuelve a fin de temporada';
+
+/** Lo ponés (o sacás) de la lista de préstamos: otros clubes te lo piden cedido. */
+export function toggleListaPrestamo(g: GameState, id: string): string {
+  const p = g.players[id];
+  if (p.clubId !== g.userClubId || p.prestamo) throw new Error('No es tuyo.');
+  p.listaPrestamo = !p.listaPrestamo;
+  return p.listaPrestamo ? `${p.apellido} está en la lista de préstamos. Te van a llegar ofertas para llevárselo cedido.` : `${p.apellido} salió de la lista de préstamos.`;
+}
 
 /** Jugadores que los otros clubes prestan: los que no juegan en su XV. */
 export function prestables(g: GameState): Player[] {
@@ -51,9 +63,9 @@ export function prestables(g: GameState): Player[] {
   });
 }
 
-export function canLoanIn(g: GameState, id: string): { ok: boolean; reason?: string; price: number } {
+export function canLoanIn(g: GameState, id: string, anios = 1): { ok: boolean; reason?: string; price: number } {
   const p = g.players[id];
-  const price = costoPrestamo(p);
+  const price = costoPrestamo(p, anios);
   const user = g.clubs[g.userClubId];
   if (!marketOpen(g)) return { ok: false, reason: 'El mercado está cerrado durante los playoffs.', price };
   if (!p.clubId || p.clubId === user.id || p.prestamo) return { ok: false, reason: 'Ese jugador no está disponible a préstamo.', price };
@@ -64,9 +76,9 @@ export function canLoanIn(g: GameState, id: string): { ok: boolean; reason?: str
   return { ok: true, price };
 }
 
-/** Te lo prestan hasta fin de temporada: pagás el préstamo y su sueldo. */
-export function loanIn(g: GameState, id: string): string {
-  const chk = canLoanIn(g, id);
+/** Te lo prestan una o dos temporadas: pagás el préstamo y su sueldo. */
+export function loanIn(g: GameState, id: string, anios = 1): string {
+  const chk = canLoanIn(g, id, anios);
   if (!chk.ok) throw new Error(chk.reason);
   const p = g.players[id];
   const user = g.clubs[g.userClubId];
@@ -75,18 +87,18 @@ export function loanIn(g: GameState, id: string): string {
   from.presupuesto += chk.price;
   user.plantel.push(id);
   user.presupuesto -= chk.price;
-  p.prestamo = { clubId: from.id, temporada: g.temporada };
+  p.prestamo = { clubId: from.id, temporada: g.temporada, hasta: g.temporada + anios - 1 };
   p.clubId = user.id;
   p.transferible = false;
   p.entreno = null;
   assignDorsal(user, g.players, p);
   logMoney(g, `Préstamo de ${p.nombre} ${p.apellido} (${from.corto})`, -chk.price);
-  return `${p.nombre} ${p.apellido} llega a préstamo desde ${from.nombre} hasta fin de temporada.`;
+  return `${p.nombre} ${p.apellido} llega a préstamo desde ${from.nombre} ${anios >= 2 ? 'por dos temporadas' : 'hasta fin de temporada'}.`;
 }
 
-export function canLoanOut(g: GameState, id: string): { ok: boolean; reason?: string; price: number } {
+export function canLoanOut(g: GameState, id: string, anios = 1): { ok: boolean; reason?: string; price: number } {
   const p = g.players[id];
-  const price = pagoCesion(p);
+  const price = pagoCesion(p, anios);
   const user = g.clubs[g.userClubId];
   if (!marketOpen(g)) return { ok: false, reason: 'El mercado está cerrado durante los playoffs.', price };
   if (p.clubId !== user.id) return { ok: false, reason: 'No es de tu club.', price };
@@ -97,12 +109,13 @@ export function canLoanOut(g: GameState, id: string): { ok: boolean; reason?: st
 }
 
 /** Lo cedés hasta fin de temporada: el otro club paga su sueldo y él suma minutos. */
-export function loanOut(g: GameState, id: string, rng: Rng): string {
-  const chk = canLoanOut(g, id);
+export function loanOut(g: GameState, id: string, rng: Rng, anios = 1, destId?: string, monto?: number): string {
+  const chk = canLoanOut(g, id, anios);
   if (!chk.ok) throw new Error(chk.reason);
+  if (monto != null) chk.price = monto;
   const p = g.players[id];
   const user = g.clubs[g.userClubId];
-  const dest = Object.values(g.clubs)
+  const dest = destId ? g.clubs[destId] : Object.values(g.clubs)
     .filter((c) => c.id !== user.id && c.division !== 'X' && c.plantel.length < MAX_SQUAD && c.reputacion <= user.reputacion + 2)
     .map((c) => ({ c, need: countPos(g, c, p.pos) + rng.next() }))
     .sort((a, b) => a.need - b.need)[0]?.c;
@@ -113,12 +126,14 @@ export function loanOut(g: GameState, id: string, rng: Rng): string {
   if (user.capitan === id) user.capitan = null;
   dest.plantel.push(id);
   user.presupuesto += chk.price;
-  p.prestamo = { clubId: user.id, temporada: g.temporada };
+  p.prestamo = { clubId: user.id, temporada: g.temporada, hasta: g.temporada + anios - 1 };
   p.clubId = dest.id;
   p.transferible = false;
+  p.listaPrestamo = false;
+  g.ofertas = (g.ofertas ?? []).filter((o) => o.playerId !== id);
   assignDorsal(dest, g.players, p);
   logMoney(g, `Cesión de ${p.nombre} ${p.apellido} a ${dest.corto}`, chk.price);
-  return `Cediste a ${p.nombre} ${p.apellido} a ${dest.nombre} hasta fin de temporada. Allá va a sumar minutos.`;
+  return `Cediste a ${p.nombre} ${p.apellido} a ${dest.nombre} ${anios >= 2 ? 'por dos temporadas' : 'hasta fin de temporada'}. Allá va a sumar minutos.`;
 }
 
 /** Al terminar la temporada vuelven todos los prestados a su club. Los que jugaron seguido, vuelven mejores. */
@@ -126,6 +141,8 @@ export function returnLoans(g: GameState): string[] {
   const out: string[] = [];
   for (const p of Object.values(g.players)) {
     if (!p.prestamo) continue;
+    // Los préstamos de dos temporadas siguen un año más.
+    if ((p.prestamo.hasta ?? p.prestamo.temporada) > g.temporada) continue;
     const home = g.clubs[p.prestamo.clubId];
     const now = p.clubId ? g.clubs[p.clubId] : null;
     if (now) {
@@ -143,6 +160,8 @@ export function returnLoans(g: GameState): string[] {
     p.clubId = home.id;
     assignDorsal(home, g.players, p);
     if (home.id === g.userClubId) {
+      // Si el contrato se terminaba estando afuera, vuelve con un año más para que puedas decidir.
+      if (p.contrato <= 1) p.contrato = 2;
       // Jugar seguido en otro club lo hace crecer.
       if (p.temporada.partidos >= 6) {
         for (const k of ['velocidad', 'tackle', 'pase', 'resistencia', 'ruck'] as const) p.attrs[k] = Math.min(99, p.attrs[k] + 1);

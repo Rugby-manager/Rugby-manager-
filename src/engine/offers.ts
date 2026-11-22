@@ -2,6 +2,7 @@ import { Rng } from './rng';
 import { assignDorsal, marketValue, overall, completarXV } from './players';
 import { MAX_SQUAD, canSell, logMoney, marketOpen } from './market';
 import type { GameState, Oferta } from './types';
+import { canLoanOut, loanOut, pagoCesion } from './loans';
 
 /** Cuántas fechas dura una oferta antes de que el otro club se canse de esperar. */
 export const OFERTA_FECHAS = 2;
@@ -52,6 +53,29 @@ export function generateOffers(g: GameState, rng: Rng): Oferta[] {
     g.ofertas.push(o);
     nuevas.push(o);
   }
+  // Pedidos de préstamo: sobre todo por los que pusiste en la lista, a veces por pibes que no juegan.
+  {
+    const ya = new Set(g.ofertas.map((o) => o.playerId));
+    const xv = new Set(user.xv);
+    const cand = user.plantel
+      .map((id) => g.players[id])
+      .filter((p) => p && !ya.has(p.id) && !p.prestamo && !p.estrella && p.lesion === 0 && canLoanOut(g, p.id).ok)
+      .filter((p) => p.listaPrestamo || (!xv.has(p.id) && p.edad <= 23));
+    const enLista = cand.filter((p) => p.listaPrestamo);
+    const pool = enLista.length && rng.chance(0.55) ? enLista : rng.chance(0.08) ? cand.filter((p) => !p.listaPrestamo) : [];
+    if (pool.length) {
+      const p = rng.pick(pool);
+      const clubes = Object.values(g.clubs).filter((c) => c.id !== user.id && c.division !== 'X' && c.plantel.length < MAX_SQUAD && c.reputacion <= user.reputacion + 6);
+      if (clubes.length) {
+        const c = rng.weighted(clubes, clubes.map((x) => 1 / (1 + x.plantel.filter((id) => g.players[id].pos === p.pos).length)));
+        const anios = p.edad <= 24 && rng.chance(0.45) ? 2 : 1;
+        const monto = pagoCesion(p, anios);
+        const o: Oferta = { id: `o${g.nextId++}`, playerId: p.id, clubId: c.id, monto, max: monto, fecha: g.round, contra: true, prestamo: anios };
+        g.ofertas.push(o);
+        nuevas.push(o);
+      }
+    }
+  }
   // A las figuras las tientan de Europa: pagan mucho, y si no lo dejás ir se pone mal.
   if (rng.chance(0.12)) {
     const ya = new Set(g.ofertas.map((o) => o.playerId));
@@ -76,6 +100,11 @@ function take(g: GameState, id: string) {
 /** Aceptás: el jugador se va y entra la plata. */
 export function acceptOffer(g: GameState, id: string): string {
   const o = take(g, id);
+  if (o.prestamo) {
+    const r = loanOut(g, o.playerId, new Rng(g.nextId), o.prestamo, o.clubId, o.monto);
+    g.ofertas = (g.ofertas ?? []).filter((x) => x.playerId !== o.playerId);
+    return r;
+  }
   const chk = canSell(g, o.playerId);
   if (!chk.ok) throw new Error(chk.reason);
   const p = g.players[o.playerId];

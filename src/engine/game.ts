@@ -759,7 +759,7 @@ export function startNextSeason(g: GameState): string[] {
       const prom = teamAverage(c, g.players);
       for (const id of [...c.plantel]) {
         const p = g.players[id];
-        if (overall(p) >= 84 && p.edad >= 23 && p.edad <= 31 && rng.chance(prom > 82 ? 0.4 : 0.15)) {
+        if (!p.prestamo && overall(p) >= 84 && p.edad >= 23 && p.edad <= 31 && rng.chance(prom > 82 ? 0.4 : 0.15)) {
           c.plantel = c.plantel.filter((x) => x !== id);
           c.xv = c.xv.map((x) => (x === id ? null : x));
           europa.push(`${p.nombre} ${p.apellido} (${c.corto})`);
@@ -772,6 +772,8 @@ export function startNextSeason(g: GameState): string[] {
     const libres: Player[] = [];
     for (const id of [...c.plantel]) {
       const p = g.players[id];
+      // Mientras está a préstamo, su contrato queda congelado.
+      if (p.prestamo) continue;
       p.contrato = (p.contrato ?? 1) - 1;
       if (p.contrato > 0) continue;
       // La estrella de la ayuda inicial renueva sola: se va solo si la vendés vos.

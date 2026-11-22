@@ -613,3 +613,4 @@ table.std.noche .badge { min-width: 1.55em; font-size: 0.98rem; }
 .pop-luego { margin-top: 10px; background: none; border: 0; color: var(--muted); text-decoration: underline; font-size: 0.85rem; cursor: pointer; padding: 4px 8px; }
 @keyframes popin { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes popfade { from { opacity: 0; } to { opacity: 1; } }
+.btn .sub { display: block; font-family: var(--font-body); font-size: 0.75rem; letter-spacing: 0; text-transform: none; opacity: 0.85; margin-top: 2px; }
