@@ -397,6 +397,8 @@ export interface GameState {
   records?: Partial<Record<string, RecordEntry>>;
   /** Última lista de la Selección. */
   seleccion?: Convocatoria;
+  /** Tu trabajo como DT de una selección, las ventanas y los Mundiales. */
+  nacional?: import('./seleccion').Nacional;
   /** Ofertas de otros clubes por tus jugadores. */
   ofertas?: Oferta[];
   /** Si hay pretemporada con amistosos al empezar cada temporada. */

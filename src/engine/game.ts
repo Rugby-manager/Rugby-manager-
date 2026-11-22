@@ -10,7 +10,9 @@ import { refreshTransferibles, returnLoans } from './loans';
 import { makePreseason, nextFriendly, preseasonPending, choosePreseason as choosePre } from './preseason';
 import { generateOffers, nombreOfertante, OFERTA_FECHAS } from './offers';
 const formatPesos = (v: number) => `$${Math.round(v).toLocaleString('es-AR')}`;
-import { callUp, checkRecords, climaDe, isDerby, PREMIO_SELECCION, SELECCION, seasonRecords } from './extras';
+import { checkRecords, climaDe, convocatoria, isDerby, seasonRecords } from './extras';
+import { finDeTemporadaSel, nuevaTemporadaSel, simularVentana, ventanaJulio, ventanaPendiente } from './seleccion';
+import { RONDA_VENTANA } from './calendario';
 import { Rng, clamp } from './rng';
 import { CLUB_SEEDS, CLUB_SEEDS_C, type ClubSeed } from './names';
 import { LiveMatch, simulateMatch } from './match';
@@ -269,6 +271,8 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
   if (g.career?.despedido) throw new Error('Primero elegí un club nuevo');
   if (preseasonPending(g)) return playFriendly(g, userResult);
   const rng = new Rng(g.rng);
+  // Si quedó algún partido de tu selección sin jugar, se juega solo.
+  if (ventanaPendiente(g)) simularVentana(g, rng);
   // Si no elegiste sponsor, la directiva firma con el que paga más seguro.
   if (g.sponsorOfertas?.length && g.round >= 2) {
     const nombre = g.sponsorOfertas[0].nombre;
@@ -317,16 +321,8 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
   }
   trainAll(g, rng);
   if (Number.isInteger(g.round) && g.round % 3 === 0) refreshTransferibles(g, rng);
-  // Ventana de la Selección a mitad de temporada.
-  if (g.round === 9 && g.seleccion?.temporada !== g.temporada) {
-    const sel = callUp(g, rng);
-    if (sel.mios.length) {
-      const pago = PREMIO_SELECCION * sel.mios.length;
-      user.presupuesto += pago;
-      logMoney(g, `Compensación por convocados a ${SELECCION}`, pago);
-    }
-    addNews(g, `Test de ${SELECCION}`, sel.texto);
-  }
+  // Ventana de julio: se para la liga y juegan las selecciones.
+  if (Math.floor(g.round) === RONDA_VENTANA && !g.fixtures.some((f) => f.round > g.round && f.round < RONDA_VENTANA + 1)) ventanaJulio(g, rng, () => convocatoria(g));
   for (const o of generateOffers(g, rng)) {
     const p = g.players[o.playerId];
     addNews(g, o.exterior ? '🌍 ¡Lo quieren de Europa!' : '💰 Oferta por un jugador', `${nombreOfertante(g, o)} ofrece ${formatPesos(o.monto)} por ${p.nombre} ${p.apellido}. Tenés ${OFERTA_FECHAS} fechas para responder (en Mercado > Ofertas).`);
@@ -697,6 +693,7 @@ function closeSeason(g: GameState, rng: Rng) {
   const premios = premiosTemporada(g);
   if (premios.length) addNews(g, '🏆 Premios de la temporada', premios.map((x) => `${x.premio}: ${x.nombre} (${g.clubs[x.clubId]?.corto ?? ''})`).join('. ') + '.');
   closeCareerSeason(g, rec, rng);
+  finDeTemporadaSel(g, rng);
   addNews(
     g,
     `¡${g.clubs[campeon].nombre} campeón!`,
@@ -833,6 +830,7 @@ export function startNextSeason(g: GameState): string[] {
   g.sponsorOfertas = sponsorOffers(user.reputacion, rng, user);
   refreshFreeAgents(g, rng);
   refreshTransferibles(g, rng);
+  nuevaTemporadaSel(g, rng);
   g.temporada++;
   pagarAyudaTemporada(g);
   g.round = 1;

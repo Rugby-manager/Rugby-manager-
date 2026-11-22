@@ -335,8 +335,8 @@ function Seleccion() {
         <h3>{SELECCION.charAt(0).toUpperCase() + SELECCION.slice(1)}</h3>
         <p className="small muted" style={{ margin: 0 }}>
           {s?.temporada === g.temporada
-            ? `Convocados de esta temporada. En el test de mitad de año ${s.resultado} contra ${s.rival}.`
-            : 'Así sería la lista si convocaran hoy. La convocatoria es en la fecha 9: los citados vuelven cansados pero con la moral alta, y tu club cobra una compensación por cada uno.'}
+            ? `Convocados de Argentina esta temporada. ${s.rival}: ${s.resultado}.`
+            : 'Así sería la lista si convocaran hoy. La convocatoria es para la ventana de julio (después de la fecha 16): los citados vuelven cansados pero con la moral alta, y tu club cobra una compensación por cada uno. Si dirigís a Argentina, la lista la armás vos en Selección.'}
         </p>
       </section>
       <section className="card">

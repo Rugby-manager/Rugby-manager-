@@ -9,7 +9,7 @@ import { ESTILO, arbitroDe } from '../engine/arbitros';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
 import { useState, type ReactNode } from 'react';
 import { roundName } from '../engine/cup';
-import { IcoLibro, IcoPelota, IcoPesas, IcoCaja, IcoCamisetas, IcoContrato, IcoCopa, IcoDiario, IcoEntrada, IcoEstadio, IcoFormacion, IcoMarcador, IcoRival, IcoSilbato, IcoTabla, IcoTactica } from './icons';
+import { IcoLibro, IcoPelota, IcoPesas, IcoCaja, IcoCamisetas, IcoContrato, IcoCopa, IcoDiario, IcoEntrada, IcoEstadio, IcoFormacion, IcoMarcador, IcoRival, IcoSilbato, IcoTabla, IcoTactica, IcoCalendario, IcoBandera } from './icons';
 import { useGame } from './App';
 import { FichaDT, PopupEventos } from './Popups';
 import { choosePreseason, COMP_NAME, DIV_NAME, matchWinner, playRound, promoSeries, standings, startNextSeason, startUserMatch, userFixture, type RoundReport } from '../engine/game';
@@ -20,6 +20,9 @@ import { LiveMatchScreen, MatchLive } from './MatchLive';
 import { makeObjective, prestigioTexto, switchClub } from '../engine/career';
 import type { Club, Fixture, GameState, Player } from '../engine/types';
 import { estadoHinchada, humor, precioCaro } from '../engine/hinchada';
+import { nombrePais, paisDe, proximoSel, ventanaActual, ventanaPendiente } from '../engine/seleccion';
+import { hoy } from '../engine/agenda';
+import { fechaLarga, fechaRonda } from '../engine/calendario';
 
 export function HomeScreen() {
   const { g, refresh, saveNow, go, toast } = useGame();
@@ -71,6 +74,11 @@ export function HomeScreen() {
   const last = [...g.fixtures].reverse().find((f) => f.result && (f.home === club.id || f.away === club.id));
 
   const play = async (rapido = false) => {
+    if (ventanaPendiente(g)) {
+      toast('Primero jugá los partidos de tu selección');
+      go('seleccion');
+      return;
+    }
     setQuick(rapido);
     if (!rapido) {
       const m = startUserMatch(g);
@@ -153,6 +161,7 @@ export function HomeScreen() {
           ⚠ La caja está en rojo. Tocá acá para ver los números.
         </button>
       )}
+      <SeleccionAviso />
       {pre && <PreseasonCard />}
       {!pre && conferenciaPendiente(g) && <PressConference />}
       {g.vestuario && <VestuarioCard />}
@@ -162,8 +171,8 @@ export function HomeScreen() {
         </button>
       ))}
       <div className="hub-date">
-        <span>{pre ? `Pretemporada ${g.temporada}` : seasonDate(g.temporada, g.round)}</span>
-        <span className="pill">{phase}</span>
+        <button className="hub-datebtn" onClick={() => go('calendario')} title="Ver el calendario">{fechaLarga(hoy(g))}</button>
+        <span className="pill">{ventanaPendiente(g) ? 'Ventana internacional' : phase}</span>
       </div>
 
       <section className="hub-center">
@@ -197,7 +206,7 @@ export function HomeScreen() {
             <TeamBlock g={g} id={fx.away} />
           </div>
         ) : (
-          <p style={{ textAlign: 'center', opacity: 0.85 }}>Tu equipo no juega esta fecha. Se juegan los playoffs y los repechajes.</p>
+          <p style={{ textAlign: 'center', opacity: 0.85 }}>{Number.isInteger(g.round) ? 'Tu equipo no juega esta fecha. Se juegan los playoffs y los repechajes.' : 'Tu equipo no juega esta ronda de copa (es a mitad de semana).'}</p>
         )}
         {car && (
           <>
@@ -246,6 +255,7 @@ export function HomeScreen() {
           items={[
             { l: 'Resultados', ico: <IcoMarcador size={36} />, on: () => go('fixture') },
             { l: 'Clasificación', ico: <IcoTabla size={36} />, on: () => go('tabla') },
+            { l: 'Calendario', ico: <IcoCalendario size={36} />, on: () => go('calendario') },
             { l: 'Noticias', ico: <IcoDiario size={36} />, on: () => document.getElementById('noticias')?.scrollIntoView({ behavior: 'smooth' }) },
             { l: 'Enciclopedia', ico: <IcoLibro size={36} />, on: () => go('enciclo') },
           ]}
@@ -259,6 +269,7 @@ export function HomeScreen() {
             { l: 'Tácticas', ico: <IcoTactica size={36} />, on: () => go('equipo', 'tactica') },
             { l: 'Entrenamiento', ico: <IcoPesas size={36} />, on: () => go('plantel', 'entreno') },
             { l: 'Ver rival', ico: <IcoRival size={36} />, on: () => setRivalOpen(true), off: !rival },
+            { l: g.nacional?.paisId ? `Selección (${paisDe(g.nacional.paisId).nombre})` : 'Selección', ico: <IcoBandera size={36} />, on: () => go('seleccion') },
             { l: 'Mi carrera', ico: <IcoCopa size={36} />, on: () => setCareerOpen(true) },
           ]}
         />
@@ -308,12 +319,63 @@ export function HomeScreen() {
 
 /** Fecha de cada jornada: la temporada arranca el primer sábado de marzo. */
 export function seasonDate(year: number, round: number) {
-  const d = new Date(year, 2, 1);
-  while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
-  // Las fechas de copa se juegan el miércoles.
-  d.setDate(d.getDate() + (Math.floor(Math.min(round, 20)) - 1) * 7 + (Number.isInteger(round) ? 0 : 4));
-  const s = d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return fechaLarga(fechaRonda(year, round));
+}
+
+/** En el fin de temporada: ofertas de selecciones y la ventana de noviembre o el Mundial. */
+function SeleccionFin() {
+  const { g, go } = useGame();
+  const v = ventanaActual(g);
+  const n = g.nacional;
+  return (
+    <>
+      {n?.ofertas.length ? (
+        <button className="notice block-notice sel-aviso" onClick={() => go('seleccion')}>
+          🌎 Te quieren como DT: {n.ofertas.map((o) => nombrePais(o.paisId)).join(', ')}. Tocá acá para ver.
+        </button>
+      ) : null}
+      {v && !v.terminada && (
+        <section className="ayuda-aviso">
+          <div className="aa-hd">🌎 {v.nombre}</div>
+          <p>
+            {n?.paisId
+              ? `Ahora te toca con ${paisDe(n.paisId).nombre}. Armá la lista de 23 y jugá los partidos antes de arrancar la temporada que viene.`
+              : v.tipo === 'mundial'
+                ? 'Terminó la temporada del club y arranca el Mundial en Australia. Mirá cómo le va a Argentina.'
+                : 'Terminó la temporada del club: ahora juegan las selecciones.'}
+          </p>
+          <button className="btn small primary" onClick={() => go('seleccion')}>
+            Ir a Selección
+          </button>
+        </section>
+      )}
+    </>
+  );
+}
+
+/** Avisos de la selección: ventana para jugar u ofertas de federaciones. */
+function SeleccionAviso() {
+  const { g, go } = useGame();
+  const n = g.nacional;
+  if (!n) return null;
+  if (ventanaPendiente(g)) {
+    const v = ventanaActual(g)!;
+    const p = proximoSel(g);
+    const rival = p ? paisDe(p.home === n.paisId ? p.away : p.home) : null;
+    return (
+      <button className="notice block-notice sel-aviso" onClick={() => go('seleccion')}>
+        🌎 <b>{v.nombre}</b>: se para la liga y {paisDe(n.paisId!).nombre} {rival ? `juega contra ${rival.bandera} ${rival.nombre}` : 'tiene partidos'}. Tocá acá para armar la lista y jugar.
+      </button>
+    );
+  }
+  if (n.ofertas.length) {
+    return (
+      <button className="notice block-notice sel-aviso" onClick={() => go('seleccion')}>
+        🌎 Te quieren como DT: {n.ofertas.map((o) => nombrePais(o.paisId)).join(', ')}. Tocá acá para ver.
+      </button>
+    );
+  }
+  return null;
 }
 
 function Block({ tone, title, info, items }: { tone: string; title: string; info: string; items: { l: string; ico?: ReactNode; on?: () => void; soon?: string; off?: boolean }[] }) {
@@ -483,6 +545,7 @@ function SeasonEnd() {
           <span className="small" style={{ opacity: 0.8 }}>Le ganó la final a {n(rec.subcampeonA)}</span>
         </div>
       </div>
+      <SeleccionFin />
       {rec.cobros && rec.cobros.length > 0 && (
         <section className="ayuda-aviso">
           <div className="aa-hd">💰 ¡Cobraste por la temporada!</div>
