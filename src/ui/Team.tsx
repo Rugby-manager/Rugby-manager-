@@ -90,21 +90,19 @@ export function TeamScreen() {
     refresh();
   };
 
+  const mejorXV = () => {
+    club.xv = bestXV(club, g.players);
+    setSel(null);
+    refresh();
+    toast('El ayudante armó el mejor XV disponible');
+  };
+
   return (
     <>
-      <div className="row">
-        <h2 style={{ flex: 1 }}>El XV</h2>
-        <button
-          className="btn small"
-          onClick={() => {
-            club.xv = bestXV(club, g.players);
-            refresh();
-            toast('El ayudante armó el mejor XV disponible');
-          }}
-        >
-          Mejor XV automático
-        </button>
-      </div>
+      <h2>El XV</h2>
+      <button className="btn block mejorxv" onClick={mejorXV}>
+        🧠 Que el ayudante ponga el mejor XV
+      </button>
       <p className="small muted" style={{ margin: 0 }}>
         Tocá un jugador y después otro titular para que cambien de puesto, o un suplente de la lista de abajo para que entre. Las estrellas (de 1 a 5) muestran cuánto rinde cada uno en ese puesto, y la barrita es su energía.
       </p>
@@ -166,6 +164,9 @@ export function TeamScreen() {
           );
         })}
       </div>
+      <button className="btn block mejorxv" onClick={mejorXV}>
+        🧠 Que el ayudante ponga el mejor XV
+      </button>
       <section className="card" style={{ padding: '0 10px 8px' }}>
         <h3>Banco y resto del plantel</h3>
         <table className="sq">

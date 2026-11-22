@@ -553,3 +553,5 @@ table.std.noche .badge { min-width: 1.55em; font-size: 0.98rem; }
 .ayuda-aviso { background: linear-gradient(#fff3a8, #ffcc1a); border: 2px solid #000; box-shadow: 3px 3px 0 #0006; color: #111; padding: 8px 10px; display: grid; gap: 6px; margin-bottom: 12px; }
 .ayuda-aviso .aa-hd { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.04em; text-transform: uppercase; }
 .ayuda-aviso p { margin: 0; font-size: 0.88rem; font-weight: 600; }
+
+.mejorxv { background: linear-gradient(#fff3a8, #ffcc1a) !important; color: #111 !important; border: 2px solid #000 !important; font-size: 1.15rem !important; padding: 10px !important; box-shadow: 0 3px 0 #8a6a00 !important; }
