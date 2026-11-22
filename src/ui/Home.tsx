@@ -2,6 +2,7 @@ import { ofertasVigentes } from '../engine/offers';
 import { describirEvento, resolverEvento } from '../engine/vestuario';
 import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { preseasonPending, skipPreseason } from '../engine/preseason';
+import { hacerTercer, opcionesTercer, tercerPendiente } from '../engine/tercer';
 import { SEVEN_NOMBRE, SEVEN_PREMIO, jugarSeven, plantelSeven, rechazarSeven, sevenPendiente } from '../engine/seven';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
 import { useState, type ReactNode } from 'react';
@@ -125,6 +126,7 @@ export function HomeScreen() {
     <>
       {aviso}
       <SevenCard />
+      <TercerTiempo />
       {g.sponsorOfertas.length > 0 && (
         <button className="notice block-notice" onClick={() => go('club', 'sponsor')}>
           📝 Tenés {g.sponsorOfertas.length} ofertas de sponsors para esta temporada. Tocá acá para elegir una.
@@ -958,6 +960,36 @@ function SevenCard() {
       <p className="small">
         {st.premio > 0 ? `Cobraste ${formatMoney(st.premio)}. ` : ''}Los 10 que fueron subieron velocidad y resistencia.
       </p>
+    </section>
+  );
+}
+
+function TercerTiempo() {
+  const { g, refresh, toast } = useGame();
+  const f = tercerPendiente(g);
+  if (!f) return null;
+  const me = g.userClubId;
+  const rival = g.clubs[f.home === me ? f.away : f.home];
+  const r = f.result!;
+  return (
+    <section className="tercer">
+      <div className="tt-hd">🍖 Tercer tiempo</div>
+      <p className="small" style={{ margin: 0 }}>
+        Terminó {g.clubs[f.home].corto} {r.ptsH}-{r.ptsA} {g.clubs[f.away].corto}. {f.home === me ? `Vino ${rival.nombre} a tu club.` : `Jugaste en la cancha de ${rival.nombre}.`} ¿Cómo sigue la noche?
+      </p>
+      {opcionesTercer(g, f).map((o) => (
+        <button
+          key={o.id}
+          className="btn block tt-op"
+          onClick={() => {
+            toast(hacerTercer(g, o.id));
+            refresh();
+          }}
+        >
+          <span>{o.texto}</span>
+          <small>{o.efecto}</small>
+        </button>
+      ))}
     </section>
   );
 }

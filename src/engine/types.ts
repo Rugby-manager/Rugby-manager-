@@ -398,6 +398,8 @@ export interface GameState {
   /** Si hay pretemporada con amistosos al empezar cada temporada. */
   amistosos?: boolean;
   pretemporada?: Pretemporada;
+  /** Último tercer tiempo resuelto. */
+  tercerTiempo?: { fixtureId: string };
   /** Logros del DT. */
   logros?: { id: string; temporada: number; round: number }[];
   /** Números del DT en partidos oficiales. */
