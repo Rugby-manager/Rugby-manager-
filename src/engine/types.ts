@@ -403,7 +403,7 @@ export interface GameState {
   /** Último tercer tiempo resuelto. */
   tercerTiempo?: { fixtureId: string };
   /** Logros del DT. */
-  logros?: { id: string; temporada: number; round: number }[];
+  logros?: { id: string; temporada: number; round: number; nuevo?: boolean }[];
   /** Números del DT en partidos oficiales. */
   dt?: { partidos: number; ganados: number; racha: number; mejorRacha: number };
   /** Leyendas de los clubes que dirigiste. */
@@ -441,4 +441,6 @@ export interface Oferta {
   contra: boolean;
   /** Club de afuera (Europa): no está en la liga. */
   exterior?: string;
+  /** Ya la viste en la ventana emergente. */
+  vista?: boolean;
 }

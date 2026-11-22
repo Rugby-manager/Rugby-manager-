@@ -39,7 +39,7 @@ function dar(g: GameState, id: string, nuevos: Logro[]) {
   if (g.logros?.some((l) => l.id === id)) return;
   const l = LOGROS.find((x) => x.id === id);
   if (!l) return;
-  g.logros = [...(g.logros ?? []), { id, temporada: g.temporada, round: g.round }];
+  g.logros = [...(g.logros ?? []), { id, temporada: g.temporada, round: g.round, nuevo: true }];
   nuevos.push(l);
 }
 

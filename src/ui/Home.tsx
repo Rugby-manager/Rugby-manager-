@@ -11,6 +11,7 @@ import { useState, type ReactNode } from 'react';
 import { roundName } from '../engine/cup';
 import { IcoLibro, IcoPelota, IcoPesas, IcoCaja, IcoCamisetas, IcoContrato, IcoCopa, IcoDiario, IcoEntrada, IcoEstadio, IcoFormacion, IcoMarcador, IcoRival, IcoSilbato, IcoTabla, IcoTactica } from './icons';
 import { useGame } from './App';
+import { FichaDT, PopupEventos } from './Popups';
 import { choosePreseason, COMP_NAME, DIV_NAME, matchWinner, playRound, promoSeries, standings, startNextSeason, startUserMatch, userFixture, type RoundReport } from '../engine/game';
 import { bestXV, overall, posText, readyXV, slotRating } from '../engine/players';
 import { ClubJersey, Ovr, Sheet, formatMoney } from './common';
@@ -119,6 +120,7 @@ export function HomeScreen() {
   if (pre && pre.elegida === null)
     return (
       <>
+        <FichaDT />
         {aviso}
         <PreseasonPicker />
       </>
@@ -126,6 +128,8 @@ export function HomeScreen() {
 
   return (
     <>
+      <FichaDT />
+      <PopupEventos />
       {aviso}
       <SevenCard />
       <TercerTiempo />
