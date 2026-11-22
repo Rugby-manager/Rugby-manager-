@@ -469,6 +469,18 @@ function SeasonEnd() {
           <span className="small" style={{ opacity: 0.8 }}>Le ganó la final a {n(rec.subcampeonA)}</span>
         </div>
       </div>
+      {rec.cobros && rec.cobros.length > 0 && (
+        <section className="ayuda-aviso">
+          <div className="aa-hd">💰 ¡Cobraste por la temporada!</div>
+          {rec.cobros.map((x) => (
+            <div key={x.texto} className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <span>{x.texto}</span>
+              <b className="num">{formatMoney(x.monto)}</b>
+            </div>
+          ))}
+          <small>La plata ya está en la caja. Aparte, al arrancar la temporada nueva la federación te da la ayuda de siempre.</small>
+        </section>
+      )}
       {g.premios?.[0]?.temporada === rec.temporada && (
         <div className="card stack">
           <h3>🏆 Premios de la temporada</h3>

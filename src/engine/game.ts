@@ -556,12 +556,14 @@ function pagarPremiosTemporada(g: GameState, rec: SeasonRecord) {
   if (sx?.tipo === 'titulo' && sx.monto && titulo) {
     user.presupuesto += sx.monto;
     logMoney(g, `Premio de ${user.sponsor!.nombre} por el título`, sx.monto);
+    (rec.cobros ??= []).push({ texto: `Premio del sponsor ${user.sponsor!.nombre}`, monto: sx.monto });
     addNews(g, 'Premio del sponsor', `${user.sponsor!.nombre} cumplió: pagó ${millones(sx.monto)} extra por la gran temporada.`);
   }
   for (const [id, p] of pagos) {
     g.clubs[id].presupuesto += p.monto;
     if (id === g.userClubId) {
       logMoney(g, `Federación: ${p.motivo}`, p.monto);
+      (rec.cobros ??= []).unshift({ texto: `Federación: ${p.motivo}`, monto: p.monto });
       addNews(g, '\u{1F4B0} ¡Premio cobrado!', `La federación pagó ${millones(p.monto)} de ${p.motivo}. La plata ya está en la caja.`);
     }
   }

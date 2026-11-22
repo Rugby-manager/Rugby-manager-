@@ -298,6 +298,8 @@ export interface StandingRow {
 
 export interface SeasonRecord {
   temporada: number;
+  /** Lo que cobraste por la temporada: premio de la federación y del sponsor. */
+  cobros?: { texto: string; monto: number }[];
   campeonA: string;
   /** Campeón de la Copa Cruz del Sur (texto, porque los extranjeros no quedan guardados). */
   campeonIntl?: string;

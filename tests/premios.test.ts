@@ -49,3 +49,23 @@ describe('premios, ayuda de la federación y sponsors con regalos', () => {
     expect(c.presupuesto).toBe(plata + ofs[i].fijo);
   });
 });
+
+describe('premio por título o ascenso, en todas las categorías', () => {
+  it('si salís campeón o ascendés, la federación siempre te paga', () => {
+    let vistos = 0;
+    for (const idx of [0, 2, 10, 12, 14, 20, 21, 23]) {
+      for (const seed of [31, 32, 33]) {
+        const g = createGame({ seed, userClubIndex: idx });
+        while (g.phase !== 'fin') playRound(g);
+        const rec = g.history[g.history.length - 1];
+        const u = g.userClubId;
+        const gano = [rec.campeonA, rec.campeonB, rec.campeonC].includes(u) || rec.asciende.includes(u) || !!rec.ascC?.includes(u);
+        if (!gano) continue;
+        vistos++;
+        expect(g.caja.some((m) => m.concepto.startsWith('Federación') && m.monto >= PREMIOS_LIGA.ascensoRepechaje)).toBe(true);
+        expect(rec.cobros?.[0]?.monto).toBeGreaterThanOrEqual(PREMIOS_LIGA.ascensoRepechaje);
+      }
+    }
+    expect(vistos).toBeGreaterThan(0);
+  });
+});
