@@ -1,3 +1,4 @@
+import { logrosPartido, logrosTemporada } from './logros';
 import { chequearRecaidas } from './lesiones';
 import { aplicarAyuda, ponerEnXV, type AyudaInicial } from './ayuda';
 import { eventosVestuario } from './vestuario';
@@ -297,6 +298,7 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
     f.result = res;
     applyMatchEffects(g, f, rng);
     for (const n of checkRecords(g, f)) addNews(g, '¡Récord!', n);
+    if (isUser) for (const l of logrosPartido(g, f)) addNews(g, `🏅 Logro: ${l.titulo}`, `${l.icono} ${l.desc}`);
     if (isUser) afterUserMatch(g, f, rng);
     if (isUser) for (const t of hinchadaTrasPartido(g, f, matchWinner(f))) addNews(g, '📣 Hinchada', t);
     // La recaudación es para el local (en la promoción y los playoffs, un poco más).
@@ -689,6 +691,7 @@ function closeSeason(g: GameState, rng: Rng) {
   g.history.push(rec);
   pagarPremiosTemporada(g, rec);
   seasonRecords(g);
+  for (const l of logrosTemporada(g, rec)) addNews(g, `🏅 Logro: ${l.titulo}`, `${l.icono} ${l.desc}`);
   const premios = premiosTemporada(g);
   if (premios.length) addNews(g, '🏆 Premios de la temporada', premios.map((x) => `${x.premio}: ${x.nombre} (${g.clubs[x.clubId]?.corto ?? ''})`).join('. ') + '.');
   closeCareerSeason(g, rec, rng);

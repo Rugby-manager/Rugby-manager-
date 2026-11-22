@@ -7,10 +7,11 @@ import { capacidad } from '../engine/club';
 import { overall, posText } from '../engine/players';
 import { ClubJersey, Ovr, Seg, Sheet } from './common';
 import { PlayerSheet } from './Squad';
+import { FAMA_PARTIDOS, FAMA_TRIES, LOGROS } from '../engine/logros';
 import type { Club, GameState } from '../engine/types';
 import { RECORD_LABEL, SELECCION, convocatoria, rivalOf, type RecordKey } from '../engine/extras';
 
-type Sec = 'campeones' | 'clubes' | 'jugadores' | 'records' | 'seleccion' | 'premios';
+type Sec = 'campeones' | 'clubes' | 'jugadores' | 'records' | 'seleccion' | 'premios' | 'logros' | 'fama';
 
 export function EncycloScreen() {
   const [sec, setSec] = useState<Sec>('campeones');
@@ -37,12 +38,23 @@ export function EncycloScreen() {
           { v: 'seleccion', l: 'Selección' },
         ]}
       />
+      <Seg
+        label="Tuyo"
+        value={sec}
+        onChange={setSec}
+        options={[
+          { v: 'logros', l: 'Logros' },
+          { v: 'fama', l: 'Salón de la Fama' },
+        ]}
+      />
       {sec === 'campeones' && <Campeones />}
       {sec === 'clubes' && <Clubes />}
       {sec === 'jugadores' && <Jugadores />}
       {sec === 'records' && <Records />}
       {sec === 'seleccion' && <Seleccion />}
       {sec === 'premios' && <Premios />}
+      {sec === 'logros' && <Logros />}
+      {sec === 'fama' && <SalonFama />}
     </>
   );
 }
@@ -347,5 +359,68 @@ function Seleccion() {
       </section>
       {open && <PlayerSheet g={g} p={g.players[open]} onClose={() => setOpen(null)} />}
     </>
+  );
+}
+
+function Logros() {
+  const { g } = useGame();
+  const tengo = new Map((g.logros ?? []).map((l) => [l.id, l]));
+  const dt = g.dt;
+  return (
+    <section className="card stack">
+      <h3>Logros del DT</h3>
+      <p className="small muted" style={{ margin: 0 }}>
+        {tengo.size} de {LOGROS.length} conseguidos
+        {dt ? ` · ${dt.partidos} partidos dirigidos, ${dt.ganados} ganados, mejor racha ${dt.mejorRacha}` : ''}.
+      </p>
+      <div className="logros">
+        {LOGROS.map((l) => {
+          const t = tengo.get(l.id);
+          return (
+            <div key={l.id} className={`logro ${t ? 'si' : 'no'}`}>
+              <span className="lg-ic">{t ? l.icono : '🔒'}</span>
+              <span className="lg-tx">
+                <b>{l.titulo}</b>
+                <small>{t ? `Temporada ${t.temporada}` : l.desc}</small>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SalonFama() {
+  const { g } = useGame();
+  const [open, setOpen] = useState<string | null>(null);
+  const lista = [...(g.salonFama ?? [])].sort((a, b) => b.partidos + b.tries * 2 - (a.partidos + a.tries * 2));
+  return (
+    <section className="card stack">
+      <h3>Salón de la Fama</h3>
+      <p className="small muted" style={{ margin: 0 }}>
+        Entran los jugadores que con un club tuyo llegan a {FAMA_PARTIDOS} partidos o {FAMA_TRIES} tries. Se actualiza al terminar cada temporada.
+      </p>
+      {!lista.length && <p className="muted">Todavía no hay leyendas. ¡Dales tiempo!</p>}
+      <div className="list">
+        {lista.map((x) => (
+          <button key={x.playerId + x.clubId} className="li fama" onClick={() => g.players[x.playerId] && setOpen(x.playerId)}>
+            <ClubJersey club={g.clubs[x.clubId]} size={30} />
+            <div className="grow">
+              <div className="name">⭐ {x.nombre}</div>
+              <div className="small muted">
+                {x.puesto} · {g.clubs[x.clubId]?.nombre} · {x.temporadas} {x.temporadas === 1 ? 'temporada' : 'temporadas'}
+              </div>
+            </div>
+            <span className="small num" style={{ textAlign: 'right' }}>
+              {x.partidos} PJ
+              <br />
+              {x.tries} tries
+            </span>
+          </button>
+        ))}
+      </div>
+      {open && <PlayerSheet g={g} p={g.players[open]} onClose={() => setOpen(null)} />}
+    </section>
   );
 }

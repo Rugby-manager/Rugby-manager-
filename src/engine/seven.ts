@@ -1,5 +1,6 @@
 import { Rng, clamp } from './rng';
 import { logMoney } from './market';
+import { logrosSueltos } from './logros';
 import { isAvailable } from './players';
 import type { Club, GameState, Player } from './types';
 
@@ -108,5 +109,6 @@ export function jugarSeven(g: GameState): SevenEstado {
   if (campeon && user.hinchada !== undefined) user.hinchada = Math.min(100, user.hinchada + 4);
   g.rng = rng.s;
   g.seven = { temporada: g.temporada, jugado: true, partidos, campeon, premio, jugadores: jugadores.map((p) => p.id) };
+  logrosSueltos(g);
   return g.seven;
 }

@@ -60,6 +60,8 @@ export interface Player {
   prestamo?: { clubId: string; temporada: number };
   /** Qué lesión tiene (si está lesionado). */
   lesionTipo?: string;
+  /** Lo que lleva jugado con su club actual (para el Salón de la Fama). */
+  conClub?: { clubId: string; partidos: number; tries: number; temporadas: number };
   /** Fecha de la última charla individual con el DT. */
   ultimaCharla?: number;
   /** Volvió apurado de una lesión: puede recaer en los próximos partidos. */
@@ -396,6 +398,12 @@ export interface GameState {
   /** Si hay pretemporada con amistosos al empezar cada temporada. */
   amistosos?: boolean;
   pretemporada?: Pretemporada;
+  /** Logros del DT. */
+  logros?: { id: string; temporada: number; round: number }[];
+  /** Números del DT en partidos oficiales. */
+  dt?: { partidos: number; ganados: number; racha: number; mejorRacha: number };
+  /** Leyendas de los clubes que dirigiste. */
+  salonFama?: { playerId: string; clubId: string; nombre: string; puesto: string; partidos: number; tries: number; temporadas: number; desde: number }[];
   /** Seven de verano de esta temporada (jugado o rechazado). */
   seven?: import('./seven').SevenEstado;
 }
