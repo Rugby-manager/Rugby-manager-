@@ -737,7 +737,7 @@ export function startNextSeason(g: GameState): string[] {
       p.ovrInicio = overall(p);
       p.attrsInicio = { ...p.attrs };
       p.moral = clamp(Math.round((p.moral + 62) / 2), 30, 90);
-      const retireP = p.edad >= 36 ? 0.85 : p.edad >= 34 ? 0.45 : p.edad >= 32 ? 0.15 : 0;
+      const retireP = p.estrella && p.edad < 37 ? 0 : p.edad >= 36 ? 0.85 : p.edad >= 34 ? 0.45 : p.edad >= 32 ? 0.15 : 0;
       if (rng.chance(retireP)) retirados.push(p);
     }
     for (const p of retirados) {
@@ -765,6 +765,11 @@ export function startNextSeason(g: GameState): string[] {
       const p = g.players[id];
       p.contrato = (p.contrato ?? 1) - 1;
       if (p.contrato > 0) continue;
+      // La estrella de la ayuda inicial renueva sola: se va solo si la vendés vos.
+      if (p.estrella) {
+        p.contrato = 4;
+        continue;
+      }
       if (c.id === user.id && count(p.pos) > MIN_BY_POS[p.pos]) {
         libres.push(p);
         c.plantel = c.plantel.filter((x) => x !== id);

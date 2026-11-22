@@ -28,7 +28,7 @@ export function generateOffers(g: GameState, rng: Rng): Oferta[] {
   const cuantas = rng.chance(hayTransf ? 0.7 : 0.45) ? (rng.chance(0.3) ? 2 : 1) : 0;
   for (let k = 0; k < cuantas; k++) {
     const ya = new Set(g.ofertas.map((o) => o.playerId));
-    const cand = user.plantel.map((id) => g.players[id]).filter((p) => p && !ya.has(p.id) && p.lesion === 0 && !p.prestamo);
+    const cand = user.plantel.map((id) => g.players[id]).filter((p) => p && !ya.has(p.id) && p.lesion === 0 && !p.prestamo && !p.estrella);
     if (!cand.length) break;
     // Los buenos, los que andan en racha y los que pusiste transferibles llaman la atención.
     const p = rng.weighted(cand, cand.map((x) => (Math.max(1, overall(x) - 58) ** 2 + x.temporada.tries * 6 + (x.edad <= 23 ? 20 : 0)) * (x.transferible ? 5 : 1)));
@@ -55,7 +55,7 @@ export function generateOffers(g: GameState, rng: Rng): Oferta[] {
   // A las figuras las tientan de Europa: pagan mucho, y si no lo dejás ir se pone mal.
   if (rng.chance(0.12)) {
     const ya = new Set(g.ofertas.map((o) => o.playerId));
-    const figuras = user.plantel.map((id) => g.players[id]).filter((p) => p && !ya.has(p.id) && !p.prestamo && overall(p) >= 80 && p.edad >= 22 && p.edad <= 31);
+    const figuras = user.plantel.map((id) => g.players[id]).filter((p) => p && !ya.has(p.id) && !p.prestamo && !p.estrella && overall(p) >= 80 && p.edad >= 22 && p.edad <= 31);
     if (figuras.length) {
       const p = rng.weighted(figuras, figuras.map((x) => (overall(x) - 78) ** 2));
       const monto = redondo(marketValue(p) * (1.15 + rng.next() * 0.35));

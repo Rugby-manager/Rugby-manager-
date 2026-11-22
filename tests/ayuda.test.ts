@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, playRound } from '../src/engine/game';
+import { createGame, playRound, startNextSeason } from '../src/engine/game';
 import { AYUDAS } from '../src/engine/ayuda';
 import { overall } from '../src/engine/players';
+import { switchClub } from '../src/engine/career';
 
 describe('ayuda inicial', () => {
   const base = createGame({ seed: 71, userClubIndex: 4 });
@@ -56,5 +57,22 @@ describe('ayuda inicial', () => {
       for (let i = 0; i < 3; i++) playRound(g);
       expect(g.round).toBeGreaterThan(3);
     }
+  });
+  it('la estrella se queda toda la carrera salvo que la vendas', () => {
+    const g = createGame({ seed: 91, modo: 'carrera', userClubIndex: 25, ayuda: 'estrella' });
+    const id = club(g).plantel[club(g).plantel.length - 1];
+    g.players[id].contrato = 1;
+    for (let i = 0; i < 80 && g.phase !== 'fin'; i++) {
+      if (g.career?.despedido) break;
+      playRound(g);
+      expect((g.ofertas ?? []).some((o) => o.playerId === id)).toBe(false);
+    }
+    if (g.phase === 'fin') startNextSeason(g);
+    expect(g.players[id]?.clubId).toBe(g.userClubId);
+    expect(g.players[id].contrato).toBeGreaterThan(0);
+    const otro = Object.values(g.clubs).find((c) => c.id !== g.userClubId && c.division === 'B')!;
+    switchClub(g, otro.id);
+    expect(otro.plantel).toContain(id);
+    expect(otro.xv).toContain(id);
   });
 });
