@@ -59,7 +59,7 @@ export function StartScreen({ onOpen }: { onOpen: (g: GameState, id: string) => 
                   const div = s.division ?? seed?.division;
                   return (
                     <div key={s.id} className="savecard" style={{ borderLeftColor: seed?.colores[0] ?? '#ffcc1a' }}>
-                      <div className="sc-jersey">{seed && <Jersey colors={seed.colores} patron={seed.patron} size={46} />}</div>
+                      <div className="sc-jersey">{seed && <Jersey colors={seed.colores} color3={seed.color3} patron={seed.patron} size={46} />}</div>
                       <div className="sc-main">
                         <b>{s.clubNombre}</b>
                         <div className="sc-chips">
@@ -183,7 +183,7 @@ function NewGame({ onCancel, onOpen }: { onCancel: () => void; onOpen: (g: GameS
               const c = CLUB_SEEDS[i];
               return (
                 <button key={c.corto} aria-pressed={club === i} onClick={() => setClub(i)}>
-                  <Jersey colors={c.colores} patron={c.patron} size={44} />
+                  <Jersey colors={c.colores} color3={c.color3} patron={c.patron} size={44} />
                   <b>{c.nombre}</b>
                   <span className="small muted">{c.ciudad}</span>
                 </button>
@@ -200,7 +200,7 @@ function NewGame({ onCancel, onOpen }: { onCancel: () => void; onOpen: (g: GameS
               {CLUB_SEEDS.map((c, i) =>
                 c.division !== d ? null : (
                   <button key={c.corto} aria-pressed={club === i} onClick={() => setClub(i)}>
-                    <Jersey colors={c.colores} patron={c.patron} size={44} />
+                    <Jersey colors={c.colores} color3={c.color3} patron={c.patron} size={44} />
                     <b>{c.nombre}</b>
                     <span className="small muted">{c.ciudad}</span>
                   </button>

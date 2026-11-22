@@ -28,7 +28,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -1048,6 +1048,12 @@ export function migrate(g: GameState): GameState {
       if (s) Object.assign(c, { nombre: s.nombre, corto: s.corto, ciudad: s.ciudad, colores: s.colores, patron: s.patron });
     }
     g.version = 20;
+  }
+  if (g.version < 21) {
+    // Luca: Parque Luro rojo, negro y blanco.
+    const s = CLUB_SEEDS_C.find((x) => x.codigo === 'TAL')!;
+    for (const c of Object.values(g.clubs)) if ((c.codigo ?? c.corto) === 'TAL') Object.assign(c, { colores: s.colores, color3: s.color3, patron: s.patron });
+    g.version = 21;
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;

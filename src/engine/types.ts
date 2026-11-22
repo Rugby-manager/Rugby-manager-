@@ -133,6 +133,8 @@ export interface Club {
   ciudad: string;
   apodo: string;
   colores: [string, string];
+  /** Tercer color (los aros alternan el segundo y este). */
+  color3?: string;
   patron: Patron;
   reputacion: number;
   division: DivId;

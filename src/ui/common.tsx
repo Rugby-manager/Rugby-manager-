@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { cloud, cloudStatus, onCloudStatus } from '../store/cloud';
 import type { Club, Patron } from '../engine/types';
 
-export function Jersey({ colors, patron, number, size = 40, title }: { colors: [string, string]; patron: Patron; number?: number | string; size?: number; title?: string }) {
+export function Jersey({ colors, color3, patron, number, size = 40, title }: { colors: [string, string]; color3?: string; patron: Patron; number?: number | string; size?: number; title?: string }) {
   const [a, b] = colors;
-  const id = `j${a.slice(1)}${b.slice(1)}${patron}`;
+  const id = `j${a.slice(1)}${b.slice(1)}${color3?.slice(1) ?? ''}${patron}`;
   const body = 'M14 6 L24 3 Q32 9 40 3 L50 6 L62 18 L54 28 L50 24 L50 60 L14 60 L14 24 L10 28 L2 18 Z';
   const dark = isDark(a);
   return (
@@ -16,7 +16,7 @@ export function Jersey({ colors, patron, number, size = 40, title }: { colors: [
       </defs>
       <path d={body} fill={a} />
       <g clipPath={`url(#${id})`}>
-        {patron === 'aros' && [14, 26, 38, 50].map((y) => <rect key={y} x="0" y={y} width="64" height="6" fill={b} />)}
+        {patron === 'aros' && [14, 26, 38, 50].map((y, i) => <rect key={y} x="0" y={y} width="64" height="6" fill={color3 && i % 2 ? color3 : b} />)}
         {patron === 'rayas' && [16, 28, 40].map((x) => <rect key={x} x={x} y="0" width="6" height="64" fill={b} />)}
         {patron === 'banda' && <path d="M0 40 L64 8 L64 22 L0 54 Z" fill={b} />}
         {patron === 'mitades' && <rect x="32" y="0" width="32" height="64" fill={b} />}
@@ -41,7 +41,7 @@ export function Jersey({ colors, patron, number, size = 40, title }: { colors: [
 }
 
 export function ClubJersey({ club, size = 40, number }: { club: Club; size?: number; number?: number | string }) {
-  return <Jersey colors={club.colores} patron={club.patron} size={size} number={number} title={club.nombre} />;
+  return <Jersey colors={club.colores} color3={club.color3} patron={club.patron} size={size} number={number} title={club.nombre} />;
 }
 
 function isDark(hex: string) {

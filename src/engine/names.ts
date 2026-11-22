@@ -6,6 +6,7 @@ export interface ClubSeed {
   ciudad: string;
   apodo: string;
   colores: [string, string];
+  color3?: string;
   patron: Patron;
   division: DivId;
   /** Código interno fijo (los clásicos lo usan aunque el club cambie de nombre). */
@@ -40,7 +41,7 @@ export const CLUB_SEEDS: ClubSeed[] = [
 export const CLUB_SEEDS_C: ClubSeed[] = [
   { nombre: 'Mar Chiquita Rugby Club', corto: 'MCH', codigo: 'TOT', ciudad: 'Mar Chiquita', apodo: 'Los Totoraleros', colores: ['#2e7d32', '#f2c230'], patron: 'aros', division: 'C' },
   { nombre: 'Club Atlético Los Pinares', corto: 'PIN', codigo: 'VIZ', ciudad: 'Los Pinares', apodo: 'Las Vizcachas', colores: ['#6d4c41', '#ffffff'], patron: 'cuartos', division: 'C' },
-  { nombre: 'Parque Luro Club', corto: 'PLU', codigo: 'TAL', ciudad: 'Parque Luro', apodo: 'Los del Tala', colores: ['#1565c0', '#ffffff'], patron: 'aros', division: 'C' },
+  { nombre: 'Parque Luro Club', corto: 'PLU', codigo: 'TAL', ciudad: 'Parque Luro', apodo: 'Los del Tala', colores: ['#c62828', '#151515'], color3: '#ffffff', patron: 'aros', division: 'C' },
   { nombre: 'Pacheco Club', corto: 'PAC', codigo: 'CRE', ciudad: 'Pacheco', apodo: 'Los Camineros', colores: ['#b71c1c', '#f0e6d2'], patron: 'cuartos', division: 'C' },
   { nombre: 'Carupá RC', corto: 'CRP', codigo: 'CAÑ', ciudad: 'Carupá', apodo: 'Los de la Cañada', colores: ['#00838f', '#151515'], patron: 'cuartos', division: 'C' },
   { nombre: 'Santa Celina', corto: 'SCE', codigo: 'BAÑ', ciudad: 'Santa Celina', apodo: 'Los Celinenses', colores: ['#2e7d32', '#6d3b1a'], patron: 'aros', division: 'C' },
