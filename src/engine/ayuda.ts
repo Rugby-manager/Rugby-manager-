@@ -12,7 +12,7 @@ export const AYUDAS: { id: AyudaInicial; icono: string; titulo: string; texto: s
   { id: 'plata', icono: '💰', titulo: 'Ayuda financiera', texto: 'Un mecenas pone plata en la caja: de 40 a 90 millones según la categoría del club.' },
   { id: 'estrella', icono: '⭐', titulo: 'Un jugador estrella', texto: 'Llega una súper estrella (más de 85 de media, 26 años o menos) al puesto donde más flojo está tu XV, con contrato por 4 años.' },
   { id: 'estadio', icono: '🏟️', titulo: 'Súper estadio', texto: 'Tribunas más grandes, gimnasio y cancha de entrenamiento mejorados y quincho nuevo.' },
-  { id: 'staff', icono: '🧑‍🏫', titulo: 'Cuerpo técnico de lujo', texto: 'Todos los empleados de 4 estrellas: ayudante, kinesiólogo, médico, nutricionista y ojeador.' },
+  { id: 'staff', icono: '🧑‍🏫', titulo: 'Cuerpo técnico de lujo', texto: 'Todos los empleados de 4 estrellas: ayudante, kinesiólogo, médico, nutricionista, ojeador y entrenador de juveniles.' },
   { id: 'cantera', icono: '🌱', titulo: 'Camada de juveniles', texto: 'Suben 3 pibes de 17 años con muchísimo futuro. Hoy juegan poco, en dos o tres temporadas son figuras.' },
   { id: 'paciencia', icono: '🤝', titulo: 'Respaldo de la comisión', texto: 'La comisión directiva te banca a muerte: arrancás con la confianza al 100% y más prestigio.', soloCarrera: true },
 ];
@@ -73,7 +73,7 @@ export function aplicarAyuda(g: GameState, ayuda: AyudaInicial, rng: Rng): strin
       return 'El club estrena estadio: tribunas nuevas, gimnasio y cancha de entrenamiento mejorados y quincho.';
     }
     case 'staff': {
-      const ks: StaffKey[] = ['ayudante', 'kinesiologo', 'medico', 'nutricionista', 'ojeador'];
+      const ks: StaffKey[] = ['ayudante', 'kinesiologo', 'medico', 'nutricionista', 'ojeador', 'juveniles'];
       for (const k of ks) {
         const n = randomName(rng);
         c.staffPersonas = { ...(c.staffPersonas ?? {}), [k]: { nombre: `${n.nombre} ${n.apellido}`, estrellas: 4 } };

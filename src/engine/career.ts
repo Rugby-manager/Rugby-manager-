@@ -5,6 +5,7 @@ import { Rng, clamp } from './rng';
 import { sponsorOffers } from './club';
 import { DIV_NAME, addNews, divisionClubs, matchWinner, standings } from './game';
 import type { Club, DivId, Fixture, GameState, SeasonRecord } from './types';
+import { ajusteObjetivo, cierreDirectiva, directivaDe, factorConfianza } from './elecciones';
 
 export type ObjetivoTipo = 'campeon' | 'playoffs' | 'mitad' | 'salvarse' | 'ascenso' | 'promocion' | 'tranquila';
 
@@ -62,7 +63,8 @@ function repRank(g: GameState, club: Club) {
 }
 
 export function makeObjective(g: GameState, club: Club): Objetivo {
-  const r = repRank(g, club);
+  // La comisión exitista pide más; la paciente, menos.
+  const r = clamp(repRank(g, club) + ajusteObjetivo(g, club.id), 1, 10);
   if (club.division === 'A') {
     if (r <= 2) return { tipo: 'campeon', puesto: 1, texto: 'Salir campeón de Primera A' };
     if (r <= 5) return { tipo: 'playoffs', puesto: 4, texto: 'Meterse en los playoffs (los 4 primeros)' };
@@ -102,6 +104,7 @@ const isCareer = (g: GameState) => g.modo === 'carrera' && !!g.career;
 export function afterUserMatch(g: GameState, f: Fixture, rng: Rng) {
   if (!g.career) return;
   const c = g.career;
+  const antes = c.confianza;
   const me = g.userClubId;
   const rival = g.clubs[f.home === me ? f.away : f.home];
   const diff = rival.reputacion - g.clubs[me].reputacion; // >0: el rival es más grande
@@ -121,8 +124,11 @@ export function afterUserMatch(g: GameState, f: Fixture, rng: Rng) {
       else if (pos <= c.objetivo.puesto) c.confianza += 1;
     }
   }
+  // Una comisión exitista se mueve más con cada resultado; una paciente, menos.
+  c.confianza = antes + (c.confianza - antes) * factorConfianza(g);
   c.confianza = clamp(Math.round(c.confianza), 0, 100);
-  if (isCareer(g) && !c.despedido && c.confianza <= 8 && g.round <= 16) {
+  const limite = g.directiva?.clubId === me && g.directiva.estilo === 'paciente' ? 4 : 8;
+  if (isCareer(g) && !c.despedido && c.confianza <= limite && g.round <= 16) {
     fire(g, rng, 'La comisión directiva perdió la paciencia con los malos resultados y decidió echarte.');
   }
 }
@@ -216,11 +222,14 @@ export function closeCareerSeason(g: GameState, rec: SeasonRecord, rng: Rng) {
   c.prestigio = clamp(c.prestigio + dp, 0, 100);
   c.confianza = clamp(c.confianza + (cumplido ? 20 : -25), 0, 100);
   c.historial.push({ temporada: g.temporada, clubId: me, division: rec.posicionUsuario.division, puesto, objetivo: o.texto, cumplido, logro });
+  // Lo que pedía de más la comisión, y las elecciones si tocan este año.
+  const dir = cierreDirectiva(g, cumplido, rng);
+  for (const t of dir.texto) addNews(g, '🗳 Comisión directiva', t);
 
-  if (g.modo === 'carrera' && !cumplido && (c.confianza < 35 || desciende)) {
+  if (g.modo === 'carrera' && ((!cumplido && (c.confianza < 35 || desciende)) || dir.echar)) {
     c.despedido = true;
     c.historial[c.historial.length - 1].despedido = true;
-    c.veredicto = `No cumpliste el objetivo (${o.texto.toLowerCase()}). La comisión directiva decidió no renovarte.`;
+    c.veredicto = dir.echar ?? `No cumpliste el objetivo (${o.texto.toLowerCase()}). La comisión directiva decidió no renovarte.`;
     c.ofertas = makeOffers(g, rng, { fired: true });
     addNews(g, 'No te renuevan', `${club.nombre} no sigue con ${g.manager}. ${c.veredicto}`);
   } else {
@@ -264,6 +273,7 @@ export function switchClub(g: GameState, clubId: string) {
   c.ofertas = [];
   c.veredicto = undefined;
   c.confianza = 55;
+  directivaDe(g);
   c.objetivo = makeObjective(g, g.clubs[clubId]);
   const nuevo = g.clubs[clubId];
   if (!nuevo.sponsor) {
@@ -280,6 +290,8 @@ export function startCareerSeason(g: GameState) {
   const c = g.career;
   c.ofertas = [];
   c.veredicto = undefined;
+  const d = directivaDe(g);
+  d.cajaInicio = g.clubs[g.userClubId].presupuesto;
   c.objetivo = makeObjective(g, g.clubs[g.userClubId]);
   c.confianza = clamp(Math.max(c.confianza, 45), 0, 100);
   addNews(g, 'La directiva te marca el objetivo', `Para esta temporada en ${DIV_NAME[g.clubs[g.userClubId].division]}: ${c.objetivo.texto.toLowerCase()}.`);

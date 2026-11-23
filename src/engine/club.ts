@@ -3,6 +3,7 @@ import { Rng, clamp } from './rng';
 import { overall, wageFor } from './players';
 import { logMoney } from './market';
 import { APELLIDOS, NOMBRES } from './names';
+import { costoCantera } from './m19';
 import type { Club, Fixture, GameState, InstKey, Instalaciones, Player, SponsorDeal, SponsorExtra, Staff, StaffKey } from './types';
 
 // ---------- Instalaciones ----------
@@ -98,8 +99,9 @@ export const STAFF: Record<StaffKey, StaffInfo> = {
   medico: { nombre: 'Médico', efecto: 'Menos lesiones en los partidos y en los entrenamientos, y las lesiones son más cortas.' },
   ayudante: { nombre: 'Ayudante de campo', efecto: 'Estudia al rival: el equipo juega un poco mejor y en el entretiempo te da consejos.' },
   ojeador: { nombre: 'Ojeador de juveniles', efecto: 'Recorre los clubes del interior buscando pibes. Cuanto mejor, más juveniles encuentra cada temporada y con más futuro.' },
+  juveniles: { nombre: 'Entrenador de juveniles', efecto: 'Dirige la M19: los pibes mejoran más rápido, la M19 gana más partidos y de Infantiles suben chicos mejores.' },
 };
-export const STAFF_ORDER: StaffKey[] = ['nutricionista', 'kinesiologo', 'medico', 'ayudante', 'ojeador'];
+export const STAFF_ORDER: StaffKey[] = ['nutricionista', 'kinesiologo', 'medico', 'ayudante', 'ojeador', 'juveniles'];
 /** Sueldo por fecha según las estrellas (1 a 5). */
 export const SUELDO_ESTRELLAS = [0, 50_000, 90_000, 150_000, 230_000, 380_000];
 // Los niveles viejos (bueno, muy bueno, excelente) equivalen a 2, 4 y 5 estrellas.
@@ -177,7 +179,7 @@ export function despedirStaff(g: GameState, k: StaffKey): string {
 
 export function staffInicial(rep: number): Staff {
   const n = rep >= 72 ? 2 : rep >= 62 ? 1 : 0;
-  return { nutricionista: n, kinesiologo: n, medico: rep >= 58 ? Math.max(1, n) : 0, ayudante: n, ojeador: rep >= 66 ? 1 : 0 };
+  return { nutricionista: n, kinesiologo: n, medico: rep >= 58 ? Math.max(1, n) : 0, ayudante: n, ojeador: rep >= 66 ? 1 : 0, juveniles: rep >= 70 ? 1 : 0 };
 }
 
 
@@ -241,9 +243,11 @@ export function asistencia(g: GameState, home: Club, away: Club, playoff: boolea
 export function gastosFecha(g: GameState, c: Club) {
   const sueldos = c.plantel.reduce((s, id) => s + (g.players[id]?.sueldo ?? 0), 0);
   // Si el sponsor paga los sueldos de los empleados, al club no le cuestan nada.
-  const empleados = c.sponsor?.extra?.tipo === 'sueldos' ? 0 : STAFF_ORDER.reduce((s, k) => s + staffSueldo(staffEstrellas(c, k), c), 0);
+  // Un ídolo del club que vuelve como empleado cobra un 30% menos.
+  const empleados = c.sponsor?.extra?.tipo === 'sueldos' ? 0 : STAFF_ORDER.reduce((s, k) => s + Math.round(staffSueldo(staffEstrellas(c, k), c) * (c.staffPersonas?.[k]?.idolo ? 0.7 : 1)), 0);
   const mant = Math.round(INST_ORDER.reduce((s, k) => s + INST[k].mant * c.inst[k], 0) * costoDiv(c));
-  return { sueldos, empleados, mant, total: sueldos + empleados + mant };
+  const cantera = c.id === g.userClubId ? costoCantera(g) : 0;
+  return { sueldos, empleados, mant, cantera, total: sueldos + empleados + mant + cantera };
 }
 
 /** Ingresos fijos por fecha (sin las entradas). */
@@ -264,6 +268,7 @@ export function weeklyFinances(g: GameState, userFixture: Fixture | undefined, r
   logMoney(g, 'Sueldos del plantel', -gas.sueldos);
   if (gas.empleados) logMoney(g, 'Sueldos de empleados', -gas.empleados);
   if (gas.mant) logMoney(g, 'Mantenimiento de instalaciones', -gas.mant);
+  if (gas.cantera) logMoney(g, 'Inversión en la cantera (M19)', -gas.cantera);
 
   // Socios: suben si se gana, bajan si se pierde o si la entrada está muy cara.
   let d = 0;
@@ -354,7 +359,9 @@ export function renewalDemand(p: Player, g?: GameState): number {
   const div = g?.clubs[g.userClubId]?.division;
   const base = wageFor(p) * (div === 'C' ? 0.7 : div === 'B' ? 0.85 : 1);
   const moralF = p.moral < 45 ? 1.25 : p.moral < 60 ? 1.12 : 1.05;
-  return Math.round((Math.max(base, p.sueldo) * moralF) / 1000) * 1000;
+  // El jugador "de club" firma por menos.
+  const clubF = p.personalidad === 'declub' ? 0.85 : 1;
+  return Math.round((Math.max(base, p.sueldo) * moralF * clubF) / 1000) * 1000;
 }
 
 export function renew(g: GameState, id: string, anios: number): string {
@@ -395,6 +402,7 @@ export function initClubBusiness(c: Club) {
   c.staff ??= staffInicial(c.reputacion);
   c.staff.ayudante ??= 0;
   c.staff.ojeador ??= 0;
+  c.staff.juveniles ??= 0;
   c.obras ??= [];
   c.sponsor ??= null;
 }

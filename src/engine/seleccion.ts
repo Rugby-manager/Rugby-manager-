@@ -257,7 +257,7 @@ function clubFalso(pais: Pais, ids: string[], tactica: Tactics): Club {
   return {
     id: pais.id, nombre: pais.nombre, corto: pais.id, codigo: pais.id, colores: pais.colores, patron: 'lisa', division: 'X', ciudad: '', apodo: '',
     reputacion: pais.fuerza, plantel: ids, xv: [], tactica, presupuesto: 0, entrenamiento: { foco: 'auto', intensidad: 'normal' },
-    staff: { ayudante: 2, ojeador: 0, nutricionista: 2, kinesiologo: 2, medico: 2 },
+    staff: { ayudante: 2, ojeador: 0, nutricionista: 2, kinesiologo: 2, medico: 2, juveniles: 0 },
   } as unknown as Club;
 }
 

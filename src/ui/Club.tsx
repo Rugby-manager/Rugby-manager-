@@ -7,9 +7,8 @@ import {
 import { userFixture } from '../engine/game';
 import { formatMoney } from './common';
 import { IcoCaja, IcoContrato, IcoEntrada, IcoEstadio, IcoPelota, IcoSilbato } from './icons';
-import { promoteYouth, releaseYouth } from '../engine/cup';
-import { overall, posText } from '../engine/players';
-import { Ovr, Sheet, Stars } from './common';
+import { Juveniles } from './Cantera';
+import { Sheet, Stars } from './common';
 import type { Club, StaffKey } from '../engine/types';
 import { estadoHinchada, humor } from '../engine/hinchada';
 
@@ -273,7 +272,7 @@ function Empleados() {
             {e > 0 ? (
               <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
                 <div>
-                  <div className="name">{nombreStaff(c, k)}</div>
+                  <div className="name">{nombreStaff(c, k)}{c.staffPersonas?.[k]?.idolo && <span className="pers pers-declub"> ⭐ Ídolo del club</span>}</div>
                   <Stars n={e} />
                 </div>
                 <div className="small muted" style={{ textAlign: 'right' }}>Cobra {formatMoney(staffSueldo(e, c))}<br />por fecha</div>
@@ -373,79 +372,6 @@ function Sponsor() {
         </section>
       )}
       {!c.sponsor && !g.sponsorOfertas.length && <p className="small">No hay ofertas por ahora. Llegan al empezar cada temporada.</p>}
-    </>
-  );
-}
-
-function Juveniles() {
-  const { g, refresh, toast } = useGame();
-  const c = g.clubs[g.userClubId];
-  const nivel = c.staff.ojeador ?? 0;
-  const list = g.juveniles.map((id) => g.players[id]).filter(Boolean);
-  // Sin un buen ojeador, el techo del pibe es una incógnita.
-  const techo = (pot: number) => {
-    const s = Math.max(0, Math.min(5, (pot - 50) / 8));
-    if (nivel >= 2) return <Stars n={Math.round(s * 2) / 2} />;
-    const err = nivel === 1 ? 1 : 1.5;
-    return (
-      <span className="small">
-        entre <Stars n={Math.max(0, Math.round((s - err) * 2) / 2)} /> y <Stars n={Math.min(5, Math.round((s + err) * 2) / 2)} />
-      </span>
-    );
-  };
-  return (
-    <>
-      <section className="card stack">
-        <h3>Juveniles que encontró el ojeador</h3>
-        <p className="small muted" style={{ margin: 0 }}>
-          {nivel === 0
-            ? 'No tenés ojeador: estos pibes llegaron solos al club. Contratá un ojeador en Empleados para encontrar más y mejores, y para saber mejor cuánto pueden crecer.'
-            : `Tu ojeador es ${['', 'bueno', 'muy bueno', 'excelente'][nivel]}. Cada temporada trae ${2 + nivel} pibes nuevos.`}{' '}
-          Si los subís al plantel cobran {formatMoney(25_000)} por fecha y firman por 3 temporadas. Los que no subas se van al terminar la temporada.
-        </p>
-      </section>
-      {list.length === 0 && <p className="small" style={{ color: 'var(--on-bg)' }}>No quedan juveniles por ahora. Llegan nuevos al empezar la temporada.</p>}
-      {list.map((p) => (
-        <section key={p.id} className="card stack">
-          <div className="row">
-            <Ovr v={overall(p)} />
-            <div className="grow">
-              <b>
-                {p.nombre} {p.apellido}
-              </b>
-              <div className="small muted">
-                {posText(p)} · {p.edad} años · Actitud {p.attrs.actitud}
-              </div>
-            </div>
-          </div>
-          <div className="small">Puede llegar a: {techo(p.potencial)}</div>
-          <div className="grid2">
-            <button
-              className="btn"
-              onClick={() => {
-                releaseYouth(g, p.id);
-                toast(`${p.apellido} vuelve a su club de origen.`);
-                refresh();
-              }}
-            >
-              Dejarlo ir
-            </button>
-            <button
-              className="btn primary"
-              onClick={() => {
-                try {
-                  toast(promoteYouth(g, p.id));
-                  refresh();
-                } catch (e) {
-                  toast((e as Error).message);
-                }
-              }}
-            >
-              Subir al plantel
-            </button>
-          </div>
-        </section>
-      ))}
     </>
   );
 }

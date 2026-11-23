@@ -1,6 +1,7 @@
 // Vestuario vivo: los jugadores piden cosas, se enojan o se pelean, y vos decidís.
 import { Rng, clamp } from './rng';
 import { overall } from './players';
+import { ajusteVestuario, esPers } from './personalidad';
 import type { GameState, Player, VestuarioEvento } from './types';
 
 export interface OpcionVestuario {
@@ -81,7 +82,7 @@ export function eventosVestuario(g: GameState, rng: Rng): string[] {
   if (pend && g.round - pend.round >= 2) {
     avisos.push(`No contestaste: ${resolverEvento(g, pend.tipo === 'pelea' ? 2 : 1, rng)}`);
   }
-  if (g.vestuario || !rng.chance(0.22)) return avisos;
+  if (g.vestuario || !rng.chance(clamp(0.22 + ajusteVestuario(g), 0.08, 0.45))) return avisos;
   const ps = club.plantel.map((id) => g.players[id]).filter((p) => p && p.lesion === 0 && !p.prestamo);
   const xv = new Set(club.xv);
   const tipo = rng.weighted(['minutos', 'irse', 'pelea', 'aumento'] as const, [3, 1.5, 2, 2]);
@@ -90,15 +91,17 @@ export function eventosVestuario(g: GameState, rng: Rng): string[] {
     const c = ps.filter((p) => !xv.has(p.id) && overall(p) >= 62 && p.edad >= 19);
     if (c.length) players = [rng.weighted(c, c.map((p) => 1 + (70 - Math.min(70, p.moral)) / 10)).id];
   } else if (tipo === 'irse') {
-    const top = [...ps].sort((a, b) => overall(b) - overall(a)).slice(0, 5).filter((p) => p.edad <= 31);
+    // Los "de club" nunca piden irse.
+    const top = [...ps].sort((a, b) => overall(b) - overall(a)).slice(0, 5).filter((p) => p.edad <= 31 && !esPers(p, 'declub'));
     if (top.length) players = [rng.weighted(top, top.map((p) => 1 + (100 - p.moral) / 15)).id];
   } else if (tipo === 'aumento') {
     const c = ps.filter((p) => xv.has(p.id) && p.temporada.partidos >= 4 && !p.estrella);
     if (c.length) players = [rng.weighted(c, c.map((p) => 1 + p.temporada.tries * 2 + Math.max(0, overall(p) - 60)))].map((p) => p.id);
   } else {
-    const c = ps.filter((p) => p.attrs.actitud < 70 || p.moral < 55);
+    const c = ps.filter((p) => p.attrs.actitud < 70 || p.moral < 55 || esPers(p, 'conflictivo'));
     if (c.length >= 2) {
-      const a = rng.pick(c);
+      // El conflictivo casi siempre está metido en la pelea.
+      const a = rng.weighted(c, c.map((p) => (esPers(p, 'conflictivo') ? 4 : 1)));
       const b = rng.pick(c.filter((x) => x !== a));
       players = [a.id, b.id];
     }
@@ -140,7 +143,8 @@ export function resolverEvento(g: GameState, opcion: number, rng = new Rng(g.rng
     }
     if (opcion === 1) {
       const lid = club.plantel.reduce((m, id) => Math.max(m, g.players[id]?.attrs.liderazgo ?? 0), 0);
-      if (rng.chance(0.45 + (lid - 70) / 100)) {
+      const hayLider = club.plantel.some((id) => esPers(g.players[id], 'lider'));
+      if (rng.chance(0.45 + (lid - 70) / 100 + (hayLider ? 0.1 : 0))) {
         mov(a, 10);
         return `Lo convenciste: ${a.apellido} se queda y está más tranquilo.`;
       }
@@ -202,7 +206,7 @@ export function charlar(g: GameState, id: string, tipo: TipoCharla, rng = new Rn
     return `${p.apellido} agradece, pero lo que quiere es jugar.`;
   }
   if (tipo === 'exigir') {
-    if (rng.chance(p.attrs.actitud / 110)) {
+    if (rng.chance(p.attrs.actitud / 110 - (esPers(p, 'conflictivo') ? 0.2 : 0))) {
       p.attrs.actitud = Math.min(99, p.attrs.actitud + 2);
       mov(2);
       return `${p.apellido} recibió el mensaje: entrena con todo (+2 de actitud).`;

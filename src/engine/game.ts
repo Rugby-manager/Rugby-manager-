@@ -1,4 +1,8 @@
 import { aplicarPostemporada } from './postemporada';
+import { efectosPersonalidad, asignarPersonalidad } from './personalidad';
+import { initM19, jugarFechaM19, nuevaTemporadaM19, pibesM19 } from './m19';
+import { campanaElectoral, directivaDe } from './elecciones';
+import { anotarIdolo, limpiarIdolos } from './idolos';
 import { ESTILO, arbitroDe } from './arbitros';
 import { logrosPartido, logrosTemporada } from './logros';
 import { chequearRecaidas } from './lesiones';
@@ -30,7 +34,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -89,11 +93,13 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   g.fixtures = makeLeagueFixtures(g, rng);
   refreshFreeAgents(g, rng);
   refreshTransferibles(g, rng);
+  directivaDe(g);
   g.career = newCareer(g);
   const textoAyuda = aplicarAyuda(g, opts.ayuda ?? 'nada', rng);
   g.sponsorOfertas = sponsorOffers(g.clubs[g.userClubId].reputacion, rng, g.clubs[g.userClubId]);
   drawCup(g, rng);
   scoutYouth(g, rng);
+  initM19(g);
   g.amistosos = !!opts.amistosos;
   if (g.amistosos) makePreseason(g, rng);
   inicioTemporadaSel(g, rng);
@@ -341,6 +347,15 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
   editarDiario(g, fixtures);
   if (uf?.result) cerrarPrensa(g, uf);
   if (uf) for (const t of eventosVestuario(g, rng)) addNews(g, '🗣 Vestuario', t);
+  if (uf) for (const t of efectosPersonalidad(g, rng)) addNews(g, '🗣 Vestuario', t);
+  {
+    // La M19 juega sola en las fechas de la liga (con su propio azar, para no cambiar el resto).
+    const r19 = new Rng((rng.s ^ 0x19190019) >>> 0 || 19);
+    const t19 = jugarFechaM19(g, r19);
+    if (t19) addNews(g, '🌱 M19', t19);
+  }
+  const campana = campanaElectoral(g);
+  if (campana) addNews(g, '🗳 Elecciones en el club', campana);
   const report: RoundReport = { round: g.round, fixtures, userFixture: fixtures.find((f) => f.home === user.id || f.away === user.id), autoCambios };
   weeklyRecovery(g, fixtures, rng);
   advanceCalendar(g, rng);
@@ -727,6 +742,7 @@ export function startNextSeason(g: GameState): string[] {
     if (!p.clubId) continue;
     p.historia = [...(p.historia ?? []), { temporada: g.temporada, ovr: overall(p), partidos: p.temporada.partidos, tries: p.temporada.tries, clubId: p.prestamo ? p.prestamo.clubId : p.clubId }].slice(-12);
   }
+  limpiarIdolos(g);
   const vuelven = returnLoans(g);
   if (vuelven.length) informes.push(`Préstamos: ${vuelven.join(', ')}.`);
 
@@ -752,6 +768,8 @@ export function startNextSeason(g: GameState): string[] {
       if (rng.chance(retireP)) retirados.push(p);
     }
     for (const p of retirados) {
+      // Si es un ídolo de tu club, después le podés ofrecer un lugar en el cuerpo técnico.
+      if (c.id === user.id) anotarIdolo(g, p);
       c.plantel = c.plantel.filter((x) => x !== p.id);
       p.clubId = null;
       delete g.players[p.id];
@@ -799,7 +817,8 @@ export function startNextSeason(g: GameState): string[] {
     for (const pos of POS_ORDER) {
       while (count(pos) < MIN_BY_POS[pos]) juveniles.push(addYouth(g, rng, c, pos));
     }
-    while (juveniles.length < 2 || c.plantel.length < 28) juveniles.push(addYouth(g, rng, c, rng.pick(POS_ORDER)));
+    // Tu club tiene la M19: los pibes los subís vos (salvo que falte gente).
+    while ((c.id !== user.id && juveniles.length < 2) || c.plantel.length < 28) juveniles.push(addYouth(g, rng, c, rng.pick(POS_ORDER)));
     // Si el plantel queda muy grande, se van los más flojos y veteranos.
     while (c.plantel.length > 33) {
       const sorted = c.plantel.map((id) => g.players[id]).sort((a, b) => overall(a) - a.edad * 0.3 - (overall(b) - b.edad * 0.3));
@@ -815,7 +834,7 @@ export function startNextSeason(g: GameState): string[] {
     if (c.id === user.id) {
       if (libres.length) informes.push(`Se fueron libres (no les renovaste): ${libres.map((p) => `${p.nombre} ${p.apellido}`).join(', ')}.`);
       if (retirados.length) informes.push(`Se retiraron: ${retirados.map((p) => `${p.nombre} ${p.apellido} (${p.edad})`).join(', ')}.`);
-      informes.push(`Suben de la cantera: ${juveniles.map((p) => `${p.nombre} ${p.apellido} (${p.edad} años, ${p.pos})`).join(', ')}.`);
+      if (juveniles.length) informes.push(`Suben de la cantera para completar el plantel: ${juveniles.map((p) => `${p.nombre} ${p.apellido} (${p.edad} años, ${p.pos})`).join(', ')}.`);
     }
   }
 
@@ -848,6 +867,13 @@ export function startNextSeason(g: GameState): string[] {
   drawCup(g, rng);
   drawIntl(g, rng);
   scoutYouth(g, rng);
+  {
+    // La M19: crecen un año, se van los de 20 y suben chicos de Infantiles.
+    const r19 = new Rng((rng.s ^ 0x20202020) >>> 0 || 20);
+    for (const p of pibesM19(g)) developPlayer(p, r19);
+    const t19 = nuevaTemporadaM19(g, r19);
+    if (t19) informes.push(t19);
+  }
   startCareerSeason(g);
   if (g.amistosos) makePreseason(g, rng);
   const post = aplicarPostemporada(g, rng);
@@ -1062,6 +1088,14 @@ export function migrate(g: GameState): GameState {
     g.version = 21;
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
+  // Juveniles M19, comisión directiva con elecciones y personalidades (no cambian nada si ya estaban).
+  for (const c of Object.values(g.clubs)) initClubBusiness(c);
+  for (const p of Object.values(g.players)) if (p.personalidad === undefined) asignarPersonalidad(p);
+  if (g.clubs[g.userClubId]) {
+    directivaDe(g);
+    initM19(g);
+  }
+  if (g.version < 22) g.version = 22;
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;
   // La estrella de la ayuda inicial tiene que estar en el XV mientras el cartel siga sin cerrar.
   completarXV(g.clubs[g.userClubId], g.players);
