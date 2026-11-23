@@ -190,3 +190,12 @@ export const IcoPelota = (p: P) => (
     <path d="M19 25l3 3M22 22l3 3M25 20l3 3" stroke="#ffffff" strokeWidth="1.8" />
   </Svg>
 );
+
+export const IcoBandera = (p: P) => (
+  <Svg {...p}>
+    <path d="M10 6v38" strokeWidth="3" />
+    <path d="M10 8h28l-5 8 5 8H10z" fill="#7ec4ef" />
+    <path d="M10 13.5h26.5M10 18.5h26.5" stroke="#ffffff" strokeWidth="3.2" />
+    <circle cx="20" cy="16" r="2.6" fill="#ffcc1a" strokeWidth="1.4" />
+  </Svg>
+);

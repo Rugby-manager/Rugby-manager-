@@ -17,8 +17,11 @@ import { EncycloScreen } from './Encyclopedia';
 import { roundName } from '../engine/cup';
 import { MenuSheet } from './Menu';
 import { MarketScreen } from './Market';
+import { SeleccionScreen } from './Seleccion';
+import { CalendarioScreen } from './Calendario';
+import { ventanaActual, ventanaPendiente } from '../engine/seleccion';
 
-type Tab = 'inicio' | 'plantel' | 'equipo' | 'mercado' | 'fixture' | 'tabla' | 'club' | 'enciclo';
+type Tab = 'inicio' | 'plantel' | 'equipo' | 'mercado' | 'fixture' | 'tabla' | 'club' | 'enciclo' | 'seleccion' | 'calendario';
 
 interface Ctx {
   g: GameState;
@@ -94,6 +97,8 @@ function GameShell({ g, saveId, onExit }: { g: GameState; saveId: string; onExit
   const pre = g.pretemporada && !g.pretemporada.terminada;
   const status = pre
     ? `Temporada ${g.temporada} · Pretemporada`
+    : ventanaPendiente(g)
+      ? `Temporada ${g.temporada} · ${ventanaActual(g)?.nombre ?? 'Ventana internacional'}`
     : g.phase === 'fin'
       ? `Temporada ${g.temporada} terminada`
       : g.round <= 18
@@ -138,6 +143,8 @@ function GameShell({ g, saveId, onExit }: { g: GameState; saveId: string; onExit
           {tab === 'tabla' && <TableScreen />}
           {tab === 'club' && <ClubScreen />}
           {tab === 'enciclo' && <EncycloScreen />}
+          {tab === 'seleccion' && <SeleccionScreen />}
+          {tab === 'calendario' && <CalendarioScreen />}
         </main>
         <nav className="tabs" aria-label="Secciones">
           <div className="tabs-inner">

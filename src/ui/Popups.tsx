@@ -12,7 +12,9 @@ import { LOGROS } from '../engine/logros';
 import { prestigioTexto } from '../engine/career';
 import { isDerby } from '../engine/extras';
 import { overall, posText } from '../engine/players';
-import { contratosPorVencer, dejarIr, renew, renewalDemand } from '../engine/club';
+import { contratosPorVencer, dejarIr, renew, renewalDemand, STAFF } from '../engine/club';
+import { ESTILO_DIR, apoyar, directivaDe, hayCampana } from '../engine/elecciones';
+import { PUESTOS_IDOLO, contratarIdolo, homenajeIdolo, idolosPendientes, sueldoIdolo } from '../engine/idolos';
 
 function hash(s: string) {
   let h = 2166136261;
@@ -298,6 +300,82 @@ function eventos(g: GameState): Evento[] {
         },
         { texto: 'No, gracias', tono: 'no', hacer: () => (rechazarSeven(g), 'Esta vez no van al Seven.') },
       ],
+    });
+  }
+  // Ídolos que se retiraron y pueden volver al club.
+  for (const i of idolosPendientes(g)) {
+    out.push({
+      key: `idolo-${i.id}`,
+      banda: 'Colgó los botines',
+      color: '#b8860b',
+      icono: '👴',
+      titulo: i.nombre,
+      club: yo,
+      texto: (
+        <>
+          {i.puesto}, {i.temporadas} {i.temporadas === 1 ? 'temporada' : 'temporadas'} en el club, {i.partidos} partidos y {i.tries} tries. Se retiró a los {i.edad} y quiere seguir ligado al club. Como empleado
+          sería de <b>{i.estrellas} {i.estrellas === 1 ? 'estrella' : 'estrellas'}</b> y cobraría {formatMoney(sueldoIdolo(g, i))} por fecha (menos que cualquiera, porque vuelve a su casa). La hinchada lo adora.
+        </>
+      ),
+      opciones: [
+        ...PUESTOS_IDOLO.map((k, n) => ({
+          texto: `Sumarlo como ${STAFF[k].nombre.toLowerCase()}`,
+          tono: (n === 0 ? 'si' : 'neutro') as Opcion['tono'],
+          hacer: () => contratarIdolo(g, i.id, k),
+        })),
+        { texto: 'Un homenaje y listo', tono: 'no', hacer: () => homenajeIdolo(g, i.id) },
+      ],
+    });
+  }
+  // Campaña electoral: ¿a quién apoyás?
+  if (g.phase === 'regular' && hayCampana(g)) {
+    const d = directivaDe(g);
+    if (d.oposicion && !d.apoyo) {
+      const of = ESTILO_DIR[d.estilo];
+      const op = ESTILO_DIR[d.oposicion.estilo];
+      out.push({
+        key: `eleccion-${g.temporada}`,
+        banda: 'Elecciones en el club',
+        color: '#1f4fa3',
+        icono: '🗳',
+        titulo: '¿A quién apoyás?',
+        club: yo,
+        texto: (
+          <>
+            Al terminar la temporada votan los socios. <b>{d.presidente}</b> va por la reelección ({of.icono} {of.label.toLowerCase()}: {of.pide.toLowerCase().replace(/\.$/, '')}) y enfrente está{' '}
+            <b>{d.oposicion.presidente}</b> ({op.icono} {op.label.toLowerCase()}: {op.pide.toLowerCase().replace(/\.$/, '')}). Si apoyás a uno y gana, te banca. Si pierde, la otra comisión no se olvida.
+          </>
+        ),
+        opciones: [
+          { texto: `Apoyar a ${d.presidente}`, sub: 'El oficialismo', tono: 'neutro', hacer: () => apoyar(g, 'oficialismo') },
+          { texto: `Apoyar a ${d.oposicion.presidente}`, sub: 'La oposición', tono: 'neutro', hacer: () => apoyar(g, 'oposicion') },
+          { texto: 'No meterme', sub: 'Que voten los socios', tono: 'si', hacer: () => apoyar(g, 'neutral') },
+        ],
+      });
+    }
+  }
+  // Volvió la gira de verano.
+  if (g.gira && g.gira.temporada === g.temporada && !g.gira.vista) {
+    const gi = g.gira;
+    const ganados = gi.partidos.filter((x) => x.pf > x.pc).length;
+    out.push({
+      key: `gira-${gi.temporada}`,
+      banda: 'Gira de verano',
+      color: '#0f7c8c',
+      icono: '✈️',
+      titulo: `Volvieron de ${gi.destino}`,
+      club: yo,
+      texto: (
+        <>
+          {gi.partidos.map((x) => (
+            <span key={x.rival} style={{ display: 'block' }}>
+              {x.pf > x.pc ? '✅' : x.pf < x.pc ? '❌' : '➖'} {yo.corto} {x.pf} - {x.pc} {x.rival}
+            </span>
+          ))}
+          Ganaron {ganados} de 3. Cobraste <b>{formatMoney(gi.plata)}</b> y {gi.mejoraron} jugadores de 23 años o menos volvieron con más experiencia.
+        </>
+      ),
+      opciones: [{ texto: '¡Buen viaje!', tono: 'si', hacer: () => ((gi.vista = true), '') }],
     });
   }
   return out;

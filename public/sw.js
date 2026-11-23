@@ -1,6 +1,6 @@
 // Guarda el juego en el teléfono para que abra sin internet.
 // Primero intenta bajar la versión nueva; si no hay conexión, usa la guardada.
-const CACHE = 'rugby-manager-v45';
+const CACHE = 'rugby-manager-v48';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icons/rm26-180.png', './icons/rm26-192.png', './icons/rm26-512.png'];
 
 self.addEventListener('install', (e) => {

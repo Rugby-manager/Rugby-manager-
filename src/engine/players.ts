@@ -1,3 +1,4 @@
+import { asignarPersonalidad } from './personalidad';
 import { Rng, clamp } from './rng';
 import { APELLIDOS, NOMBRES } from './names';
 import type { AttrKey, Attrs, Club, Player, Pos } from './types';
@@ -267,6 +268,7 @@ export function generatePlayer(rng: Rng, id: string, pos: Pos, target: number, e
     contrato: rng.int(1, 4),
   };
   p.sueldo = wageFor(p);
+  asignarPersonalidad(p);
   return p;
 }
 

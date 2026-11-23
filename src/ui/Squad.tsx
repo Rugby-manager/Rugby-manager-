@@ -1,4 +1,6 @@
 import { hastaTexto } from '../engine/loans';
+import { PersBadge } from './Cantera';
+import { PERSONALIDAD } from '../engine/personalidad';
 import { useEffect, useState } from 'react';
 import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
@@ -227,6 +229,7 @@ export function SquadScreen() {
                           {POS_LABEL[p.pos]}
                           {p.pos2.length ? ` / ${p.pos2.map((x) => POS_LABEL[x]).join(' / ')}` : ''} · {p.edad}
                           {p.contrato <= 1 && <span style={{ color: 'var(--loss)', fontWeight: 700 }}> · último año</span>}
+                          {p.personalidad && <> {PERSONALIDAD[p.personalidad].icono}</>}
                         </small>
                       </td>
                       <td>
@@ -359,6 +362,11 @@ export function PlayerSheet({ g, p, onClose, action, onTrain }: { g: GameState; 
           <div className="small muted">
             {p.edad} años · {club ? club.nombre : 'Sin club'} · Valor {formatMoney(marketValue(p))}
           </div>
+          {p.personalidad && (
+            <div className="small" style={{ marginTop: 4 }}>
+              <PersBadge p={p} /> {PERSONALIDAD[p.personalidad].texto}
+            </div>
+          )}
         </div>
         <div style={{ textAlign: 'center' }}>
           <div className="label">Media</div>

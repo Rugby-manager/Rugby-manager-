@@ -42,9 +42,9 @@ describe('etapa 6', () => {
   it('la Selección convoca 23 y hay récords al avanzar la temporada', () => {
     const g = createGame({ seed: 9, userClubIndex: 2, modo: 'libre' });
     expect(convocatoria(g).length).toBe(23);
-    while (g.round <= 10) playRound(g);
+    while (g.round <= 17) playRound(g);
     expect(g.seleccion?.ids.length).toBe(23);
-    expect(g.players[g.seleccion!.ids[0]].caps).toBe(1);
+    expect(g.players[g.seleccion!.ids[0]].caps).toBe(3);
     expect(g.records?.goleada).toBeDefined();
     expect(g.records?.puntosPartido!.valor).toBeGreaterThan(20);
   });

@@ -62,6 +62,9 @@ describe('ayuda inicial', () => {
     const g = createGame({ seed: 91, modo: 'carrera', userClubIndex: 25, ayuda: 'estrella' });
     const id = club(g).plantel[club(g).plantel.length - 1];
     g.players[id].contrato = 1;
+    // Que no lo echen (esto prueba a la estrella, no a la comisión directiva).
+    g.career.objetivo = { tipo: 'tranquila', puesto: 10, texto: 'Una temporada tranquila' };
+    g.directiva!.estilo = 'paciente';
     for (let i = 0; i < 80 && g.phase !== 'fin'; i++) {
       if (g.career?.despedido) break;
       playRound(g);
