@@ -1,7 +1,8 @@
+import { APP_VERSION } from '../version';
 import { useEffect, useMemo, useState } from 'react';
 import { CLUB_SEEDS as SEEDS_AB, CLUB_SEEDS_C } from '../engine/names';
 const CLUB_SEEDS = [...SEEDS_AB, ...CLUB_SEEDS_C];
-import { createGame, DIV_NAME, SAVE_VERSION } from '../engine/game';
+import { createGame, DIV_NAME } from '../engine/game';
 import { firstOffers } from '../engine/career';
 import type { GameState } from '../engine/types';
 import { AYUDAS, type AyudaInicial } from '../engine/ayuda';
@@ -135,7 +136,7 @@ export function StartScreen({ onOpen }: { onOpen: (g: GameState, id: string) => 
               </ol>
             </section>
             <footer className="start-foot">
-              <span>RUGBY MANAGER</span> · temporada 2027 · v{SAVE_VERSION}
+              <span>RUGBY MANAGER</span> · versión {APP_VERSION}
             </footer>
           </>
         )}

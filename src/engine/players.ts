@@ -289,6 +289,9 @@ export const SQUAD_TEMPLATE: Record<Pos, number> = {
   PIL: 5, HOO: 3, SEG: 4, TER: 5, MSC: 3, APE: 2, CEN: 3, WIN: 3, FUL: 2,
 };
 
+/** Lo mínimo por puesto que te tiene que quedar al vender o ceder (Luca: con 2 alcanza). */
+export const MIN_VENTA = 2;
+
 export const MIN_BY_POS: Record<Pos, number> = {
   PIL: 4, HOO: 2, SEG: 3, TER: 4, MSC: 2, APE: 2, CEN: 3, WIN: 3, FUL: 2,
 };

@@ -1,3 +1,4 @@
+import { APP_VERSION } from '../version';
 import { useState } from 'react';
 import { useGame } from './App';
 import { makeBackup } from '../store/saves';
@@ -100,6 +101,7 @@ export function MenuSheet({ onClose, onExit }: { onClose: () => void; onExit: ()
         <button className="btn block" onClick={onExit}>
           Salir al menú principal
         </button>
+        <p className="small muted" style={{ margin: 0, textAlign: 'center' }}>Versión {APP_VERSION}</p>
       </div>
     </Sheet>
   );

@@ -1,6 +1,6 @@
 import { fechasRestantes } from './club';
 import { Rng, clamp } from './rng';
-import { MIN_BY_POS, POS_LABEL, assignDorsal, marketValue, overall, completarXV } from './players';
+import { MIN_BY_POS, MIN_VENTA, POS_LABEL, assignDorsal, marketValue, overall, completarXV } from './players';
 import { MAX_SQUAD, MIN_SQUAD, logMoney, marketOpen } from './market';
 import type { Club, GameState, Player } from './types';
 
@@ -105,7 +105,7 @@ export function canLoanOut(g: GameState, id: string, anios = 1): { ok: boolean; 
   if (p.clubId !== user.id) return { ok: false, reason: 'No es de tu club.', price };
   if (p.prestamo) return { ok: false, reason: 'Ya está a préstamo en tu club: no lo podés ceder.', price };
   if (user.plantel.length <= MIN_SQUAD) return { ok: false, reason: `Necesitás al menos ${MIN_SQUAD} jugadores.`, price };
-  if (countPos(g, user, p.pos) <= MIN_BY_POS[p.pos]) return { ok: false, reason: `Te quedarías con menos de ${MIN_BY_POS[p.pos]} ${POS_LABEL[p.pos].toLowerCase()}s.`, price };
+  if (countPos(g, user, p.pos) <= MIN_VENTA) return { ok: false, reason: `Te quedarías con menos de ${MIN_VENTA} ${POS_LABEL[p.pos].toLowerCase()}s.`, price };
   return { ok: true, price };
 }
 
