@@ -75,11 +75,13 @@ export interface Player {
   historia?: { temporada: number; ovr: number; partidos: number; tries: number; clubId: string }[];
   /** Temporadas de contrato que le quedan (contando la actual). */
   contrato: number;
+  /** Forma de ser: líder, conflictivo, de club ('' = normal). */
+  personalidad?: import('./personalidad').Personalidad | '';
 }
 
 export type InstKey = 'tribunas' | 'gimnasio' | 'campo' | 'quincho';
 export type Instalaciones = Record<InstKey, number>;
-export type StaffKey = 'nutricionista' | 'kinesiologo' | 'medico' | 'ayudante' | 'ojeador';
+export type StaffKey = 'nutricionista' | 'kinesiologo' | 'medico' | 'ayudante' | 'ojeador' | 'juveniles';
 export type Staff = Record<StaffKey, number>;
 
 export interface Obra {
@@ -152,7 +154,7 @@ export interface Club {
   inst: Instalaciones;
   staff: Staff;
   /** Quién ocupa cada puesto de empleado (nombre y estrellas de 1 a 5). */
-  staffPersonas?: Partial<Record<StaffKey, { nombre: string; estrellas: number }>>;
+  staffPersonas?: Partial<Record<StaffKey, { nombre: string; estrellas: number; idolo?: boolean }>>;
   obras: Obra[];
   sponsor: SponsorDeal | null;
   /** Gente en la cancha en el último partido de local. */
@@ -419,6 +421,14 @@ export interface GameState {
   salonFama?: { playerId: string; clubId: string; nombre: string; puesto: string; partidos: number; tries: number; temporadas: number; desde: number }[];
   /** Seven de verano de esta temporada (jugado o rechazado). */
   seven?: import('./seven').SevenEstado;
+  /** Divisiones juveniles (M19) del club del usuario. */
+  m19?: import('./m19').M19;
+  /** Comisión directiva del club del usuario y sus elecciones. */
+  directiva?: import('./elecciones').Directiva;
+  /** Ídolos que se retiraron y pueden sumarse al cuerpo técnico. */
+  idolos?: import('./idolos').Idolo[];
+  /** Cómo salió la gira de verano. */
+  gira?: import('./postemporada').GiraResultado;
 }
 
 export interface PropuestaAmistosa {

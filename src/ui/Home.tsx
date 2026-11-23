@@ -3,7 +3,10 @@ import { describirEvento, resolverEvento } from '../engine/vestuario';
 import { DIARIO_NOMBRE, RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { preseasonPending, skipPreseason } from '../engine/preseason';
 import { hacerTercer, opcionesTercer, tercerPendiente } from '../engine/tercer';
-import { PLANES_POST, elegirPostemporada } from '../engine/postemporada';
+import { PLANES_POST, destinoGira, elegirPostemporada } from '../engine/postemporada';
+import { DecisionM19 } from './Cantera';
+import { ESTILO_DIR, directivaDe, pedidoExtra } from '../engine/elecciones';
+import { analizarRival, aplicarConsejos } from '../engine/analisis';
 import { SEVEN_NOMBRE, SEVEN_PREMIO, jugarSeven, plantelSeven, rechazarSeven, sevenPendiente } from '../engine/seven';
 import { ESTILO, arbitroDe } from '../engine/arbitros';
 import { CLIMA_DESC, CLIMA_ICON, CLIMA_LABEL, climaDe, isDerby } from '../engine/extras';
@@ -14,7 +17,8 @@ import { useGame } from './App';
 import { FichaDT, PopupEventos } from './Popups';
 import { choosePreseason, COMP_NAME, DIV_NAME, matchWinner, playRound, promoSeries, standings, startNextSeason, startUserMatch, userFixture, type RoundReport } from '../engine/game';
 import { bestXV, overall, posText, readyXV, slotRating } from '../engine/players';
-import { ClubJersey, Ovr, Sheet, formatMoney } from './common';
+import { ClubJersey, Ovr, Sheet, Stars, formatMoney } from './common';
+import { staffEstrellas } from '../engine/club';
 import { INTENSIDAD_LABEL } from '../engine/training';
 import { LiveMatchScreen, MatchLive } from './MatchLive';
 import { makeObjective, prestigioTexto, switchClub } from '../engine/career';
@@ -205,7 +209,13 @@ export function HomeScreen() {
             </div>
             <TeamBlock g={g} id={fx.away} />
           </div>
-        ) : (
+        ) : null}
+        {fx && rival && (
+          <button className="btn small block" style={{ marginTop: 8 }} onClick={() => setRivalOpen(true)}>
+            🔎 {staffEstrellas(club, 'ayudante') ? 'Informe del ayudante sobre el rival' : 'Ver al rival'}
+          </button>
+        )}
+        {!(fx && rival) && (
           <p style={{ textAlign: 'center', opacity: 0.85 }}>{Number.isInteger(g.round) ? 'Tu equipo no juega esta fecha. Se juegan los playoffs y los repechajes.' : 'Tu equipo no juega esta ronda de copa (es a mitad de semana).'}</p>
         )}
         {car && (
@@ -213,6 +223,7 @@ export function HomeScreen() {
             <div className="objective">
               <span className="label" style={{ color: 'inherit', opacity: 0.7 }}>Objetivo de la directiva</span>
               <div style={{ fontWeight: 700 }}>{car.objetivo.texto}</div>
+              <DirLine />
             </div>
             <div className="conf">
               <span>Confianza</span>
@@ -415,6 +426,7 @@ function RivalSheet({ g, id, onClose }: { g: GameState; id: string; onClose: () 
   const def = { conservadora: 'defensa conservadora', equilibrada: 'defensa equilibrada', agresiva: 'defensa agresiva' }[t.defensa];
   return (
     <Sheet title={c.nombre} onClose={onClose}>
+      <InformeRival id={id} />
       <div className="row">
         <ClubJersey club={c} size={56} />
         <div className="grow">
@@ -613,9 +625,11 @@ function SeasonEnd() {
           </p>
         )}
       </div>
+      <EleccionFin />
       {g.career && <BoardVerdict />}
+      {!g.career?.despedido && <DecisionM19 />}
       {!g.career?.despedido && <PostemporadaPick />}
-      <p className="small muted">Al empezar la temporada nueva, los jugadores cumplen un año: los jóvenes mejoran, los veteranos bajan y algunos se retiran. Suben juveniles de la cantera.</p>
+      <p className="small muted">Al empezar la temporada nueva, los jugadores cumplen un año: los jóvenes mejoran, los veteranos bajan y algunos se retiran. Los pibes de la M19 cumplen años y de Infantiles suben chicos nuevos.</p>
       <button
         className="btn primary block"
         disabled={g.career?.despedido}
@@ -1088,13 +1102,97 @@ function PostemporadaPick() {
           >
             <span className="ay-ic">{x.icono}</span>
             <span className="ay-tx">
-              <b>{x.titulo}</b>
+              <b>{x.id === 'gira' ? `${x.titulo}: ${destinoGira(g).destino}` : x.titulo}</b>
               <small>{x.texto}</small>
             </span>
           </button>
         ))}
       </div>
       {!actual && <p className="small" style={{ margin: 0 }}>Si no elegís, se van de vacaciones cortas y no pasa nada.</p>}
+    </section>
+  );
+}
+
+/** Quién manda en el club y qué pide de más. */
+function DirLine() {
+  const { g } = useGame();
+  const d = directivaDe(g);
+  const extra = pedidoExtra(g);
+  const e = ESTILO_DIR[d.estilo];
+  return (
+    <div className="dir-line" title={e.texto}>
+      {e.icono} Pres. {d.presidente} · comisión {e.label.toLowerCase()}
+      {extra && (
+        <>
+          <br />
+          {extra.ok ? '✅' : '⚠'} {extra.texto}
+        </>
+      )}
+      {d.proxima === g.temporada && (
+        <>
+          <br />
+          🗳 Elecciones al terminar la temporada
+        </>
+      )}
+    </div>
+  );
+}
+
+/** El informe del ayudante de campo sobre el próximo rival. */
+function InformeRival({ id }: { id: string }) {
+  const { g, refresh, toast, go } = useGame();
+  const inf = analizarRival(g, id);
+  if (!inf.ayudante)
+    return (
+      <div className="informe small">
+        🔎 No tenés ayudante de campo: nadie estudió a este rival.{' '}
+        <button className="btn small" onClick={() => go('club', 'empleados')}>
+          Contratar uno
+        </button>
+      </div>
+    );
+  const aplicables = inf.consejos.some((c) => c.aplicar);
+  return (
+    <div className="informe">
+      <b>🔎 Informe de {inf.ayudante}</b> <Stars n={inf.estrellas} />
+      <ul>
+        {inf.consejos.map((c) => (
+          <li key={c.texto}>
+            {c.texto}
+            {c.accion && <span className="small muted"> ({c.accion})</span>}
+          </li>
+        ))}
+        {inf.peligro && <li>⚠ {inf.peligro}</li>}
+      </ul>
+      {inf.estrellas < 4 && <p className="small muted" style={{ margin: '0 0 6px' }}>Un ayudante con más estrellas ve más cosas del rival.</p>}
+      {aplicables && (
+        <button
+          className="btn small primary"
+          onClick={() => {
+            toast(aplicarConsejos(g, inf));
+            refresh();
+          }}
+        >
+          Aplicar los consejos a la táctica
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Resultado de las elecciones del club (si hubo este año). */
+function EleccionFin() {
+  const { g } = useGame();
+  const d = directivaDe(g);
+  const u = d.ultima;
+  if (!u || u.temporada !== g.temporada) return null;
+  return (
+    <section className="ayuda-aviso">
+      <div className="aa-hd">🗳 Elecciones en el club</div>
+      <p>{u.texto}</p>
+      <small>
+        Comisión: {ESTILO_DIR[d.estilo].icono} {ESTILO_DIR[d.estilo].label}. {ESTILO_DIR[d.estilo].pide} Próximas elecciones al terminar la temporada {d.proxima}.
+      </small>
     </section>
   );
 }
