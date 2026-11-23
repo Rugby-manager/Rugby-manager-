@@ -1,5 +1,3 @@
-import { assignDorsal, bestXV } from './players';
-import { ponerEnXV } from './ayuda';
 import { isDerby } from './extras';
 import { Rng, clamp } from './rng';
 import { sponsorOffers } from './club';
@@ -250,22 +248,14 @@ export function switchClub(g: GameState, clubId: string) {
   old.entrenamiento = { foco: 'auto', intensidad: 'normal' };
   for (const id of old.plantel) g.players[id].entreno = null;
   delete old.hinchada;
-  // La estrella de la ayuda inicial te acompaña al club nuevo.
-  const estrellas = old.plantel.filter((id) => g.players[id]?.estrella);
-  old.plantel = old.plantel.filter((id) => !estrellas.includes(id));
-  old.xv = old.xv.map((x) => (x && estrellas.includes(x) ? null : x));
-  if (old.capitan && estrellas.includes(old.capitan)) old.capitan = null;
-  old.xv = bestXV(old, g.players, old.xv);
-  g.userClubId = clubId;
-  for (const id of estrellas) {
+  // Luca: la estrella de la ayuda inicial es del club. Si te vas, se queda ahí como un jugador más.
+  for (const id of old.plantel) {
     const p = g.players[id];
-    const dest = g.clubs[clubId];
-    dest.plantel.push(id);
-    p.clubId = clubId;
-    assignDorsal(dest, g.players, p);
-    ponerEnXV(g, id);
-    addNews(g, 'Tu figura viene con vos', `${p.nombre} ${p.apellido} te sigue a ${dest.nombre}.`);
+    if (!p?.estrella) continue;
+    p.estrella = false;
+    addNews(g, 'Tu figura se queda', `${p.nombre} ${p.apellido} sigue en ${old.nombre}: la estrella es del club.`);
   }
+  g.userClubId = clubId;
   g.clubs[clubId].hinchada ??= 55;
   g.caja = [];
   g.ultimasMejoras = [];

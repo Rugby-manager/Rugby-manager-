@@ -74,8 +74,11 @@ describe('ayuda inicial', () => {
     expect(g.players[id]?.clubId).toBe(g.userClubId);
     expect(g.players[id].contrato).toBeGreaterThan(0);
     const otro = Object.values(g.clubs).find((c) => c.id !== g.userClubId && c.division === 'B')!;
+    const viejo = g.userClubId;
     switchClub(g, otro.id);
-    expect(otro.plantel).toContain(id);
-    expect(otro.xv).toContain(id);
+    // Si el DT se va, la estrella se queda en su club como un jugador más.
+    expect(g.clubs[viejo].plantel).toContain(id);
+    expect(otro.plantel).not.toContain(id);
+    expect(g.players[id].estrella).toBe(false);
   });
 });
