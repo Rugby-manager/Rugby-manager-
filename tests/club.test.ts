@@ -34,12 +34,13 @@ describe('el club como negocio', () => {
     expect(c.obras).toHaveLength(0);
   });
 
-  it('los empleados cobran sueldo cada fecha', () => {
+  it('un empleado nuevo se paga de una por las fechas que quedan', () => {
     const g = createGame({ seed: 34, modo: 'libre' });
+    playRound(g);
     const [mejor] = candidatosStaff(g, 'medico');
     contratarStaff(g, 'medico', mejor);
     playRound(g);
-    expect(g.caja.some((m) => m.concepto === 'Sueldos de empleados' && m.monto < 0)).toBe(true);
+    expect(g.caja.some((m) => m.concepto.startsWith('Gastos nuevos') && m.monto < 0)).toBe(true);
   });
 
   it('los candidatos tienen de 1 a 5 estrellas y más estrellas rinden más', () => {

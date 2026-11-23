@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { GameState } from '../engine/types';
 import { saveGame } from '../store/saves';
 import { completarXV } from '../engine/players';
+import { saldarGastos } from '../engine/club';
 import { DIV_NAME, COMP_NAME, userFixture, LAST_ROUND } from '../engine/game';
 import { ClubJersey } from './common';
 import { IcoCalendario, IcoCamisetas, IcoContrato, IcoFormacion, IcoPelota, IcoTabla } from './icons';
@@ -60,6 +61,7 @@ function GameShell({ g, saveId, onExit }: { g: GameState; saveId: string; onExit
   const refresh = useCallback(() => {
     const club = g.clubs[g.userClubId];
     if (club) completarXV(club, g.players);
+    if (club) saldarGastos(g);
     setTick((t) => t + 1);
     // Guardado automático un instante después de cada cambio.
     window.clearTimeout(saveTimer.current);

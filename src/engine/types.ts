@@ -135,6 +135,10 @@ export interface Club {
   corto: string;
   ciudad: string;
   apodo: string;
+  /** Gasto fijo por fecha que ya está pagado para esta temporada (sueldos, empleados, mantenimiento). */
+  pagadoFecha?: number;
+  /** Cuentas de la temporada, cobradas y pagadas de una al arrancar. */
+  cuentaAnual?: { temporada: number; fechas: number; socios: number; tv: number; sueldos: number; empleados: number; mant: number };
   colores: [string, string];
   /** Tercer color (los aros alternan el segundo y este). */
   color3?: string;

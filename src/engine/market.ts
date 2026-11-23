@@ -1,3 +1,4 @@
+import { fechasRestantes } from './club';
 import { Rng, clamp } from './rng';
 import { MIN_BY_POS, POS_LABEL, POS_ORDER, assignDorsal, generatePlayer, marketValue, overall, wageFor, completarXV } from './players';
 import type { GameState, Player, Pos } from './types';
@@ -41,7 +42,7 @@ export function canBuy(g: GameState, id: string): { ok: boolean; reason?: string
   if (p.prestamo) return { ok: false, reason: 'Está a préstamo: no se puede comprar hasta fin de temporada.', price };
   if (user.plantel.length >= MAX_SQUAD) return { ok: false, reason: `Tu plantel está lleno (máximo ${MAX_SQUAD}). Vendé a alguien primero.`, price };
   if (user.presupuesto < price) return { ok: false, reason: 'No te alcanza el presupuesto.', price };
-  if (user.presupuesto - price < signingWage(p, g) * 4) return { ok: false, reason: 'Te quedarías sin plata para pagarle el sueldo.', price };
+  if (user.presupuesto - price < signingWage(p, g) * fechasRestantes(g)) return { ok: false, reason: 'No te alcanza para el pase y su sueldo de lo que queda de la temporada.', price };
   if (p.clubId) {
     const seller = g.clubs[p.clubId];
     if (seller.plantel.length <= 26 || countPos(g, seller.id, p.pos) <= MIN_BY_POS[p.pos])

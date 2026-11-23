@@ -1,3 +1,4 @@
+import { fechasRestantes } from './club';
 import { Rng, clamp } from './rng';
 import { MIN_BY_POS, POS_LABEL, assignDorsal, marketValue, overall, completarXV } from './players';
 import { MAX_SQUAD, MIN_SQUAD, logMoney, marketOpen } from './market';
@@ -72,7 +73,7 @@ export function canLoanIn(g: GameState, id: string, anios = 1): { ok: boolean; r
   const c = g.clubs[p.clubId];
   if (c.xv.includes(p.id) || countPos(g, c, p.pos) <= MIN_BY_POS[p.pos]) return { ok: false, reason: `${c.nombre} no lo presta: lo necesita.`, price };
   if (user.plantel.length >= MAX_SQUAD) return { ok: false, reason: `Tu plantel está lleno (máximo ${MAX_SQUAD}).`, price };
-  if (user.presupuesto < price + p.sueldo * 4) return { ok: false, reason: 'No te alcanza para el préstamo y su sueldo.', price };
+  if (user.presupuesto < price + p.sueldo * fechasRestantes(g)) return { ok: false, reason: 'No te alcanza para el préstamo y su sueldo.', price };
   return { ok: true, price };
 }
 

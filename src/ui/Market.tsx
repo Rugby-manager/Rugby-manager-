@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGame } from './App';
+import { fechasRestantes } from '../engine/club';
 import { POS_LABEL, POS_ORDER, overall, posText } from '../engine/players';
 import { askingPrice, buyPlayer, canBuy, canSell, freeAgents, marketOpen, salePrice, sellPlayer, signingWage, MAX_SQUAD } from '../engine/market';
 import { Rng } from '../engine/rng';
@@ -194,15 +195,25 @@ function DealBox({ id, mode, onDo }: { id: string; mode: Mode; onDo: () => void 
         </div>
         <div style={{ textAlign: 'right' }}>
           <div className="label">Presupuesto después</div>
-          <b className="num">{formatMoney(club.presupuesto + (sell ? chk.price : -chk.price))}</b>
+          <b className="num">{formatMoney(club.presupuesto + (sell ? chk.price + p.sueldo * fechasRestantes(g) : -chk.price - signingWage(p, g) * fechasRestantes(g)))}</b>
         </div>
       </div>
       {!sell && (
         <div className="small">
           Sueldo que pide: <b>{formatMoney(signingWage(p, g))} por fecha</b> · Contrato por {p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2} temporadas
+          {fechasRestantes(g) > 0 && (
+            <>
+              <br />
+              Su sueldo de las {fechasRestantes(g)} fechas que quedan se paga ahora: <b>{formatMoney(signingWage(p, g) * fechasRestantes(g))}</b>. Total: <b>{formatMoney(chk.price + signingWage(p, g) * fechasRestantes(g))}</b>.
+            </>
+          )}
         </div>
       )}
-      {sell && <div className="small muted">Te ahorrás su sueldo de {formatMoney(p.sueldo)} por fecha.</div>}
+      {sell && (
+        <div className="small muted">
+          {fechasRestantes(g) > 0 ? `Además te devuelven su sueldo de las ${fechasRestantes(g)} fechas que quedan: ${formatMoney(p.sueldo * fechasRestantes(g))}.` : `Te ahorrás su sueldo de ${formatMoney(p.sueldo)} por fecha desde la temporada que viene.`}
+        </div>
+      )}
       {sell && <SellExtras id={id} />}
       {!chk.ok && <div className="notice">{chk.reason}</div>}
       {chk.ok &&
@@ -394,7 +405,7 @@ function LoanBox({ id, onDo }: { id: string; onDo: (anios: number) => void }) {
         </div>
       </div>
       <div className="small">
-        Además pagás su sueldo: {formatMoney(p.sueldo)} por fecha. {anios === 1 ? 'Al terminar la temporada' : 'Al terminar la temporada que viene'} vuelve a {p.clubId ? g.clubs[p.clubId].nombre : 'su club'}.
+        Además pagás su sueldo: {formatMoney(p.sueldo)} por fecha{fechasRestantes(g) > 0 ? ` (${formatMoney(p.sueldo * fechasRestantes(g))} por las ${fechasRestantes(g)} fechas que quedan, se paga ahora)` : ''}. {anios === 1 ? 'Al terminar la temporada' : 'Al terminar la temporada que viene'} vuelve a {p.clubId ? g.clubs[p.clubId].nombre : 'su club'}.
       </div>
       {!chk.ok && <div className="notice">{chk.reason}</div>}
       {chk.ok && (

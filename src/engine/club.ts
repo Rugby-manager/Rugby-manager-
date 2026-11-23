@@ -159,7 +159,7 @@ export function candidatosStaff(g: GameState, k: StaffKey): CandidatoStaff[] {
 /** Contratás a un candidato: paga dos fechas de sueldo de entrada. Si ya había alguien, se va. */
 export function contratarStaff(g: GameState, k: StaffKey, cand: CandidatoStaff): string {
   const c = g.clubs[g.userClubId];
-  if (c.presupuesto < cand.prima) throw new Error('No alcanza la plata para contratarlo.');
+  if (c.presupuesto < cand.prima + cand.sueldo * fechasRestantes(g)) throw new Error('No alcanza la plata para la prima y su sueldo de lo que queda de la temporada.');
   c.presupuesto -= cand.prima;
   logMoney(g, `Contratación: ${cand.nombre} (${STAFF[k].nombre.toLowerCase()}, ${cand.estrellas}★)`, -cand.prima);
   c.staffPersonas = { ...(c.staffPersonas ?? {}), [k]: { nombre: cand.nombre, estrellas: cand.estrellas } };
@@ -253,17 +253,75 @@ export function ingresosFecha(c: Club) {
 }
 
 
-/** Después de cada fecha: sueldos, socios, tele, obras y premios del sponsor (solo el club del usuario). */
-export function weeklyFinances(g: GameState, userFixture: Fixture | undefined, rng: Rng) {
+// ---------- Presupuesto anual ----------
+// La plata fija se mueve una vez por temporada: al arrancar entran las cuotas y la tele del año
+// y se pagan todos los sueldos y gastos del año. Así lo que queda en caja es plata que podés usar.
+
+export const FECHAS_TEMPORADA = 18;
+
+/** Fechas de la liga que faltan jugar (las que todavía cubre lo pagado). */
+export function fechasRestantes(g: GameState): number {
+  return g.phase === 'regular' ? Math.max(0, Math.min(FECHAS_TEMPORADA, FECHAS_TEMPORADA + 1 - Math.ceil(g.round))) : 0;
+}
+
+/** Al arrancar la temporada: entra la plata fija del año y se pagan los gastos del año. */
+export function cobrarTemporada(g: GameState) {
   const c = g.clubs[g.userClubId];
+  const n = FECHAS_TEMPORADA;
   const ing = ingresosFecha(c);
   const gas = gastosFecha(g, c);
-  c.presupuesto += ing.total - gas.total;
-  logMoney(g, `Cuotas de ${c.socios.toLocaleString('es-AR')} socios`, ing.socios);
-  logMoney(g, 'Derechos de TV', ing.tv);
-  logMoney(g, 'Sueldos del plantel', -gas.sueldos);
-  if (gas.empleados) logMoney(g, 'Sueldos de empleados', -gas.empleados);
-  if (gas.mant) logMoney(g, 'Mantenimiento de instalaciones', -gas.mant);
+  c.cuentaAnual = { temporada: g.temporada, fechas: n, socios: ing.socios * n, tv: ing.tv * n, sueldos: gas.sueldos * n, empleados: gas.empleados * n, mant: gas.mant * n };
+  c.presupuesto += (ing.total - gas.total) * n;
+  logMoney(g, `Cuotas de ${c.socios.toLocaleString('es-AR')} socios (toda la temporada)`, ing.socios * n);
+  logMoney(g, 'Derechos de TV (toda la temporada)', ing.tv * n);
+  logMoney(g, `Sueldos del plantel (toda la temporada)`, -gas.sueldos * n);
+  if (gas.empleados) logMoney(g, 'Sueldos de empleados (toda la temporada)', -gas.empleados * n);
+  if (gas.mant) logMoney(g, 'Mantenimiento de instalaciones (toda la temporada)', -gas.mant * n);
+  c.pagadoFecha = gas.total;
+}
+
+/** Cuánto cuesta sumar (o te ahorrás sacando) un gasto por fecha por lo que queda de la temporada. */
+export const costoRestante = (g: GameState, porFecha: number) => porFecha * fechasRestantes(g);
+
+/**
+ * Si cambió lo que se gasta por fecha (fichaste, vendiste, contrataste, terminó una obra),
+ * se paga o se devuelve la diferencia por las fechas que faltan. Nunca hay descuentos sorpresa.
+ */
+export function saldarGastos(g: GameState) {
+  const c = g.clubs[g.userClubId];
+  if (!c) return;
+  const total = gastosFecha(g, c).total;
+  if (c.pagadoFecha == null) {
+    // Partida vieja o club nuevo a mitad de año: se arma el presupuesto de lo que queda.
+    const n = fechasRestantes(g);
+    const ing = ingresosFecha(c);
+    const gas = gastosFecha(g, c);
+    c.pagadoFecha = total;
+    if (!n) return;
+    c.cuentaAnual = { temporada: g.temporada, fechas: n, socios: ing.socios * n, tv: ing.tv * n, sueldos: gas.sueldos * n, empleados: gas.empleados * n, mant: gas.mant * n };
+    c.presupuesto += (ing.total - gas.total) * n;
+    logMoney(g, `Presupuesto de las ${n} fechas que quedan (cuotas y tele menos sueldos y gastos)`, (ing.total - gas.total) * n);
+    return;
+  }
+  const diff = total - c.pagadoFecha;
+  if (!diff) return;
+  const n = fechasRestantes(g);
+  c.pagadoFecha = total;
+  if (!n) return;
+  c.presupuesto -= diff * n;
+  logMoney(g, diff > 0 ? `Gastos nuevos por las ${n} fechas que quedan` : `Te ahorrás gastos de las ${n} fechas que quedan`, -diff * n);
+  if (c.cuentaAnual?.temporada === g.temporada) {
+    const ant = c.cuentaAnual;
+    const gas = gastosFecha(g, c);
+    // Se recalcula lo del año: lo ya jugado con lo viejo + lo que falta con lo nuevo (aproximado).
+    const k = n / ant.fechas;
+    c.cuentaAnual = { ...ant, sueldos: Math.round(ant.sueldos * (1 - k) + gas.sueldos * n), empleados: Math.round(ant.empleados * (1 - k) + gas.empleados * n), mant: Math.round(ant.mant * (1 - k) + gas.mant * n) };
+  }
+}
+
+/** Después de cada fecha: socios, obras y premios del sponsor (solo el club del usuario). Los gastos fijos ya están pagados. */
+export function weeklyFinances(g: GameState, userFixture: Fixture | undefined, rng: Rng) {
+  const c = g.clubs[g.userClubId];
 
   // Socios: suben si se gana, bajan si se pierde o si la entrada está muy cara.
   let d = 0;

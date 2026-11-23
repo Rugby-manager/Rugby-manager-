@@ -22,7 +22,7 @@ import { presupuestoInicial, refreshFreeAgents, sponsor, taquilla, logMoney } fr
 import { ENERGIA_ENTRENO, planNuevo, trainAll } from './training';
 import { COPA_NOMBRE, CUP_ETAPA, advanceCup, drawCup, scoutYouth } from './cup';
 import { INTL_NOMBRE, INTL_PREMIO, avanzarIntl, elegirRivales, fixturesGrupo } from './internacional';
-import { asistencia, initClubBusiness, signSponsor, sponsorOffers, weeklyFinances } from './club';
+import { asistencia, cobrarTemporada, initClubBusiness, saldarGastos, signSponsor, sponsorOffers, weeklyFinances } from './club';
 import { afterUserMatch, closeCareerSeason, newCareer, startCareerSeason } from './career';
 import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
@@ -94,6 +94,16 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
   scoutYouth(g, rng);
   g.amistosos = !!opts.amistosos;
   if (g.amistosos) makePreseason(g, rng);
+  cobrarTemporada(g);
+  {
+    // Para arrancar, la comisión directiva se asegura de que haya algo de plata para gastar.
+    const u = g.clubs[g.userClubId];
+    const piso = { A: 45_000_000, B: 30_000_000, C: 20_000_000 }[u.division as 'A' | 'B' | 'C'] ?? 20_000_000;
+    if (u.presupuesto < piso) {
+      logMoney(g, 'Aporte de la comisión directiva para arrancar', piso - u.presupuesto);
+      u.presupuesto = piso;
+    }
+  }
   g.rng = rng.s;
   if (textoAyuda) {
     addNews(g, 'Ayuda para arrancar', textoAyuda);
@@ -275,6 +285,7 @@ export function playRound(g: GameState, userResult?: MatchResult): RoundReport {
     signSponsor(g, 0);
     addNews(g, 'La directiva eligió sponsor', `Como no elegiste, la comisión directiva firmó con ${nombre}.`);
   }
+  saldarGastos(g);
   prepareLineups(g);
   const fixtures = roundFixtures(g);
   let autoCambios = 0;
@@ -848,6 +859,7 @@ export function startNextSeason(g: GameState): string[] {
   if (g.amistosos) makePreseason(g, rng);
   const post = aplicarPostemporada(g, rng);
   if (post) addNews(g, '💪 Postemporada', post);
+  cobrarTemporada(g);
   g.rng = rng.s;
   addNews(g, `Arranca la temporada ${g.temporada}`, `${user.nombre} juega en ${DIV_NAME[user.division]}. ${informes.join(' ')}`);
   if (europa.length) addNews(g, 'Se van a Europa', `Clubes de afuera se llevaron a ${europa.join(', ')}.`);
@@ -1058,6 +1070,8 @@ export function migrate(g: GameState): GameState {
     g.version = 21;
   }
   for (const p of Object.values(g.players)) p.energia = Math.round(p.energia);
+  // Presupuesto anual: las partidas viejas arman el presupuesto de lo que queda de la temporada.
+  saldarGastos(g);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;
   // La estrella de la ayuda inicial tiene que estar en el XV mientras el cartel siga sin cerrar.
   completarXV(g.clubs[g.userClubId], g.players);

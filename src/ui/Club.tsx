@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGame } from './App';
 import {
   INST, INST_ORDER, STAFF, STAFF_ORDER, asistencia, build, canBuild, candidatosStaff, capacidad, contratarStaff, cuotaSocio,
-  costoDiv, despedirStaff, staffSueldo, gastosFecha, ingresosFecha, nombreStaff, precioReferencia, signSponsor, staffEstrellas,
+  costoDiv, despedirStaff, fechasRestantes, staffSueldo, gastosFecha, nombreStaff, precioReferencia, signSponsor, staffEstrellas,
 } from '../engine/club';
 import { userFixture } from '../engine/game';
 import { formatMoney } from './common';
@@ -63,30 +63,51 @@ function Caja() {
   const { g } = useGame();
   const c = g.clubs[g.userClubId];
   const gas = gastosFecha(g, c);
-  const ing = ingresosFecha(c);
+  const ca = c.cuentaAnual?.temporada === g.temporada ? c.cuentaAnual : null;
+  const quedan = fechasRestantes(g);
   const [all, setAll] = useState(false);
   return (
     <>
       <section className="card stack">
         <div className="bigmoney">
-          <span className="label">Plata en caja</span>
+          <span className="label">Plata para gastar</span>
           <span className={`lcdbig num ${c.presupuesto < 0 ? 'neg' : ''}`}>{formatMoney(c.presupuesto)}</span>
         </div>
-        {c.presupuesto < 0 && <div className="notice">La caja está en rojo. No podés fichar, y la comisión directiva pierde confianza cada fecha. Vendé jugadores, bajá empleados o subí ingresos.</div>}
-        <h3>Por fecha (aproximado)</h3>
-        <table className="money">
-          <tbody>
-            <tr><td>Cuotas de {c.socios.toLocaleString('es-AR')} socios</td><td><Money v={ing.socios} sign /></td></tr>
-            <tr><td>Derechos de TV</td><td><Money v={ing.tv} sign /></td></tr>
-            <tr><td>Sueldos del plantel ({c.plantel.length})</td><td><Money v={-gas.sueldos} sign /></td></tr>
-            <tr><td>Sueldos de empleados</td><td><Money v={-gas.empleados} sign /></td></tr>
-            <tr><td>Mantenimiento</td><td><Money v={-gas.mant} sign /></td></tr>
-            <tr className="tot"><td>Saldo sin contar entradas</td><td><Money v={ing.total - gas.total} sign /></td></tr>
-          </tbody>
-        </table>
-        <p className="small muted" style={{ margin: 0 }}>
-          Además, cuando jugás de local entra la plata de las entradas{c.inst.quincho ? ' y del quincho' : ''}. El sponsor paga al firmar{c.sponsor?.porVictoria ? ' y te da un premio por cada partido ganado' : ''}.
-        </p>
+        {c.presupuesto >= 0 ? (
+          <div className="small" style={{ margin: 0 }}>
+            ✅ Los sueldos y gastos de toda la temporada <b>ya están pagados</b>. Esta plata es tuya: para fichajes, obras o empleados. No te van a descontar nada por fecha.
+          </div>
+        ) : (
+          <div className="notice">La caja está en rojo. No podés fichar, y la comisión directiva pierde confianza cada fecha. Vendé jugadores o bajá empleados.</div>
+        )}
+        {ca && (
+          <>
+            <h3>Presupuesto de la temporada {ca.temporada}</h3>
+            <p className="small muted" style={{ margin: 0 }}>Se cobró y se pagó todo junto al arrancar ({ca.fechas} fechas).</p>
+            <table className="money">
+              <tbody>
+                <tr><td>Cuotas de los socios</td><td><Money v={ca.socios} sign /></td></tr>
+                <tr><td>Derechos de TV</td><td><Money v={ca.tv} sign /></td></tr>
+                <tr><td>Sueldos del plantel</td><td><Money v={-ca.sueldos} sign /></td></tr>
+                <tr><td>Sueldos de empleados</td><td><Money v={-ca.empleados} sign /></td></tr>
+                <tr><td>Mantenimiento</td><td><Money v={-ca.mant} sign /></td></tr>
+                <tr className="tot"><td>Saldo del año</td><td><Money v={ca.socios + ca.tv - ca.sueldos - ca.empleados - ca.mant} sign /></td></tr>
+              </tbody>
+            </table>
+          </>
+        )}
+        <h3>Lo que todavía puede entrar</h3>
+        <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+          <li>Las entradas de cada partido de local{c.inst.quincho ? ' y el quincho' : ''}.</li>
+          {c.sponsor?.porVictoria ? <li>{formatMoney(c.sponsor.porVictoria)} del sponsor por cada partido ganado.</li> : null}
+          <li>Los premios de la Federación si salís campeón o ascendés, y la ayuda de cada temporada.</li>
+          <li>Lo que cobres por vender o ceder jugadores.</li>
+        </ul>
+        {quedan > 0 && (
+          <p className="small muted" style={{ margin: 0 }}>
+            Si fichás ahora, pagás el pase más su sueldo de las {quedan} fechas que quedan, todo de una. Si vendés, te devuelven el sueldo de esas fechas. Hoy gastás {formatMoney(gas.total)} por fecha en total.
+          </p>
+        )}
       </section>
       <section className="card" style={{ padding: '4px 12px' }}>
         <h3>Movimientos</h3>
