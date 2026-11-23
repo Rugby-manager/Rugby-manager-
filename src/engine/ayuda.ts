@@ -9,7 +9,7 @@ export type AyudaInicial = 'nada' | 'plata' | 'estrella' | 'estadio' | 'staff' |
 
 export const AYUDAS: { id: AyudaInicial; icono: string; titulo: string; texto: string; soloCarrera?: boolean }[] = [
   { id: 'nada', icono: '🏉', titulo: 'Nada, partida normal', texto: 'Arrancás con lo que tiene el club. Para los que quieren el desafío de verdad.' },
-  { id: 'plata', icono: '💰', titulo: 'Ayuda financiera', texto: 'Un mecenas pone plata en la caja: de 40 a 90 millones según la categoría del club.' },
+  { id: 'plata', icono: '💰', titulo: 'Ayuda financiera', texto: 'Un mecenas pone plata en la caja: 200 millones en la C, 250 en la B y 300 en la A.' },
   { id: 'estrella', icono: '⭐', titulo: 'Un jugador estrella', texto: 'Llega una súper estrella (más de 85 de media, 26 años o menos) al puesto donde más flojo está tu XV, con contrato por 4 años.' },
   { id: 'estadio', icono: '🏟️', titulo: 'Súper estadio', texto: 'Tribunas más grandes, gimnasio y cancha de entrenamiento mejorados y quincho nuevo.' },
   { id: 'staff', icono: '🧑‍🏫', titulo: 'Cuerpo técnico de lujo', texto: 'Todos los empleados de 4 estrellas: ayudante, kinesiólogo, médico, nutricionista, ojeador y entrenador de juveniles.' },
@@ -17,14 +17,14 @@ export const AYUDAS: { id: AyudaInicial; icono: string; titulo: string; texto: s
   { id: 'paciencia', icono: '🤝', titulo: 'Respaldo de la comisión', texto: 'La comisión directiva te banca a muerte: arrancás con la confianza al 100% y más prestigio.', soloCarrera: true },
 ];
 
-export const PLATA_AYUDA: Record<string, number> = { A: 90_000_000, B: 60_000_000, C: 40_000_000 };
+export const PLATA_AYUDA: Record<string, number> = { A: 300_000_000, B: 250_000_000, C: 200_000_000 };
 
 /** Aplica la ayuda elegida al club del usuario. Devuelve el texto para la noticia (o null si no eligió nada). */
 export function aplicarAyuda(g: GameState, ayuda: AyudaInicial, rng: Rng): string | null {
   const c = g.clubs[g.userClubId];
   switch (ayuda) {
     case 'plata': {
-      const m = PLATA_AYUDA[c.division] ?? 40_000_000;
+      const m = PLATA_AYUDA[c.division] ?? 200_000_000;
       c.presupuesto += m;
       logMoney(g, 'Ayuda inicial: aporte de un mecenas', m);
       return `Un mecenas del club puso $${Math.round(m / 1_000_000)} millones para arrancar.`;
