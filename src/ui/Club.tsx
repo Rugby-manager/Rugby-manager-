@@ -5,7 +5,7 @@ import {
   costoDiv, despedirStaff, fechasRestantes, staffSueldo, gastosFecha, nombreStaff, precioReferencia, signSponsor, staffEstrellas,
 } from '../engine/club';
 import { userFixture } from '../engine/game';
-import { formatMoney } from './common';
+import { ANIO, formatMoney, porAnio } from './common';
 import { IcoCaja, IcoContrato, IcoEntrada, IcoEstadio, IcoPelota, IcoSilbato } from './icons';
 import { Juveniles } from './Cantera';
 import { Sheet, Stars } from './common';
@@ -104,7 +104,7 @@ function Caja() {
         </ul>
         {quedan > 0 && (
           <p className="small muted" style={{ margin: 0 }}>
-            Si fichás ahora, pagás el pase más su sueldo de las {quedan} fechas que quedan, todo de una. Si vendés, te devuelven el sueldo de esas fechas. Hoy gastás {formatMoney(gas.total)} por fecha en total.
+            Si fichás ahora, pagás el pase más su sueldo de las {quedan} fechas que quedan, todo de una. Si vendés, te devuelven el sueldo de esas fechas. Hoy gastás {porAnio(gas.total)} en total.
           </p>
         )}
       </section>
@@ -188,7 +188,7 @@ function Entradas() {
         <h3>Socios</h3>
         <div className="grid2">
           <Stat l="Socios" v={c.socios.toLocaleString('es-AR')} />
-          <Stat l="Cuota por fecha" v={formatMoney(cuotaSocio(c.reputacion), true)} />
+          <Stat l="Cuota por año" v={formatMoney(cuotaSocio(c.reputacion) * ANIO, true)} />
         </div>
         <p className="small muted" style={{ margin: 0 }}>Se hacen socios cuando el equipo gana, cuando ascendés o salís campeón, y si tenés quincho. Se van si perdés seguido o descendés.</p>
       </section>
@@ -234,7 +234,7 @@ function Estadio() {
               </span>
             </div>
             <p className="small" style={{ margin: 0 }}>{info.efecto}</p>
-            <div className="small muted">Nivel {lvl} de {info.max}{lvl ? ` · Mantenimiento ${formatMoney(Math.round(info.mant * lvl * costoDiv(c)))} por fecha` : ''}</div>
+            <div className="small muted">Nivel {lvl} de {info.max}{lvl ? ` · Mantenimiento ${porAnio(Math.round(info.mant * lvl * costoDiv(c)))}` : ''}</div>
             {obra ? (
               <div>
                 <div className="small">En obra: nivel {lvl + 1}. Faltan {obra.fechas} {obra.fechas === 1 ? 'fecha' : 'fechas'}.</div>
@@ -282,7 +282,7 @@ function Empleados() {
   return (
     <>
       <p className="small" style={{ margin: 0, color: 'var(--on-bg)' }}>
-        Cada empleado tiene de 1 a 5 estrellas: cuantas más, mejor trabaja y más cobra. Contratar cuesta dos fechas de sueldo de entrada. Los candidatos cambian cada fecha.
+        Cada empleado tiene de 1 a 5 estrellas: cuantas más, mejor trabaja y más cobra. Contratar cuesta una prima de entrada, más su sueldo de lo que queda de la temporada (se paga de una). Los candidatos cambian cada fecha.
       </p>
       {STAFF_ORDER.map((k) => {
         const e = staffEstrellas(c, k);
@@ -296,7 +296,7 @@ function Empleados() {
                   <div className="name">{nombreStaff(c, k)}{c.staffPersonas?.[k]?.idolo && <span className="pers pers-declub"> ⭐ Ídolo del club</span>}</div>
                   <Stars n={e} />
                 </div>
-                <div className="small muted" style={{ textAlign: 'right' }}>Cobra {formatMoney(staffSueldo(e, c))}<br />por fecha</div>
+                <div className="small muted" style={{ textAlign: 'right' }}>Cobra {formatMoney(staffSueldo(e, c) * ANIO)}<br />por año</div>
               </div>
             ) : (
               <div className="small muted">No tenés {STAFF[k].nombre.toLowerCase()}.</div>
@@ -326,14 +326,17 @@ function Empleados() {
                     <Stars n={cand.estrellas} />
                   </div>
                   <div className="small" style={{ textAlign: 'right' }}>
-                    {formatMoney(cand.sueldo)} por fecha
+                    {porAnio(cand.sueldo)}
                     <br />
-                    <span className="muted">Entrada: {formatMoney(cand.prima)}</span>
+                    <span className="muted">
+                      Pagás ahora: {formatMoney(cand.prima + cand.sueldo * fechasRestantes(g))}
+                      {fechasRestantes(g) > 0 ? ` (prima ${formatMoney(cand.prima)} + sueldo de ${fechasRestantes(g)} fechas)` : ''}
+                    </span>
                   </div>
                 </div>
                 <button
                   className="btn small primary"
-                  disabled={c.presupuesto < cand.prima}
+                  disabled={c.presupuesto < cand.prima + cand.sueldo * fechasRestantes(g)}
                   onClick={() => {
                     const k = elegir;
                     setElegir(null);

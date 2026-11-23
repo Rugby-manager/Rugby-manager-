@@ -29,7 +29,7 @@ export function describirEvento(g: GameState, e: VestuarioEvento): { titulo: str
       titulo: `${a.apellido} quiere irse`,
       texto: `${nom(a)} dice que está para un club más grande y que se quiere ir. El vestuario está atento a qué hacés.`,
       opciones: [
-        { texto: 'Subirle el sueldo', efecto: `Cobra un 25% más (${Math.round(a.sueldo * 0.25).toLocaleString('es-AR')} más por fecha) y se queda contento (+20 de moral).` },
+        { texto: 'Subirle el sueldo', efecto: `Cobra un 25% más ($${Math.round(a.sueldo * 0.25 * 18).toLocaleString('es-AR')} más por año) y se queda contento (+20 de moral).` },
         { texto: 'Convencerlo de quedarse', efecto: 'Depende de cómo lo tomes: puede quedarse tranquilo o enojarse más.' },
         { texto: 'Dejarlo ir', efecto: 'Lo ponés transferible y se va contento cuando aparezca una oferta.' },
       ],
@@ -39,8 +39,8 @@ export function describirEvento(g: GameState, e: VestuarioEvento): { titulo: str
       titulo: `${a.apellido} pide un aumento`,
       texto: `${nom(a)} viene jugando todos los partidos y te pide una mejora: "Dejo todo por el club, quiero que se note en el sueldo."`,
       opciones: [
-        { texto: 'Aumento del 20%', efecto: `Cobra ${Math.round(a.sueldo * 0.2).toLocaleString('es-AR')} más por fecha y queda feliz (+18 de moral).` },
-        { texto: 'Aumento del 10%', efecto: `Cobra ${Math.round(a.sueldo * 0.1).toLocaleString('es-AR')} más por fecha. Lo acepta a medias (+6 de moral).` },
+        { texto: 'Aumento del 20%', efecto: `Cobra $${Math.round(a.sueldo * 0.2 * 18).toLocaleString('es-AR')} más por año y queda feliz (+18 de moral).` },
+        { texto: 'Aumento del 10%', efecto: `Cobra $${Math.round(a.sueldo * 0.1 * 18).toLocaleString('es-AR')} más por año. Lo acepta a medias (+6 de moral).` },
         { texto: 'Ahora no hay plata', efecto: 'Se enoja (−12 de moral) y si queda muy bajoneado puede pedir irse.' },
       ],
     };

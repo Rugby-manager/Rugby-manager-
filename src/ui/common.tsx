@@ -40,6 +40,10 @@ export function Jersey({ colors, color3, patron, number, size = 40, title }: { c
   );
 }
 
+/** Los sueldos se guardan por fecha, pero se muestran por año (18 fechas). */
+export const ANIO = 18;
+export const porAnio = (porFecha: number) => `${formatMoney(porFecha * ANIO)} por año`;
+
 export function ClubJersey({ club, size = 40, number }: { club: Club; size?: number; number?: number | string }) {
   return <Jersey colors={club.colores} color3={club.color3} patron={club.patron} size={size} number={number} title={club.nombre} />;
 }

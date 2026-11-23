@@ -149,7 +149,7 @@ export function tablaM19(g: GameState): FilaM19[] {
 export function setInversion(g: GameState, v: Inversion): string {
   g.m19!.inversion = v;
   const costo = costoCantera(g);
-  return costo ? `La cantera recibe ${INVERSION[v].label.toLowerCase()}: cuesta $${costo.toLocaleString('es-AR')} por fecha.` : 'La cantera vuelve a lo justo: no hay gastos extra.';
+  return costo ? `La cantera recibe ${INVERSION[v].label.toLowerCase()}: cuesta $${(costo * 18).toLocaleString('es-AR')} por año.` : 'La cantera vuelve a lo justo: no hay gastos extra.';
 }
 
 /** Subís un pibe de la M19 al plantel de Primera. */

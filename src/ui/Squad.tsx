@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { renew, renewalDemand } from '../engine/club';
 import { useGame } from './App';
 import { ATTR_DESC, ATTR_GROUPS, ATTR_KEYS, ATTR_LABEL, POS_LABEL, POS_ORDER, W, marketValue, overall, posText } from '../engine/players';
-import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, toStars } from './common';
+import { Ovr, Seg, Sheet, Stars, formatMoney, ovrColor, porAnio, toStars } from './common';
 import { apurarVuelta, parteKine } from '../engine/lesiones';
 import { CHARLA_CADA, charlar, puedeCharlar, type TipoCharla } from '../engine/vestuario';
 import { FOCOS, FOCO_ATTRS, FOCO_DESC, FOCO_LABEL, INTENSIDAD_DESC, INTENSIDAD_EFECTO, INTENSIDAD_LABEL, planLabel } from '../engine/training';
@@ -484,7 +484,7 @@ function ContractBox({ g, p, mine, onChange }: { g: GameState; p: Player; mine: 
         <div className="grow">
           <div className="label">Contrato</div>
           <div>
-            <b>{formatMoney(p.sueldo)}</b> por fecha · {p.contrato <= 1 ? <b style={{ color: 'var(--loss)' }}>último año</b> : `${p.contrato} temporadas más`}
+            <b>{porAnio(p.sueldo)}</b> · {p.contrato <= 1 ? <b style={{ color: 'var(--loss)' }}>último año</b> : `${p.contrato} temporadas más`}
           </div>
         </div>
         {mine && !open && (
@@ -497,8 +497,8 @@ function ContractBox({ g, p, mine, onChange }: { g: GameState; p: Player; mine: 
       {mine && open && (
         <>
           <div className="small">
-            Para renovar pide <b>{formatMoney(pide)} por fecha</b>
-            {pide > p.sueldo ? ` (hoy cobra ${formatMoney(p.sueldo)})` : ''}.{p.moral < 60 ? ' Como no está muy contento, pide más.' : ''}
+            Para renovar pide <b>{porAnio(pide)}</b>
+            {pide > p.sueldo ? ` (hoy cobra ${porAnio(p.sueldo)})` : ''}.{p.moral < 60 ? ' Como no está muy contento, pide más.' : ''}
           </div>
           <div className="grid3">
             {[1, 2, 3].map((n) => (

@@ -7,7 +7,7 @@ import { Rng } from '../engine/rng';
 import { canLoanIn, canLoanOut, costoPrestamo, hastaTexto, loanIn, loanOut, pagoCesion, prestables, toggleListaPrestamo, toggleTransferible, transferibles } from '../engine/loans';
 import { OFERTA_FECHAS, acceptOffer, counterOffer, nombreOfertante, ofertasVigentes, rejectOffer } from '../engine/offers';
 import { marketValue } from '../engine/players';
-import { ClubJersey, Ovr, formatMoney } from './common';
+import { ClubJersey, Ovr, formatMoney, porAnio } from './common';
 import { PlayerSheet } from './Squad';
 import type { Player, Pos } from '../engine/types';
 
@@ -98,7 +98,7 @@ export function MarketScreen() {
         {mode === 'transferibles' && 'Jugadores que sus clubes ponen en venta porque les sobran. Salen más baratos que en Comprar (menos de lo que valen). La lista cambia cada 3 fechas.'}
         {mode === 'prestamos' && 'Jugadores que sus clubes prestan hasta fin de temporada. Pagás el 10% de lo que valen más su sueldo, y después vuelven a su club.'}
         {mode === 'vender' && `Tocá a un jugador para venderlo al instante (te pagan el 80% de lo que vale), ponerlo transferible (te llegan más ofertas) o cederlo a préstamo. Tenés ${user.plantel.length} jugadores (mínimo 23, máximo ${MAX_SQUAD}).`}
-        {mode !== 'vender' && ` Además del precio, cada jugador cobra un sueldo por fecha. Caja: ${formatMoney(user.presupuesto)}.`}
+        {mode !== 'vender' && ` Además del precio, cada jugador cobra un sueldo por año (si fichás a mitad de temporada, pagás solo lo que queda). Caja: ${formatMoney(user.presupuesto)}.`}
       </p>
       {(
         <>
@@ -200,18 +200,18 @@ function DealBox({ id, mode, onDo }: { id: string; mode: Mode; onDo: () => void 
       </div>
       {!sell && (
         <div className="small">
-          Sueldo que pide: <b>{formatMoney(signingWage(p, g))} por fecha</b> · Contrato por {p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2} temporadas
+          Sueldo que pide: <b>{porAnio(signingWage(p, g))}</b> · Contrato por {p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2} temporadas
           {fechasRestantes(g) > 0 && (
             <>
               <br />
-              Su sueldo de las {fechasRestantes(g)} fechas que quedan se paga ahora: <b>{formatMoney(signingWage(p, g) * fechasRestantes(g))}</b>. Total: <b>{formatMoney(chk.price + signingWage(p, g) * fechasRestantes(g))}</b>.
+              De esta temporada le pagás ahora solo lo que queda ({fechasRestantes(g)} de 18 fechas): <b>{formatMoney(signingWage(p, g) * fechasRestantes(g))}</b>. Total: <b>{formatMoney(chk.price + signingWage(p, g) * fechasRestantes(g))}</b>.
             </>
           )}
         </div>
       )}
       {sell && (
         <div className="small muted">
-          {fechasRestantes(g) > 0 ? `Además te devuelven su sueldo de las ${fechasRestantes(g)} fechas que quedan: ${formatMoney(p.sueldo * fechasRestantes(g))}.` : `Te ahorrás su sueldo de ${formatMoney(p.sueldo)} por fecha desde la temporada que viene.`}
+          {fechasRestantes(g) > 0 ? `Además te devuelven su sueldo de las ${fechasRestantes(g)} fechas que quedan: ${formatMoney(p.sueldo * fechasRestantes(g))}.` : `Te ahorrás su sueldo de ${porAnio(p.sueldo)} desde la temporada que viene.`}
         </div>
       )}
       {sell && <SellExtras id={id} />}
@@ -405,7 +405,7 @@ function LoanBox({ id, onDo }: { id: string; onDo: (anios: number) => void }) {
         </div>
       </div>
       <div className="small">
-        Además pagás su sueldo: {formatMoney(p.sueldo)} por fecha{fechasRestantes(g) > 0 ? ` (${formatMoney(p.sueldo * fechasRestantes(g))} por las ${fechasRestantes(g)} fechas que quedan, se paga ahora)` : ''}. {anios === 1 ? 'Al terminar la temporada' : 'Al terminar la temporada que viene'} vuelve a {p.clubId ? g.clubs[p.clubId].nombre : 'su club'}.
+        Además pagás su sueldo: {porAnio(p.sueldo)}{fechasRestantes(g) > 0 ? ` (de esta temporada pagás ahora solo lo que queda: ${formatMoney(p.sueldo * fechasRestantes(g))})` : ''}. {anios === 1 ? 'Al terminar la temporada' : 'Al terminar la temporada que viene'} vuelve a {p.clubId ? g.clubs[p.clubId].nombre : 'su club'}.
       </div>
       {!chk.ok && <div className="notice">{chk.reason}</div>}
       {chk.ok && (

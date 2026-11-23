@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Club, GameState } from '../engine/types';
 import { useGame } from './App';
-import { formatMoney } from './common';
+import { formatMoney, porAnio } from './common';
 import { describirEvento, resolverEvento } from '../engine/vestuario';
 import { RESPUESTAS_PRENSA, conferenciaPendiente, responderPrensa } from '../engine/diario';
 import { hacerTercer, opcionesTercer, tercerPendiente } from '../engine/tercer';
@@ -224,8 +224,8 @@ function eventos(g: GameState): Evento[] {
         <>
           {posText(p)}, {p.edad} años, {overall(p)} de media. Le queda <b>la última temporada</b>: si no le renovás, se va libre cuando termine el torneo.
           <br />
-          Para seguir pide <b>{formatMoney(pide)} por fecha</b>
-          {pide > p.sueldo ? ` (hoy cobra ${formatMoney(p.sueldo)})` : ''}.
+          Para seguir pide <b>{porAnio(pide)}</b>
+          {pide > p.sueldo ? ` (hoy cobra ${porAnio(p.sueldo)})` : ''}.
         </>
       ),
       opciones: [
@@ -314,7 +314,7 @@ function eventos(g: GameState): Evento[] {
       texto: (
         <>
           {i.puesto}, {i.temporadas} {i.temporadas === 1 ? 'temporada' : 'temporadas'} en el club, {i.partidos} partidos y {i.tries} tries. Se retiró a los {i.edad} y quiere seguir ligado al club. Como empleado
-          sería de <b>{i.estrellas} {i.estrellas === 1 ? 'estrella' : 'estrellas'}</b> y cobraría {formatMoney(sueldoIdolo(g, i))} por fecha (menos que cualquiera, porque vuelve a su casa). La hinchada lo adora.
+          sería de <b>{i.estrellas} {i.estrellas === 1 ? 'estrella' : 'estrellas'}</b> y cobraría {porAnio(sueldoIdolo(g, i))} (menos que cualquiera, porque vuelve a su casa). La hinchada lo adora.
         </>
       ),
       opciones: [

@@ -1,7 +1,7 @@
 // La cantera: M19 (tabla, plantel, inversión y entrenador) y los pibes que encontró el ojeador.
 import { useState } from 'react';
 import { useGame } from './App';
-import { Ovr, Stars, formatMoney } from './common';
+import { Ovr, Stars, porAnio } from './common';
 import { overall, posText } from '../engine/players';
 import { staffEstrellas, nombreStaff } from '../engine/club';
 import { promoteYouth, releaseYouth } from '../engine/cup';
@@ -91,7 +91,7 @@ export function Juveniles() {
           ))}
         </div>
         <p className="small muted" style={{ margin: 0 }}>
-          {INVERSION[m.inversion].texto} {costoCantera(g) ? `Cuesta ${formatMoney(costoCantera(g))} por fecha.` : ''}
+          {INVERSION[m.inversion].texto} {costoCantera(g) ? `Cuesta ${porAnio(costoCantera(g))}.` : ''}
         </p>
       </section>
 
@@ -139,7 +139,7 @@ export function Juveniles() {
       <section className="card stack">
         <h3>Los pibes ({pibes.length})</h3>
         <p className="small muted" style={{ margin: 0 }}>
-          Los de {EDAD_MAX_M19} años están en su último año: si no los subís o los cedés, al terminar la temporada se van. Los que subís a Primera cobran {formatMoney(25_000)} por fecha.
+          Los de {EDAD_MAX_M19} años están en su último año: si no los subís o los cedés, al terminar la temporada se van. Los que subís a Primera cobran {porAnio(25_000)}.
         </p>
         {lista.map((p) => (
           <div key={p.id} className="m19-pibe">
