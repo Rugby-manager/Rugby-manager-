@@ -1,3 +1,4 @@
+import { sumarAmigos } from './amigos';
 import { aplicarPostemporada } from './postemporada';
 import { efectosPersonalidad, asignarPersonalidad } from './personalidad';
 import { initM19, jugarFechaM19, nuevaTemporadaM19, pibesM19 } from './m19';
@@ -34,7 +35,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -86,6 +87,8 @@ export function createGame(opts: { seed?: number; userClubIndex?: number; manage
     X: [],
   };
   [...CLUB_SEEDS, ...CLUB_SEEDS_C].forEach((seedClub, i) => addClub(g, rng, `c${i}`, seedClub, reps[seedClub.division].pop()!));
+  sumarAmigos(g);
+  for (const c of Object.values(g.clubs)) c.xv = bestXV(c, g.players);
   const userIdx = clamp(opts.userClubIndex ?? 0, 0, Object.keys(g.clubs).length - 1);
   g.userClubId = `c${userIdx}`;
   g.clubs[g.userClubId].tactica = { ...DEFAULT_TACTICS };
@@ -775,7 +778,7 @@ export function startNextSeason(g: GameState): string[] {
       p.ovrInicio = overall(p);
       p.attrsInicio = { ...p.attrs };
       p.moral = clamp(Math.round((p.moral + 62) / 2), 30, 90);
-      const retireP = p.estrella && p.edad < 37 ? 0 : p.edad >= 36 ? 0.85 : p.edad >= 34 ? 0.45 : p.edad >= 32 ? 0.15 : 0;
+      const retireP = (p.estrella || p.amigo) && p.edad < 37 ? 0 : p.edad >= 36 ? 0.85 : p.edad >= 34 ? 0.45 : p.edad >= 32 ? 0.15 : 0;
       if (rng.chance(retireP)) retirados.push(p);
     }
     for (const p of retirados) {
@@ -790,7 +793,7 @@ export function startNextSeason(g: GameState): string[] {
       const prom = teamAverage(c, g.players);
       for (const id of [...c.plantel]) {
         const p = g.players[id];
-        if (!p.prestamo && overall(p) >= 84 && p.edad >= 23 && p.edad <= 31 && rng.chance(prom > 82 ? 0.4 : 0.15)) {
+        if (!p.prestamo && !p.amigo && overall(p) >= 84 && p.edad >= 23 && p.edad <= 31 && rng.chance(prom > 82 ? 0.4 : 0.15)) {
           c.plantel = c.plantel.filter((x) => x !== id);
           c.xv = c.xv.map((x) => (x === id ? null : x));
           europa.push(`${p.nombre} ${p.apellido} (${c.corto})`);
@@ -1108,6 +1111,12 @@ export function migrate(g: GameState): GameState {
     initM19(g);
   }
   if (g.version < 22) g.version = 22;
+  if (g.version < 23) {
+    // Luca: sus amigos (y él, el mejor del juego) juegan en Deportivo Camet.
+    sumarAmigos(g);
+    for (const c of Object.values(g.clubs)) if (c.id !== g.userClubId) c.xv = bestXV(c, g.players);
+    g.version = 23;
+  }
   // Presupuesto anual: las partidas viejas arman el presupuesto de lo que queda de la temporada.
   saldarGastos(g);
   g.clubs[g.userClubId].hinchada ??= HINCHADA_INICIAL;

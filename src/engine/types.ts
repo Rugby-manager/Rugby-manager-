@@ -50,6 +50,8 @@ export interface Player {
   entreno: PlanEntreno | null;
   /** La súper estrella de la ayuda inicial (se marca con ⭐). */
   estrella?: boolean;
+  /** Jugador con nombre fijo puesto por Luca (nombre y apellido). */
+  amigo?: string;
   /** Sueldo por fecha. */
   sueldo: number;
   /** Partidos con la Selección. */
