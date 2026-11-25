@@ -1,11 +1,11 @@
 import { fechasRestantes } from './club';
 import { Rng, clamp } from './rng';
 import { MIN_BY_POS, MIN_VENTA, POS_LABEL, POS_ORDER, assignDorsal, generatePlayer, marketValue, overall, wageFor, completarXV } from './players';
-import type { GameState, Player, Pos } from './types';
+import type { Club, GameState, Player, Pos } from './types';
 
 export const MAX_SQUAD = 36;
 export const MIN_SQUAD = 23;
-export const LIBRES = 24;
+export const LIBRES = 30;
 
 /** Lo que pide el club (o el jugador libre, como prima por firmar). */
 export function askingPrice(p: Player, g?: GameState): number {
@@ -13,7 +13,8 @@ export function askingPrice(p: Player, g?: GameState): number {
   // A un club chico le cobran menos: en la B un 10% menos, en la C un 25% menos.
   const div = g?.clubs[g.userClubId]?.division;
   const divF = div === 'C' ? 0.75 : div === 'B' ? 0.9 : 1;
-  return p.clubId ? Math.round((v * (p.transferible ? 0.95 : 1.15) * divF) / 100_000) * 100_000 : Math.max(500_000, Math.round((v * 0.3 * divF) / 100_000) * 100_000);
+  // Los clubes piden un 85% de lo que vale (los transferibles, un 65%); los libres, una prima del 20%.
+  return p.clubId ? Math.round((v * (p.transferible ? 0.65 : 0.85) * divF) / 100_000) * 100_000 : Math.max(500_000, Math.round((v * 0.2 * divF) / 100_000) * 100_000);
 }
 
 /** En las categorías chicas los jugadores aceptan cobrar menos (A 100%, B 85%, C 70%). */
@@ -22,9 +23,11 @@ export function factorSueldo(g?: GameState): number {
   return div === 'C' ? 0.7 : div === 'B' ? 0.85 : 1;
 }
 
-/** Lo que te pagan si vendés. */
-export function salePrice(p: Player): number {
-  return Math.round((marketValue(p) * 0.8) / 100_000) * 100_000;
+/** Lo que te pagan si vendés. Si lo compraste esta temporada, no te dan más de lo que pagaste (así no se puede comprar barato y revender). */
+export function salePrice(p: Player, g?: GameState): number {
+  let v = marketValue(p) * 0.8;
+  if (p.compra && g && p.compra.temporada === g.temporada) v = Math.min(v, p.compra.precio);
+  return Math.max(100_000, Math.round(v / 100_000) * 100_000);
 }
 
 export function marketOpen(g: GameState) {
@@ -43,11 +46,7 @@ export function canBuy(g: GameState, id: string): { ok: boolean; reason?: string
   if (user.plantel.length >= MAX_SQUAD) return { ok: false, reason: `Tu plantel está lleno (máximo ${MAX_SQUAD}). Vendé a alguien primero.`, price };
   if (user.presupuesto < price) return { ok: false, reason: 'No te alcanza el presupuesto.', price };
   if (user.presupuesto - price < signingWage(p, g) * fechasRestantes(g)) return { ok: false, reason: 'No te alcanza para el pase y su sueldo de lo que queda de la temporada.', price };
-  if (p.clubId) {
-    const seller = g.clubs[p.clubId];
-    if (seller.plantel.length <= 26 || countPos(g, seller.id, p.pos) <= MIN_BY_POS[p.pos])
-      return { ok: false, reason: `${seller.nombre} no lo vende: se quedaría corto de ${POS_LABEL[p.pos].toLowerCase()}s.`, price };
-  }
+  // Si el club se queda corto, sube a un pibe o ficha a otro (ver reponer): nunca te dice que no por eso.
   return { ok: true, price };
 }
 
@@ -61,6 +60,8 @@ export function buyPlayer(g: GameState, id: string): string {
     from.plantel = from.plantel.filter((x) => x !== id);
     from.xv = from.xv.map((x) => (x === id ? null : x));
     from.presupuesto += chk.price;
+    reponer(g, from, p.pos);
+    completarXV(from, g.players);
   } else {
     g.libres = g.libres.filter((x) => x !== id);
   }
@@ -70,6 +71,7 @@ export function buyPlayer(g: GameState, id: string): string {
   p.entreno = null;
   p.sueldo = signingWage(p, g);
   p.contrato = p.edad >= 32 ? 1 : p.edad <= 26 ? 3 : 2;
+  p.compra = { temporada: g.temporada, precio: chk.price };
   assignDorsal(user, g.players, p);
   user.presupuesto -= chk.price;
   const nombre = `${p.nombre} ${p.apellido}`;
@@ -77,9 +79,24 @@ export function buyPlayer(g: GameState, id: string): string {
   return from ? `Compraste a ${nombre} a ${from.nombre}.` : `Fichaste a ${nombre}, que estaba libre.`;
 }
 
+/** Cuando le comprás a un club y se queda corto en ese puesto (o con poca gente), suma un jugador nuevo un poco más flojo. */
+export function reponer(g: GameState, c: Club, pos: Pos) {
+  const rng = new Rng((g.nextId * 2654435761 + g.temporada * 97 + g.round) >>> 0);
+  const add = (ps: Pos) => {
+    const id = `p${(g.nextId++).toString(36)}`;
+    const p = generatePlayer(rng, id, ps, c.reputacion - 8 + rng.normal(0, 4), rng.int(19, 30));
+    p.clubId = c.id;
+    g.players[id] = p;
+    c.plantel.push(id);
+    assignDorsal(c, g.players, p);
+  };
+  while (countPos(g, c.id, pos) < MIN_BY_POS[pos]) add(pos);
+  while (c.plantel.length < 26) add(pos);
+}
+
 export function canSell(g: GameState, id: string): { ok: boolean; reason?: string; price: number } {
   const p = g.players[id];
-  const price = salePrice(p);
+  const price = salePrice(p, g);
   const user = g.clubs[g.userClubId];
   if (!marketOpen(g)) return { ok: false, reason: 'El mercado está cerrado durante los playoffs.', price };
   if (p.clubId !== user.id) return { ok: false, reason: 'No es de tu club.', price };
@@ -121,7 +138,7 @@ export function sellPlayer(g: GameState, id: string, rng: Rng): string {
 
 /** Sueldo que pide para firmar con vos (los libres piden un poco más). */
 export function signingWage(p: Player, g?: GameState) {
-  return Math.round((wageFor(p) * (p.clubId ? 1.1 : 1.2) * factorSueldo(g)) / 1000) * 1000;
+  return Math.round((wageFor(p) * (p.clubId ? 1 : 1.05) * factorSueldo(g)) / 1000) * 1000;
 }
 
 export function logMoney(g: GameState, concepto: string, monto: number) {
@@ -141,10 +158,14 @@ export function refreshFreeAgents(g: GameState, rng: Rng) {
     }
     return true;
   });
+  // Siempre hay unos cuantos libres buenos (para reforzarse sin pagar un pase).
+  const buenos = g.libres.filter((id) => overall(g.players[id]) >= 72).length;
+  let faltanBuenos = Math.max(0, 6 - buenos);
   while (g.libres.length < LIBRES) {
     const pos = rng.pick(POS_ORDER);
     const id = `p${(g.nextId++).toString(36)}`;
-    const p = generatePlayer(rng, id, pos, rng.normal(60, 6), rng.int(21, 33));
+    const nivel = faltanBuenos-- > 0 ? rng.normal(76, 4) : rng.normal(63, 7);
+    const p = generatePlayer(rng, id, pos, nivel, rng.int(21, 32));
     p.clubId = null;
     g.players[id] = p;
     g.libres.push(id);
