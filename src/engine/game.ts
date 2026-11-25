@@ -35,7 +35,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -1140,6 +1140,12 @@ export function migrate(g: GameState): GameState {
     // Luca: Justin Gg se llama Justin García.
     for (const p of Object.values(g.players)) if (p.amigo === 'Justin Gg') Object.assign(p, { apellido: 'García', amigo: 'Justin García' });
     g.version = 25;
+  }
+  if (g.version < 26) {
+    // Luca: Felipao García (wing) en Galera RC.
+    sumarAmigos(g);
+    for (const c of Object.values(g.clubs)) if (c.id !== g.userClubId) c.xv = bestXV(c, g.players);
+    g.version = 26;
   }
   // Presupuesto anual: las partidas viejas arman el presupuesto de lo que queda de la temporada.
   saldarGastos(g);

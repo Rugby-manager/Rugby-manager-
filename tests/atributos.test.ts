@@ -24,7 +24,7 @@ describe('atributos nuevos', () => {
     }
     old.clubs[old.userClubId].entrenamiento.foco = 'general';
     const m = migrate(old);
-    expect(m.version).toBe(25);
+    expect(m.version).toBe(26);
     const p = Object.values(m.players)[0];
     expect(p.attrs.penetracion).toBeGreaterThan(0);
     expect((p.attrs as any).manejo).toBeUndefined();
