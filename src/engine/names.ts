@@ -16,7 +16,7 @@ export interface ClubSeed {
 // Todos los clubes son inventados.
 export const CLUB_SEEDS: ClubSeed[] = [
   { nombre: 'Club Lobos de Mar', corto: 'LOB', codigo: 'ÑAN', ciudad: 'Puerto Lobos', apodo: 'Los Lobos', colores: ['#1f4fa3', '#f2c230'], patron: 'aros', division: 'A' },
-  { nombre: 'Uvita RC', corto: 'UVI', codigo: 'CRN', ciudad: 'Uvita', apodo: 'Los Uveros', colores: ['#5b3a1e', '#f0e6d2'], patron: 'banda', division: 'A' },
+  { nombre: 'Uvita RC', corto: 'UVI', codigo: 'CRN', ciudad: 'Uvita', apodo: 'Los Uveros', colores: ['#5b3a1e', '#f0e6d2'], patron: 'banda', division: 'C' },
   { nombre: 'Cucu RC', corto: 'CUC', codigo: 'OMB', ciudad: 'Monte Cucu', apodo: 'Los Cucos', colores: ['#1d7a3a', '#ffffff'], patron: 'cuartos', division: 'A' },
   { nombre: 'Club Lago Sur', corto: 'LSU', codigo: 'MOL', ciudad: 'Lago Sur', apodo: 'Los del Lago', colores: ['#7a1730', '#ffffff'], patron: 'cuartos', division: 'A' },
   { nombre: 'Lagartos RC', corto: 'LGT', codigo: 'SAU', ciudad: 'Laguna del Lagarto', apodo: 'Los Lagartos', colores: ['#6cb4e4', '#ffffff'], patron: 'aros', division: 'A' },
@@ -45,7 +45,7 @@ export const CLUB_SEEDS_C: ClubSeed[] = [
   { nombre: 'Pacheco Club', corto: 'PAC', codigo: 'CRE', ciudad: 'Pacheco', apodo: 'Los Camineros', colores: ['#b71c1c', '#f0e6d2'], patron: 'cuartos', division: 'C' },
   { nombre: 'Carupá RC', corto: 'CRP', codigo: 'CAÑ', ciudad: 'Carupá', apodo: 'Los de la Cañada', colores: ['#00838f', '#151515'], patron: 'cuartos', division: 'C' },
   { nombre: 'Santa Celina', corto: 'SCE', codigo: 'BAÑ', ciudad: 'Santa Celina', apodo: 'Los Celinenses', colores: ['#2e7d32', '#6d3b1a'], patron: 'aros', division: 'C' },
-  { nombre: 'Mistol Blanco RC', corto: 'MIS', ciudad: 'Mistol Blanco', apodo: 'Los Mistoles', colores: ['#f5f5f5', '#4a148c'], patron: 'banda', division: 'C' },
+  { nombre: 'Galera RC', corto: 'GAL', codigo: 'MIS', ciudad: 'Galera', apodo: 'Los de Galera', colores: ['#151515', '#1f1f1f'], patron: 'lisa', division: 'A' },
   { nombre: 'Club Jarilla', corto: 'JAR', ciudad: 'Jarilla', apodo: 'Los Jarilleros', colores: ['#f9a825', '#151515'], patron: 'cuartos', division: 'C' },
   { nombre: 'Sierras de los Padres RC', corto: 'SDP', codigo: 'CUB', ciudad: 'Sierras de los Padres', apodo: 'Los Serranos', colores: ['#7ec8f0', '#ffffff'], patron: 'lisa', division: 'C' },
   { nombre: 'ODP RC', corto: 'ODP', codigo: 'PEN', ciudad: 'ODP', apodo: 'Los de ODP', colores: ['#151515', '#ffffff'], patron: 'aros', division: 'C' },

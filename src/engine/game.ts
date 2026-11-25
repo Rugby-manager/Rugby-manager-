@@ -35,7 +35,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -1061,7 +1061,7 @@ export function migrate(g: GameState): GameState {
     if (!Object.values(g.clubs).some((c) => c.division === 'C')) {
       const base = Object.keys(g.clubs).length;
       const reps = rng.shuffle([57, 56, 55, 54, 53, 52, 51, 50, 49, 47]);
-      CLUB_SEEDS_C.forEach((s, i) => addClub(g, rng, `c${base + i}`, s, reps[i]));
+      CLUB_SEEDS_C.forEach((s, i) => addClub(g, rng, `c${base + i}`, { ...s, division: 'C' }, reps[i]));
       const empezo = g.fixtures.some((f) => f.result) || g.phase !== 'regular' || g.round > 1;
       if (!empezo) {
         const nuevos = makeLeagueFixtures(g, rng).filter((f) => f.comp === 'C');
@@ -1116,6 +1116,25 @@ export function migrate(g: GameState): GameState {
     sumarAmigos(g);
     for (const c of Object.values(g.clubs)) if (c.id !== g.userClubId) c.xv = bestXV(c, g.players);
     g.version = 23;
+  }
+  if (g.version < 24) {
+    // Luca: Mistol Blanco pasa a ser Galera RC (toda negra, en Primera A) y Uvita baja a la C.
+    const cod = (c: Club) => c.codigo ?? c.corto;
+    const ident = (x: ClubSeed) => ({ nombre: x.nombre, corto: x.corto, codigo: x.codigo ?? x.corto, ciudad: x.ciudad, apodo: x.apodo, colores: x.colores, patron: x.patron, color3: x.color3 });
+    const sGal = CLUB_SEEDS_C.find((x) => x.codigo === 'MIS')!;
+    const sUvi = CLUB_SEEDS.find((x) => x.codigo === 'CRN')!;
+    const mis = Object.values(g.clubs).find((c) => cod(c) === 'MIS');
+    const uvi = Object.values(g.clubs).find((c) => cod(c) === 'CRN');
+    // Si Uvita está en la A y no es tu club, los dos clubes cambian de lugar: el de la A pasa a ser Galera.
+    const cambiar = mis && uvi && uvi.division === 'A' && mis.division !== 'A' && uvi.id !== g.userClubId && mis.id !== g.userClubId;
+    if (cambiar) {
+      Object.assign(uvi, ident(sGal));
+      Object.assign(mis, ident(sUvi));
+    } else if (mis) Object.assign(mis, ident(sGal));
+    for (const c of Object.values(g.clubs)) if (c.color3 === undefined) delete c.color3;
+    sumarAmigos(g);
+    for (const c of Object.values(g.clubs)) if (c.id !== g.userClubId) c.xv = bestXV(c, g.players);
+    g.version = 24;
   }
   // Presupuesto anual: las partidas viejas arman el presupuesto de lo que queda de la temporada.
   saldarGastos(g);

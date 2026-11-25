@@ -10,7 +10,8 @@ describe('amigos de Luca', () => {
       const camet = Object.values(g.clubs).find((c) => c.codigo === 'LAG')!;
       const amigos = Object.values(g.players).filter((p) => p.amigo);
       expect(amigos.length).toBe(AMIGOS.length);
-      for (const p of amigos) expect(p.clubId).toBe(camet.id);
+      for (const p of amigos) expect(g.clubs[p.clubId!].codigo).toBe(AMIGOS.find((a) => `${a.nombre} ${a.apellido}` === p.amigo)!.club);
+      expect(camet.plantel.filter((id) => g.players[id].amigo).length).toBe(11);
       const luca = amigos.find((p) => p.amigo === 'Luca Satti')!;
       expect(luca.pos).toBe('MSC');
       const otros = Object.values(g.players).filter((p) => p !== luca).map(overall);

@@ -124,7 +124,7 @@ describe('ídolos, análisis del rival y gira', () => {
     for (const p of Object.values(g.players)) delete p.personalidad;
     g.version = 21;
     const m = migrate(g);
-    expect(m.version).toBe(23);
+    expect(m.version).toBe(24);
     expect(pibesM19(m).length).toBe(18);
     expect(m.directiva?.clubId).toBe(m.userClubId);
     const ps = Object.values(m.players);

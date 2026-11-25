@@ -156,7 +156,7 @@ describe('partidas viejas', () => {
     }
     for (const p of Object.values(old.players) as any[]) delete p.ovrInicio;
     const m = migrate(old);
-    expect(m.version).toBe(23);
+    expect(m.version).toBe(24);
     expect(m.libres.length).toBeGreaterThan(0);
     expect(m.clubs[m.userClubId].presupuesto).toBeGreaterThan(0);
     while (m.phase !== 'fin') playRound(m);
@@ -169,6 +169,12 @@ describe('partidas viejas', () => {
     playRound(g);
     const old = JSON.parse(JSON.stringify(g));
     old.version = 10;
+    // Antes de Galera RC, Uvita jugaba en la A: se arma la partida vieja como era.
+    const uvi = (Object.values(old.clubs) as any[]).find((c) => c.codigo === 'CRN');
+    const gal = (Object.values(old.clubs) as any[]).find((c) => c.codigo === 'MIS');
+    uvi.division = 'A';
+    gal.division = 'C';
+    old.fixtures = old.fixtures.map((f: any) => (f.comp === 'C' ? f : { ...f, home: f.home === gal.id ? uvi.id : f.home, away: f.away === gal.id ? uvi.id : f.away }));
     for (const [id, c] of Object.entries(old.clubs) as [string, any][]) {
       if (c.division === 'C') {
         for (const pid of c.plantel) delete old.players[pid];
@@ -177,9 +183,12 @@ describe('partidas viejas', () => {
     }
     old.fixtures = old.fixtures.filter((f: any) => f.comp !== 'C');
     const m = migrate(old);
-    expect(m.version).toBe(23);
+    expect(m.version).toBe(24);
     expect(Object.values(m.clubs).filter((c) => c.division === 'C').length).toBe(10);
     expect(m.fixtures.some((f) => f.comp === 'C')).toBe(false);
+    // Galera RC quedó en la A y Uvita bajó a la C.
+    expect(Object.values(m.clubs).find((c) => c.codigo === 'MIS')!.division).toBe('A');
+    expect(Object.values(m.clubs).find((c) => c.codigo === 'CRN')!.division).toBe('C');
     while (m.phase !== 'fin') playRound(m);
     expect(m.history[0].ascC).toBeUndefined();
     startNextSeason(m);
@@ -195,7 +204,7 @@ describe('partidas viejas', () => {
     delete old.clubs.c0.codigo;
     delete old.clubs.c4.codigo;
     const m = migrate(old);
-    expect(m.version).toBe(23);
+    expect(m.version).toBe(24);
     expect(m.clubs.c0.nombre).toBe('Club Lobos de Mar');
     expect(m.clubs.c0.corto).toBe('LOB');
     expect(m.clubs.c4.nombre).toBe('Lagartos RC');
