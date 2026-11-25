@@ -17,6 +17,11 @@ describe('amigos de Luca', () => {
       const otros = Object.values(g.players).filter((p) => p !== luca).map(overall);
       expect(overall(luca)).toBeGreaterThan(Math.max(...otros));
       expect(camet.xv).toContain(luca.id);
+      const galera = Object.values(g.clubs).find((c) => c.codigo === 'MIS')!;
+      const ena = amigos.find((p) => p.amigo === 'Ena Nosati')!;
+      expect(ena.clubId).toBe(galera.id);
+      expect(Math.max(...galera.plantel.filter((id) => id !== ena.id).map((id) => overall(g.players[id])))).toBeLessThan(overall(ena));
+      expect(overall(ena)).toBeLessThan(overall(luca));
     }
   });
   it('una partida vieja los recibe una sola vez', () => {
