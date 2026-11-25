@@ -22,6 +22,7 @@ describe('amigos de Luca', () => {
       expect(ena.clubId).toBe(galera.id);
       expect(Math.max(...galera.plantel.filter((id) => id !== ena.id).map((id) => overall(g.players[id])))).toBeLessThan(overall(ena));
       expect(overall(ena)).toBeLessThan(overall(luca));
+      expect(galera.xv).toContain(amigos.find((p) => p.amigo === 'Iván Vallestano')!.id);
       const tiki = amigos.find((p) => p.amigo === 'Tiki Alonso')!;
       expect(tiki.pos).toBe('CEN');
       expect(camet.xv).toContain(tiki.id);

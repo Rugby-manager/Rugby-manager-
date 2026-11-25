@@ -15,6 +15,8 @@ export interface Amigo {
   club: string;
   /** El mejor jugador del juego. */
   crack?: boolean;
+  /** Tiene que ser titular: queda mejor que los demás de su puesto en el club. */
+  titular?: boolean;
 }
 
 /** Luca: todos juntos en Deportivo Camet. */
@@ -38,6 +40,7 @@ export const AMIGOS: Amigo[] = [
   { nombre: 'Justin', apellido: 'García', pos: 'FUL', pos2: [], nivel: 75, edad: 23, club: 'MIS' },
   { nombre: 'Felipao', apellido: 'García', pos: 'WIN', pos2: [], nivel: 75, edad: 22, club: 'MIS' },
   { nombre: 'Ena', apellido: 'Nosati', pos: 'TER', pos2: [], nivel: 93, edad: 25, club: 'MIS' },
+  { nombre: 'Iván', apellido: 'Vallestano', pos: 'TER', pos2: [], nivel: 80, edad: 24, club: 'MIS', titular: true },
 ];
 
 const claveDe = (a: Pick<Amigo, 'nombre' | 'apellido'>) => `${a.nombre} ${a.apellido}`;
@@ -57,9 +60,9 @@ function attrsCrack(pos: Pos): Attrs {
   return a;
 }
 
-function convertir(p: Player, a: Amigo) {
+function convertir(p: Player, a: Amigo, nivel = a.nivel) {
   const rng = new Rng(semilla(claveDe(a)));
-  const attrs = a.crack ? attrsCrack(a.pos) : makeAttrs(rng, a.pos, a.nivel);
+  const attrs = a.crack ? attrsCrack(a.pos) : makeAttrs(rng, a.pos, nivel);
   if (!a.crack) attrs.actitud = Math.max(attrs.actitud, 70);
   const o = Math.round(ratingAs(attrs, a.pos));
   Object.assign(p, {
@@ -119,6 +122,15 @@ export function sumarAmigos(g: GameState) {
       convertir(p, a);
       p.dorsal = 0;
       assignDorsal(club, g.players, p);
+    }
+    if (a.titular) {
+      const rivales = club.plantel.map((id) => g.players[id]).filter((x) => x && x.pos === a.pos && !x.amigo).map(overall);
+      const mejor = Math.max(0, ...rivales);
+      if (overall(p) <= mejor) {
+        const dorsal = p.dorsal;
+        convertir(p, a, Math.min(95, mejor + 2));
+        p.dorsal = dorsal;
+      }
     }
     // El crack usa la 9: si la tiene otro, se la cambian.
     if (a.crack && p.dorsal !== 9) {
