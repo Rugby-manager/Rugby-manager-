@@ -93,8 +93,8 @@ export function MarketScreen() {
       {mode === 'ofertas' && <Ofertas />}
       {mode !== 'ofertas' && (<>
       <p className="small muted" style={{ margin: 0 }}>
-        {mode === 'comprar' && 'Jugadores de otros clubes. Piden un 15% más de lo que valen, y no venden si se quedan cortos en ese puesto.'}
-        {mode === 'libres' && 'Jugadores sin club. Solo pagás una prima por firmar, pero suelen ser de nivel medio. La lista se renueva cada temporada.'}
+        {mode === 'comprar' && 'Jugadores de otros clubes. Piden un 85% de lo que valen y siempre te los venden si te alcanza la plata.'}
+        {mode === 'libres' && 'Jugadores sin club. Solo pagás una prima por firmar (el 20% de lo que valen) y siempre hay algunos buenos. La lista se renueva cada temporada.'}
         {mode === 'transferibles' && 'Jugadores que sus clubes ponen en venta porque les sobran. Salen más baratos que en Comprar (menos de lo que valen). La lista cambia cada 3 fechas.'}
         {mode === 'prestamos' && 'Jugadores que sus clubes prestan hasta fin de temporada. Pagás el 10% de lo que valen más su sueldo, y después vuelven a su club.'}
         {mode === 'vender' && `Tocá a un jugador para venderlo al instante (te pagan el 80% de lo que vale), ponerlo transferible (te llegan más ofertas) o cederlo a préstamo. Tenés ${user.plantel.length} jugadores (mínimo 23, máximo ${MAX_SQUAD}).`}
@@ -134,7 +134,7 @@ export function MarketScreen() {
             {list.length === 0 && <p className="muted small">No hay jugadores con este filtro.</p>}
             <div className="list">
               {list.slice(0, limit).map((p) => {
-                const price = mode === 'vender' ? salePrice(p) : mode === 'prestamos' ? costoPrestamo(p) : askingPrice(p, g);
+                const price = mode === 'vender' ? salePrice(p, g) : mode === 'prestamos' ? costoPrestamo(p) : askingPrice(p, g);
                 const club = p.clubId ? g.clubs[p.clubId] : null;
                 return (
                   <button key={p.id} className="li" onClick={() => setOpen(p.id)}>

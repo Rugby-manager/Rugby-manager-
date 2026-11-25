@@ -58,6 +58,8 @@ export interface Player {
   caps?: number;
   /** Está en la lista de transferibles de su club. */
   transferible?: boolean;
+  /** Cuándo y a cuánto lo compraste (para que no se pueda revender caro el mismo año). */
+  compra?: { temporada: number; precio: number };
   /** Está a préstamo: de qué club es y hasta qué temporada. */
   /** A préstamo: clubId es el dueño; hasta = última temporada del préstamo (si falta, la misma en que empezó). */
   prestamo?: { clubId: string; temporada: number; hasta?: number };

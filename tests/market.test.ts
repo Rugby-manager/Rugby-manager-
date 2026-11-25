@@ -10,7 +10,7 @@ import type { GameState } from '../src/engine/types';
 describe('mercado de pases', () => {
   it('hay jugadores libres y los precios tienen sentido', () => {
     const g = createGame({ seed: 11 });
-    expect(freeAgents(g).length).toBe(24);
+    expect(freeAgents(g).length).toBe(30);
     const p = Object.values(g.players).find((x) => x.clubId && overall(x) >= 68 && overall(x) <= 72)!;
     expect(marketValue(p)).toBeGreaterThan(20_000_000);
     expect(marketValue(p)).toBeLessThan(90_000_000);
@@ -156,7 +156,7 @@ describe('partidas viejas', () => {
     }
     for (const p of Object.values(old.players) as any[]) delete p.ovrInicio;
     const m = migrate(old);
-    expect(m.version).toBe(24);
+    expect(m.version).toBe(25);
     expect(m.libres.length).toBeGreaterThan(0);
     expect(m.clubs[m.userClubId].presupuesto).toBeGreaterThan(0);
     while (m.phase !== 'fin') playRound(m);
@@ -183,7 +183,7 @@ describe('partidas viejas', () => {
     }
     old.fixtures = old.fixtures.filter((f: any) => f.comp !== 'C');
     const m = migrate(old);
-    expect(m.version).toBe(24);
+    expect(m.version).toBe(25);
     expect(Object.values(m.clubs).filter((c) => c.division === 'C').length).toBe(10);
     expect(m.fixtures.some((f) => f.comp === 'C')).toBe(false);
     // Galera RC quedó en la A y Uvita bajó a la C.
@@ -204,10 +204,46 @@ describe('partidas viejas', () => {
     delete old.clubs.c0.codigo;
     delete old.clubs.c4.codigo;
     const m = migrate(old);
-    expect(m.version).toBe(24);
+    expect(m.version).toBe(25);
     expect(m.clubs.c0.nombre).toBe('Club Lobos de Mar');
     expect(m.clubs.c0.corto).toBe('LOB');
     expect(m.clubs.c4.nombre).toBe('Lagartos RC');
     expect(isDerby(m.clubs.c0, m.clubs.c4)).toBe(true);
+  });
+});
+
+describe('reforzarse es más fácil', () => {
+  it('un club nunca dice que no porque se queda corto: suma a otro jugador', () => {
+    const g = createGame({ seed: 21, userClubIndex: 0 });
+    const user = g.clubs[g.userClubId];
+    user.presupuesto = 2_000_000_000;
+    const seller = Object.values(g.clubs).find((c) => c.id !== user.id && c.division !== 'X')!;
+    const pos = g.players[seller.plantel[0]].pos;
+    const dePuesto = () => seller.plantel.filter((id) => g.players[id].pos === pos);
+    const antes = dePuesto().length;
+    for (let i = 0; i < antes; i++) {
+      const id = dePuesto()[0];
+      expect(canBuy(g, id).ok).toBe(true);
+      buyPlayer(g, id);
+      if (user.plantel.length >= MAX_SQUAD - 1) user.plantel.splice(0, 5);
+    }
+    expect(dePuesto().length).toBeGreaterThanOrEqual(2);
+    expect(seller.plantel.length).toBeGreaterThanOrEqual(26);
+  });
+
+  it('no se puede comprar barato y revender caro en la misma temporada', () => {
+    const g = createGame({ seed: 22, userClubIndex: 0 });
+    const user = g.clubs[g.userClubId];
+    user.presupuesto = 2_000_000_000;
+    const t = Object.values(g.players).find((p) => p.clubId && p.clubId !== user.id && canBuy(g, p.id).ok)!;
+    t.transferible = true;
+    const pagado = askingPrice(t, g);
+    buyPlayer(g, t.id);
+    expect(salePrice(t, g)).toBeLessThanOrEqual(pagado);
+  });
+
+  it('siempre hay libres buenos', () => {
+    const g = createGame({ seed: 23 });
+    expect(freeAgents(g).filter((p) => overall(p) >= 72).length).toBeGreaterThanOrEqual(5);
   });
 });

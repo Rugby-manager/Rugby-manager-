@@ -35,7 +35,7 @@ export const AMIGOS: Amigo[] = [
   // Galera RC (toda negra).
   { nombre: 'Fran', apellido: 'Powri', pos: 'SEG', pos2: [], nivel: 75, edad: 25, club: 'MIS' },
   { nombre: 'Gastón', apellido: 'Runedera', pos: 'CEN', pos2: [], nivel: 75, edad: 24, club: 'MIS' },
-  { nombre: 'Justin', apellido: 'Gg', pos: 'FUL', pos2: [], nivel: 75, edad: 23, club: 'MIS' },
+  { nombre: 'Justin', apellido: 'García', pos: 'FUL', pos2: [], nivel: 75, edad: 23, club: 'MIS' },
 ];
 
 const claveDe = (a: Pick<Amigo, 'nombre' | 'apellido'>) => `${a.nombre} ${a.apellido}`;
