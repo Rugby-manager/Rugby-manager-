@@ -31,6 +31,7 @@ export const AMIGOS: Amigo[] = [
   { nombre: 'Javier', apellido: 'Cervi', pos: 'TER', pos2: ['CEN'], nivel: 74, edad: 27, club: CLUB_AMIGOS },
   { nombre: 'Fak', apellido: 'Juárez', pos: 'WIN', pos2: [], nivel: 73, edad: 22, club: CLUB_AMIGOS },
   { nombre: 'Santino', apellido: 'Juárez', pos: 'WIN', pos2: ['FUL'], nivel: 74, edad: 21, club: CLUB_AMIGOS },
+  { nombre: 'Tiki', apellido: 'Alonso', pos: 'APE', pos2: ['CEN', 'WIN'], nivel: 75, edad: 24, club: CLUB_AMIGOS },
 ];
 
 const claveDe = (a: Pick<Amigo, 'nombre' | 'apellido'>) => `${a.nombre} ${a.apellido}`;
