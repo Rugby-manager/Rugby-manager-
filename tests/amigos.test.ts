@@ -5,7 +5,7 @@ import { AMIGOS } from '../src/engine/amigos';
 
 describe('amigos de Luca', () => {
   it('están todos en Deportivo Camet y Luca Satti es el mejor del juego', () => {
-    for (const seed of [1, 2, 3]) {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
       const g = createGame({ seed });
       const camet = Object.values(g.clubs).find((c) => c.codigo === 'LAG')!;
       const amigos = Object.values(g.players).filter((p) => p.amigo);
@@ -22,6 +22,11 @@ describe('amigos de Luca', () => {
       expect(ena.clubId).toBe(galera.id);
       expect(Math.max(...galera.plantel.filter((id) => id !== ena.id).map((id) => overall(g.players[id])))).toBeLessThan(overall(ena));
       expect(overall(ena)).toBeLessThan(overall(luca));
+      const tiki = amigos.find((p) => p.amigo === 'Tiki Alonso')!;
+      expect(tiki.pos).toBe('CEN');
+      expect(camet.xv).toContain(tiki.id);
+      const otrosCen = camet.plantel.map((id) => g.players[id]).filter((p) => p.pos === 'CEN' && !p.amigo).map(overall);
+      expect(overall(tiki)).toBeGreaterThan(Math.max(...otrosCen));
     }
   });
   it('una partida vieja los recibe una sola vez', () => {

@@ -1,4 +1,4 @@
-import { sumarAmigos } from './amigos';
+import { rehacerAmigo, sumarAmigos } from './amigos';
 import { aplicarPostemporada } from './postemporada';
 import { efectosPersonalidad, asignarPersonalidad } from './personalidad';
 import { initM19, jugarFechaM19, nuevaTemporadaM19, pibesM19 } from './m19';
@@ -35,7 +35,7 @@ import type {
   Club, Comp, DivId, Fixture, GameState, MatchResult, Player, Pos, SeasonRecord, StandingRow, Tactics,
 } from './types';
 
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 28;
 export const REGULAR_ROUNDS = 18;
 export const LAST_ROUND = 20;
 export const FIRST_SEASON = 2027;
@@ -1152,6 +1152,12 @@ export function migrate(g: GameState): GameState {
     sumarAmigos(g);
     for (const c of Object.values(g.clubs)) if (c.id !== g.userClubId) c.xv = bestXV(c, g.players);
     g.version = 27;
+  }
+  if (g.version < 28) {
+    // Luca: Tiki Alonso juega de centro y es mejor que los otros centros de Camet.
+    rehacerAmigo(g, 'Tiki Alonso');
+    for (const c of Object.values(g.clubs)) if (c.id !== g.userClubId) c.xv = bestXV(c, g.players);
+    g.version = 28;
   }
   // Presupuesto anual: las partidas viejas arman el presupuesto de lo que queda de la temporada.
   saldarGastos(g);

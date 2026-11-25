@@ -31,7 +31,7 @@ export const AMIGOS: Amigo[] = [
   { nombre: 'Javier', apellido: 'Cervi', pos: 'TER', pos2: ['CEN'], nivel: 74, edad: 27, club: CLUB_AMIGOS },
   { nombre: 'Fak', apellido: 'Juárez', pos: 'WIN', pos2: [], nivel: 73, edad: 22, club: CLUB_AMIGOS },
   { nombre: 'Santino', apellido: 'Juárez', pos: 'WIN', pos2: ['FUL'], nivel: 74, edad: 21, club: CLUB_AMIGOS },
-  { nombre: 'Tiki', apellido: 'Alonso', pos: 'APE', pos2: ['CEN', 'WIN'], nivel: 75, edad: 24, club: CLUB_AMIGOS },
+  { nombre: 'Tiki', apellido: 'Alonso', pos: 'CEN', pos2: ['APE', 'WIN'], nivel: 81, edad: 24, club: CLUB_AMIGOS },
   // Galera RC (toda negra).
   { nombre: 'Fran', apellido: 'Powri', pos: 'SEG', pos2: [], nivel: 75, edad: 25, club: 'MIS' },
   { nombre: 'Gastón', apellido: 'Runedera', pos: 'CEN', pos2: [], nivel: 75, edad: 24, club: 'MIS' },
@@ -127,4 +127,14 @@ export function sumarAmigos(g: GameState) {
       p.dorsal = 9;
     }
   }
+}
+
+/** Vuelve a armar a un amigo que ya estaba (cuando Luca le cambia el puesto o el nivel). */
+export function rehacerAmigo(g: GameState, clave: string) {
+  const a = AMIGOS.find((x) => claveDe(x) === clave);
+  const p = Object.values(g.players).find((x) => x.amigo === clave);
+  if (!a || !p) return;
+  const dorsal = p.dorsal;
+  convertir(p, a);
+  p.dorsal = dorsal;
 }
