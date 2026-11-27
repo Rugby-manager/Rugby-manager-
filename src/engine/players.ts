@@ -351,11 +351,25 @@ export function teamAverage(club: Club, players: Record<string, Player>): number
 export const BENCH_SHIRT = [1, 0, 2, 3, 5, 8, 9, 12];
 export const BENCH_POS: Pos[] = BENCH_SHIRT.map((i) => SHIRT_POS[i]);
 
-/** Arma el banco (16 a 23) con los mejores disponibles que no están en el XV. */
-export function benchOf(club: Club, players: Record<string, Player>, xv: (string | null)[]): string[] {
+/** Un lugar del banco: quién está y si lo puso el ayudante (no lo eligió el DT). */
+export interface LugarBanco {
+  id: string | null;
+  auto: boolean;
+}
+
+/** El banco que va a jugar: respeta lo que eligió el DT (club.banco) y el ayudante
+ *  completa los lugares vacíos o los de quienes no pueden jugar (lesionados, se fueron, están en el XV). */
+export function bancoEfectivo(club: Club, players: Record<string, Player>, xv: (string | null)[]): LugarBanco[] {
   const used = new Set(xv.filter(Boolean) as string[]);
-  const out: string[] = [];
-  for (const i of BENCH_SHIRT) {
+  const out: LugarBanco[] = BENCH_SHIRT.map(() => ({ id: null, auto: true }));
+  (club.banco ?? []).slice(0, BENCH_SHIRT.length).forEach((id, k) => {
+    if (id && !used.has(id) && club.plantel.includes(id) && isAvailable(players[id])) {
+      out[k] = { id, auto: false };
+      used.add(id);
+    }
+  });
+  BENCH_SHIRT.forEach((i, k) => {
+    if (out[k].id) return;
     let best: string | null = null;
     let bestR = -1;
     for (const id of club.plantel) {
@@ -369,11 +383,18 @@ export function benchOf(club: Club, players: Record<string, Player>, xv: (string
       }
     }
     if (best) {
-      out.push(best);
+      out[k] = { id: best, auto: true };
       used.add(best);
     }
-  }
+  });
   return out;
+}
+
+/** Arma el banco (16 a 23): los que eligió el DT y, donde falte, los mejores disponibles que no están en el XV. */
+export function benchOf(club: Club, players: Record<string, Player>, xv: (string | null)[]): string[] {
+  return bancoEfectivo(club, players, xv)
+    .map((l) => l.id)
+    .filter((id): id is string => !!id);
 }
 
 const LESIONES: [number, string[]][] = [
@@ -393,6 +414,8 @@ export function lesionNombre(semanas: number, seed: string): string {
 /** Si se fue un titular (venta, préstamo, contrato, Europa…) su lugar no queda vacío:
  *  entra el mejor disponible para ese puesto. Los lesionados quedan donde están. Devuelve cuántos entraron. */
 export function completarXV(club: Club, players: Record<string, Player>): number {
+  // Del banco elegido se borran los que ya no están en el club (el ayudante completa ese lugar).
+  if (club.banco) club.banco = club.banco.map((id) => (id && players[id] && club.plantel.includes(id) ? id : null));
   const keep = club.xv.map((id) => (id && players[id] && club.plantel.includes(id) ? id : null));
   if (keep.every(Boolean)) return 0;
   const fill = bestXV(club, players, keep);

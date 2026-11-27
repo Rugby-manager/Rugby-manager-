@@ -1,7 +1,7 @@
 import { captainOf } from '../engine/extras';
 import { useEffect, useState } from 'react';
 import { useGame } from './App';
-import { POS_LABEL, POS_ORDER, SHIRT_LABEL, SHIRT_POS, bestXV, fitKind, overall, posText, slotRating } from '../engine/players';
+import { BENCH_SHIRT, POS_LABEL, POS_ORDER, SHIRT_LABEL, SHIRT_POS, bancoEfectivo, bestXV, fitKind, overall, posText, slotRating } from '../engine/players';
 import { Ovr, Seg, Sheet, Stars, ovrColor, toStars } from './common';
 import type { Ataque, Defensa, JuegoPie, Player, JugadaLine, JugadaScrum, JugadaSalida } from '../engine/types';
 
@@ -23,12 +23,15 @@ export function TeamScreen() {
   }, [sub]);
   const club = g.clubs[g.userClubId];
   const [slot, setSlot] = useState<number | null>(null);
-  // Cambio rápido: tocás uno (camiseta o suplente) y después el otro.
-  const [sel, setSel] = useState<{ slot?: number; bench?: string } | null>(null);
+  // Cambio rápido: tocás uno (titular, suplente del banco o del resto) y después el otro.
+  const [sel, setSel] = useState<{ slot?: number; banco?: number; bench?: string } | null>(null);
   const players = club.xv.map((id) => (id ? g.players[id] : null));
   const inXV = new Set(club.xv.filter(Boolean) as string[]);
-  const bench = club.plantel.map((id) => g.players[id]).filter((p) => !inXV.has(p.id));
+  const banco = bancoEfectivo(club, g.players, club.xv);
+  const enBanco = new Set(banco.map((l) => l.id).filter(Boolean) as string[]);
+  const bench = club.plantel.map((id) => g.players[id]).filter((p) => !inXV.has(p.id) && !enBanco.has(p.id));
   bench.sort((a, b) => POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos) || overall(b) - overall(a));
+  const ape = (id: string | null | undefined) => (id ? g.players[id].apellido : 'nadie');
 
   const putInSlot = (i: number, id: string) => {
     const xv = [...club.xv];
@@ -36,6 +39,33 @@ export function TeamScreen() {
     if (prev >= 0) xv[prev] = xv[i];
     xv[i] = id;
     club.xv = xv;
+  };
+  /** Pone a alguien (o a nadie) en el lugar k del banco. Desde que tocás el banco, queda como vos lo ves. */
+  const putInBanco = (k: number, id: string | null) => {
+    const b = banco.map((l) => l.id);
+    b[k] = id;
+    club.banco = b;
+  };
+  const lesionado = (id: string | null | undefined) => {
+    if (!id) return false;
+    const p = g.players[id];
+    if (p.lesion > 0) toast(`${p.apellido} está lesionado`);
+    return p.lesion > 0;
+  };
+  const done = (msg: string) => {
+    toast(msg);
+    setSel(null);
+    refresh();
+  };
+  /** Un titular y un suplente del banco cambian de lugar. */
+  const swapXVBanco = (i: number, k: number) => {
+    const sid = banco[k].id;
+    if (!sid) return done('Ese lugar del banco está vacío');
+    if (lesionado(sid)) return;
+    const tit = club.xv[i];
+    putInBanco(k, tit);
+    putInSlot(i, sid);
+    done(`Entra ${ape(sid)} en la ${i + 1}${tit ? ` y ${ape(tit)} pasa al banco con la ${16 + k}` : ''}`);
   };
   const tapSlot = (i: number) => {
     if (!sel) return setSel({ slot: i });
@@ -50,33 +80,55 @@ export function TeamScreen() {
       club.xv = xv;
       const na = a ? g.players[a].apellido : null;
       const nb = b ? g.players[b].apellido : null;
-      toast(na && nb ? `${na} pasa a la ${i + 1} y ${nb} a la ${sel.slot + 1}` : `${na ?? nb} pasa a la ${na ? i + 1 : sel.slot + 1}`);
-      setSel(null);
-      refresh();
-      return;
+      return done(na && nb ? `${na} pasa a la ${i + 1} y ${nb} a la ${sel.slot + 1}` : `${na ?? nb} pasa a la ${na ? i + 1 : sel.slot + 1}`);
     }
+    if (sel.banco !== undefined) return swapXVBanco(i, sel.banco);
     if (sel.bench) {
-      const p = g.players[sel.bench];
-      if (p.lesion > 0) return toast(`${p.apellido} está lesionado`);
-      const out = club.xv[i] ? g.players[club.xv[i]!].apellido : 'nadie';
+      if (lesionado(sel.bench)) return;
+      const out = ape(club.xv[i]);
       putInSlot(i, sel.bench);
-      toast(`Entra ${p.apellido} por ${out}`);
+      return done(`Entra ${ape(sel.bench)} por ${out}`);
     }
     setSel(null);
-    refresh();
+  };
+  const tapBanco = (k: number) => {
+    if (!sel) return setSel({ banco: k });
+    if (sel.banco === k) return setSel(null);
+    if (sel.slot !== undefined) return swapXVBanco(sel.slot, k);
+    // Dos del banco: cambian de número.
+    if (sel.banco !== undefined) {
+      const b = banco.map((l) => l.id);
+      [b[k], b[sel.banco]] = [b[sel.banco], b[k]];
+      club.banco = b;
+      return done(`${ape(b[sel.banco])} pasa a la ${16 + sel.banco} y ${ape(b[k])} a la ${16 + k}`);
+    }
+    if (sel.bench) {
+      if (lesionado(sel.bench)) return;
+      const out = banco[k].id;
+      putInBanco(k, sel.bench);
+      return done(`${ape(sel.bench)} va al banco con la ${16 + k}${out ? ` en lugar de ${ape(out)}` : ''}`);
+    }
+    setSel(null);
   };
   const tapBench = (id: string) => {
     if (sel?.slot !== undefined) {
-      const p = g.players[id];
-      if (p.lesion > 0) return toast(`${p.apellido} está lesionado`);
-      const out = club.xv[sel.slot] ? g.players[club.xv[sel.slot]!].apellido : 'nadie';
+      if (lesionado(id)) return;
+      const out = ape(club.xv[sel.slot]);
       putInSlot(sel.slot, id);
-      toast(`Entra ${p.apellido} por ${out}`);
-      setSel(null);
-      refresh();
-      return;
+      return done(`Entra ${ape(id)} por ${out}`);
+    }
+    if (sel?.banco !== undefined) {
+      if (lesionado(id)) return;
+      const k = sel.banco;
+      const out = banco[k].id;
+      putInBanco(k, id);
+      return done(`${ape(id)} va al banco con la ${16 + k}${out ? ` en lugar de ${ape(out)}` : ''}`);
     }
     setSel(sel?.bench === id ? null : { bench: id });
+  };
+  const bancoAyudante = () => {
+    club.banco = undefined;
+    done('El ayudante armó el banco con los mejores que quedan');
   };
 
   const fwd = avg(players.slice(0, 8).map((p, i) => (p ? slotRating(p, i) : 0)));
@@ -104,14 +156,16 @@ export function TeamScreen() {
         🧠 Que el ayudante ponga el mejor XV
       </button>
       <p className="small muted" style={{ margin: 0 }}>
-        Tocá un jugador y después otro titular para que cambien de puesto, o un suplente de la lista de abajo para que entre. Las estrellas (de 1 a 5) muestran cuánto rinde cada uno en ese puesto, y la barrita es su energía.
+        Tocá un jugador y después otro titular para que cambien de puesto, o un suplente para que entre. El banco (16 a 23) lo elegís vos: tocá un lugar del banco y después a quien querés poner. Las estrellas (de 1 a 5) muestran cuánto rinde cada uno en ese puesto, y la barrita es su energía.
       </p>
       {sel && (
         <div className="swapbar" role="status">
           <span>
             {sel.slot !== undefined
               ? `Elegiste a ${players[sel.slot]?.apellido ?? 'la camiseta ' + (sel.slot + 1)}. Tocá otro titular para cambiarlos de puesto, o un suplente para que entre.`
-              : `Elegiste a ${g.players[sel.bench!].apellido}. Ahora tocá la camiseta donde entra.`}
+              : sel.banco !== undefined
+                ? `Elegiste la ${16 + sel.banco} del banco (${ape(banco[sel.banco].id)}). Tocá un jugador del resto del plantel para ponerlo, otro del banco para cambiarles el número, o una camiseta del XV para que entre de titular.`
+                : `Elegiste a ${g.players[sel.bench!].apellido}. Ahora tocá la camiseta del XV o el lugar del banco donde va.`}
           </span>
           {sel.slot !== undefined && (
             <button className="btn small" onClick={() => { setSlot(sel.slot!); setSel(null); }}>
@@ -142,7 +196,7 @@ export function TeamScreen() {
           const r = p ? Math.round(slotRating(p, i)) : 0;
           const warn = !p || p.lesion > 0 || fitKind(p, SHIRT_POS[i]) === 'fuera';
           return (
-            <button key={i} className={`slot ${warn ? 'warn' : ''} ${sel?.slot === i ? 'picked' : ''} ${sel?.bench ? 'target' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={`Camiseta ${i + 1}, ${SHIRT_LABEL[i]}: ${p ? p.apellido : 'vacía'}`}>
+            <button key={i} className={`slot ${warn ? 'warn' : ''} ${sel?.slot === i ? 'picked' : ''} ${sel?.bench || sel?.banco !== undefined ? 'target' : ''}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => tapSlot(i)} aria-label={`Camiseta ${i + 1}, ${SHIRT_LABEL[i]}: ${p ? p.apellido : 'vacía'}`}>
               <span className="pc-top">
                 <span className="pc-n num">{i + 1}</span>
                 <span className="pc-name">
@@ -168,7 +222,60 @@ export function TeamScreen() {
         🧠 Que el ayudante ponga el mejor XV
       </button>
       <section className="card" style={{ padding: '0 10px 8px' }}>
-        <h3>Banco y resto del plantel</h3>
+        <h3>Banco de suplentes (16 a 23)</h3>
+        <p className="small muted" style={{ margin: '0 0 6px' }}>
+          {club.banco
+            ? 'Este es tu banco. Si alguno se lesiona o se va, el ayudante pone a otro en ese lugar (dice "ayudante").'
+            : 'Por ahora lo armó el ayudante. Tocá un lugar y después a quien quieras poner: desde ahí el banco queda como vos lo armes.'}
+        </p>
+        <table className="sq">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th className="l">Jugador</th>
+              <th>Nivel</th>
+              <th>EF</th>
+              <th>ME</th>
+            </tr>
+          </thead>
+          <tbody>
+            {banco.map((l, k) => {
+              const p = l.id ? g.players[l.id] : null;
+              const ref = SHIRT_POS[BENCH_SHIRT[k]];
+              const o = p ? overall(p) : 0;
+              const fit = p ? fitKind(p, sel?.slot !== undefined ? SHIRT_POS[sel.slot] : ref) : null;
+              return (
+                <tr key={k} className={`pl ${sel?.banco === k ? 'picked' : ''} ${sel && sel.banco === undefined ? 'target' : ''}`} onClick={() => tapBanco(k)}>
+                  <td>
+                    <span className="dor num tit">{16 + k}</span>
+                  </td>
+                  <td className="nm">
+                    <b>
+                      {p ? `${p.estrella ? '⭐ ' : ''}${p.apellido}` : 'Vacío'}
+                      {club.banco && l.auto && p && <span className="muted" style={{ fontWeight: 400 }}> · ayudante</span>}
+                    </b>
+                    <small>
+                      {p
+                        ? `${POS_LABEL[p.pos]}${p.pos2.length ? ' / ' + p.pos2.map((x) => POS_LABEL[x]).join(' / ') : ''}${fit === 'fuera' && sel?.slot === undefined ? ` · el ${16 + k} suele ser ${POS_LABEL[ref]}` : ''}`
+                        : `Suele ser ${POS_LABEL[ref]}`}
+                    </small>
+                  </td>
+                  <td>{p && <Stars n={toStars(o)} />}</td>
+                  <td>{p && <span className="cell-num lcd num">{p.energia}</span>}</td>
+                  <td>{p && <span className="cell-num lcd num" style={{ color: ovrColor(o) }}>{o}</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {club.banco && (
+          <button className="btn block small" style={{ marginTop: 6 }} onClick={bancoAyudante}>
+            🧠 Que el ayudante arme el banco
+          </button>
+        )}
+      </section>
+      <section className="card" style={{ padding: '0 10px 8px' }}>
+        <h3>Resto del plantel</h3>
         <table className="sq">
           <thead>
             <tr>
@@ -187,7 +294,7 @@ export function TeamScreen() {
               return (
                 <tr key={p.id} className={`pl ${sel?.bench === p.id ? 'picked' : ''}`} onClick={() => tapBench(p.id)} style={{ opacity: p.lesion > 0 ? 0.5 : 1 }}>
                   <td>
-                    <span className="dor num">{p.dorsal || '–'}</span>
+                    <span className="dor num">–</span>
                   </td>
                   <td className="nm">
                     <b>

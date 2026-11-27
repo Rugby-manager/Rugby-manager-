@@ -154,6 +154,8 @@ export interface Club {
   plantel: string[];
   /** 15 lugares: índice 0 = camiseta 1. */
   xv: (string | null)[];
+  /** Banco elegido por el DT (8 lugares: 16 a 23). null = lo completa el ayudante. Sin esto, lo arma solo. */
+  banco?: (string | null)[];
   tactica: Tactics;
   presupuesto: number;
   entrenamiento: Training;
